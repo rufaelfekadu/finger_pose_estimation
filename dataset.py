@@ -15,8 +15,10 @@ DATA_SOURCES = {
 }
 
 class EMGDataset(Dataset):
-    def __init__(self, data_path, label_path, transform=None, data_source='emg', label_source='manus'):
+    def __init__(self, data_path, label_path, transform=None, data_source='emg', label_source='manus', seq_len=1000, num_channels=16):
 
+        self.seq_len = seq_len
+        self.num_channels = num_channels
         self.data_path = data_path
         self.label_path = label_path
 
@@ -34,6 +36,7 @@ class EMGDataset(Dataset):
                         'Pinky_DIP_Flex','time']
         
         self.prepare_data()
+        self.reshape_data() # reshape the data to 3D tensor of shape (N, S, C )
         
     def prepare_data(self):
         data =  DATA_SOURCES[self.data_source](self.data_path)
@@ -60,6 +63,14 @@ class EMGDataset(Dataset):
         # convert to tensor
         self.data = torch.tensor(data.values)
         self.label = torch.tensor(label.values)
+    
+    def reshape_data(self):
+        # reshape the data to 3D tensor of shape (N, 1, S, C )
+        # N: number of samples
+        # S: sequence length
+        # C: number of channels
+        self.data = self.data.reshape(-1, 1, self.seq_len, self.num_channels)
+        self.label = self.label.reshape(-1, 1, self.seq_len, self.num_channels)
 
 
     def __len__(self):
@@ -69,4 +80,3 @@ class EMGDataset(Dataset):
         data = self.data[idx]
         label = self.label[idx]
         return data, label
-    # read emg signal
