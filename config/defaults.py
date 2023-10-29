@@ -7,7 +7,7 @@ _C = CN()
 # ------------------------------------
 
 _C.DATA = CN()
-_C.DATA.PATH = "../data/doi_10"
+_C.DATA.PATH = "./dataset"
 _C.DATA.SEGMENT_LENGTH = 5
 
 _C.DATA.EMG = CN()
@@ -36,3 +36,13 @@ _C.DATA.MANUS.SAMPLING_RATE = 250
 # ------------------------------------
 # OUTPUT
 # ------------------------------------
+
+# ------------------------------------
+# Solver
+# ------------------------------------
+
+_C.SOLVER = CN()
+_C.SOLVER.OPTIMIZER = "Adam"
+_C.SOLVER.LR = 0.001
+_C.SOLVER.WEIGHT_DECAY = 0.0001
+_C.SOLVER.MOMENTUM = 0.9
