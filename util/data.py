@@ -14,11 +14,13 @@ class ExpTimes:
 
 
 def read_emg(path):
+
     '''
     read emg signal from edf file
     Input: path to edf file
     Output: emg dataframe
     '''
+
     raw = mne.io.read_raw_edf(path, preload=True)
 
     # to dataframe
@@ -30,6 +32,8 @@ def read_emg(path):
     # filterout the time column for only ms resolution
     emg_df['time'] = emg_df['time'].dt.floor('ms')
 
+    # take the first 16 channels
+    emg_df = emg_df.iloc[:, :17]
     # resample emg data to 150 Hz
     emg_df = emg_df.set_index('time')
     emg_df = emg_df.resample('8ms', origin='end').mean()
@@ -37,6 +41,7 @@ def read_emg(path):
     return emg_df
 
 def read_manus(path):
+
     '''
     Read data from manus glove
     Input: path to csv file
@@ -71,7 +76,7 @@ def read_manus(path):
     unused_columns = ['Time', 'Frame'] + manus_df.filter(regex='_[X/Y/Z]', axis=1).columns.tolist()
     manus_df.drop(columns=unused_columns, inplace=True)
 
-    assert sorted(list(manus_df.columns) )== sorted(valid_columns), 'Columns are not valid'
+    assert sorted(list(manus_df.columns)) == sorted(valid_columns), 'Columns are not valid'
 
     # set time as index
     manus_df = manus_df.set_index('time')

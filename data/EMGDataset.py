@@ -1,7 +1,10 @@
-from finger_pose_estimation.util.data import read_emg, read_manus
 from torch.utils.data import Dataset
 import pandas as pd
 import torch
+
+import sys
+sys.path.append('../')
+from util.data import read_emg, read_manus
 
 # Add data sources here
 # TODO: 
@@ -36,7 +39,8 @@ class EMGDataset(Dataset):
                         'Pinky_DIP_Flex','time']
         
         self.prepare_data()
-        self.reshape_data() # reshape the data to 3D tensor of shape (N, S, C )
+        self.discritize_data() # discritize the data into sequences of length seq_len using torch
+
         
     def prepare_data(self):
         data =  DATA_SOURCES[self.data_source](self.data_path)
@@ -63,14 +67,13 @@ class EMGDataset(Dataset):
         # convert to tensor
         self.data = torch.tensor(data.values)
         self.label = torch.tensor(label.values)
+
+    #discritize the data into sequences of length seq_len using torch
+    def discritize_data(self):
+        self.data = self.data.unfold(0, self.seq_len, 1).permute(0, 2, 1).unsqueeze(1)
+        self.label = self.label.unfold(0, self.seq_len, 1).permute(0, 2, 1).unsqueeze(1)
+
     
-    def reshape_data(self):
-        # reshape the data to 3D tensor of shape (N, 1, S, C )
-        # N: number of samples
-        # S: sequence length
-        # C: number of channels
-        self.data = self.data.reshape(-1, 1, self.seq_len, self.num_channels)
-        self.label = self.label.reshape(-1, 1, self.seq_len, self.num_channels)
 
 
     def __len__(self):
@@ -80,3 +83,9 @@ class EMGDataset(Dataset):
         data = self.data[idx]
         label = self.label[idx]
         return data, label
+
+if __name__ == '__main__':
+    data = EMGDataset('/Users/rufaelmarew/Documents/tau/finger_pose_estimation/dataset/ data_2023-10-02 14-59-55-627.edf', 
+                      '/Users/rufaelmarew/Documents/tau/finger_pose_estimation/dataset/label_2023-10-02_15-24-12_YH_lab_R.csv')
+    print(data.data.shape)
+    print(data.label.shape)
