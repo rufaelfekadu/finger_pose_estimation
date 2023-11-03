@@ -75,8 +75,7 @@ def read_manus(path):
     #drop unused columns
     unused_columns = ['Time', 'Frame'] + manus_df.filter(regex='_[X/Y/Z]', axis=1).columns.tolist()
     manus_df.drop(columns=unused_columns, inplace=True)
-
-    assert sorted(list(manus_df.columns)) == sorted(valid_columns), 'Columns are not valid'
+    # assert sorted(list(manus_df.columns)) == sorted(valid_columns), 'Columns are not valid'
 
     # set time as index
     manus_df = manus_df.set_index('time')

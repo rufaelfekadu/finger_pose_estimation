@@ -1,0 +1,15 @@
+DATA:
+  PATH: finger_pose_estimation/dataset
+  SEGMENT_LENGTH: 1000
+
+MODEL:
+  NAME: 'Neuropose'
+
+SOLVER:
+  BATCH_SIZE: 32
+  NUM_EPOCHS: 100
+  LR: 0.001
+  WEIGHT_DECAY: 0.0001
+  OPTIMIZER: 'Adam'
+  METRIC: 'MSE'
+  DEVICE: 'cuda:0'

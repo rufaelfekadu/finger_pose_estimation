@@ -16,7 +16,7 @@ def train_val_dataset(dataset, val_split=0.2):
     return datasets
 
 def make_dataset(cfg):
-    data_path = os.path.join(cfg.DATA.PATH, " data_2023-10-02 14-59-55-627.edf")
+    data_path = os.path.join(cfg.DATA.PATH, "data_2023-10-02 14-59-55-627.edf")
     label_path = os.path.join(cfg.DATA.PATH, "label_2023-10-02_15-24-12_YH_lab_R.csv")
     dataset = EMGDataset(data_path=data_path, 
                          label_path=label_path,

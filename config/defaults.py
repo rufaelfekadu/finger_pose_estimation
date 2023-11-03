@@ -32,6 +32,8 @@ _C.DATA.MANUS.SAMPLING_RATE = 250
 # ------------------------------------
 # MODEL
 # ------------------------------------
+_C.MODEL = CN()
+_C.MODEL.NAME = "NeuroPose"
 
 # ------------------------------------
 # OUTPUT
@@ -42,8 +44,23 @@ _C.DATA.MANUS.SAMPLING_RATE = 250
 # ------------------------------------
 
 _C.SOLVER = CN()
+
+_C.SOLVER.METRIC = "mse"
+
+# Optimizer
 _C.SOLVER.OPTIMIZER = "Adam"
 _C.SOLVER.LR = 0.001
 _C.SOLVER.WEIGHT_DECAY = 0.0001
 _C.SOLVER.MOMENTUM = 0.9
+
 _C.SOLVER.BATCH_SIZE = 32
+_C.SOLVER.NUM_EPOCHS = 100
+_C.SOLVER.PRINT_FREQ = 10
+_C.SOLVER.CHECKPOINT_PERIOD = 10
+
+# Miscellaneus
+_C.SOLVER.LOG_DIR = "./logs"
+_C.SOLVER.DEVICE = "cuda"
+_C.SOLVER.NUM_WORKERS = 4
+_C.SOLVER.PIN_MEMORY = True
+_C.SOLVER.SEED = 42

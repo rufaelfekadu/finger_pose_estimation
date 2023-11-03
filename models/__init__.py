@@ -1,1 +1,1 @@
-from neuropose import NeuroPose
+from .neuropose import NeuroPose

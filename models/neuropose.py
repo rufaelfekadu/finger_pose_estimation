@@ -25,8 +25,7 @@ class EncoderLayer(nn.Module):
             nn.MaxPool2d(kernel_size=(3,3), stride=scale_factor),
         )
     def forward(self, x):
-        x = self.encoder(x)
-        print(x.shape)
+        x = self.encoder(x.float())
         return x
     
 # Decoder layer
@@ -45,7 +44,6 @@ class DecoderLayer(nn.Module):
 
     def forward(self, x):
         x = self.decoder(x)
-        print(x.shape)
         return x
     
 # Construct a model with 3 conv layers 3 residual blocks and 3 deconv layers using the ResNet architecture
