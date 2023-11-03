@@ -8,6 +8,7 @@ from config import cfg
 from models import NeuroPose
 import argparse
 import os
+from tqdm import tqdm
 
 class AverageMeter(object):
 
@@ -35,7 +36,7 @@ def train_epoch(cfg, epoch, model, train_loader, criterion, optimizer):
 
     avg_loss = AverageMeter()
 
-    for batch_idx, (data, target) in enumerate(train_loader):
+    for batch_idx, (data, target) in tqdm(enumerate(train_loader)):
 
         optimizer.zero_grad()
 
@@ -68,6 +69,7 @@ def train(model, dataloaders, criterion, optimizer, epochs):
     '''
     Train the model
     '''
+    print('Training the model')
     for epoch in range(epochs):
         train_loss = train_epoch(cfg, epoch, model, dataloaders['train'], criterion, optimizer)
         val_loss = test(model, dataloaders['val'], criterion)
