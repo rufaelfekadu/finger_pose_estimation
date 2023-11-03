@@ -1,4 +1,4 @@
-from torch.utils.data import Dataset
+from torch.utils.data import ConcatDataset, Dataset
 import pandas as pd
 import torch
 
@@ -73,8 +73,6 @@ class EMGDataset(Dataset):
         self.data = self.data.unfold(0, self.seq_len, 1).permute(0, 2, 1).unsqueeze(1)
         self.label = self.label.unfold(0, self.seq_len, 1).permute(0, 2, 1).unsqueeze(1)
 
-    
-
 
     def __len__(self):
         return self.data.shape[0]
@@ -84,8 +82,18 @@ class EMGDataset(Dataset):
         label = self.label[idx]
         return data, label
 
+class TestDataset(EMGDataset):
+    def __init__(self):
+        super().__init__(data_path='/Users/rufaelmarew/Documents/tau/finger_pose_estimation/dataset/data_2023-10-02 14-59-55-627.edf', 
+                      label_path='/Users/rufaelmarew/Documents/tau/finger_pose_estimation/dataset/label_2023-10-02_15-24-12_YH_lab_R.csv')
+        # tale only the first 1000 samples
+        self.data = self.data[:1000]
+        self.label = self.label[:1000]
+    
 if __name__ == '__main__':
-    data = EMGDataset('/Users/rufaelmarew/Documents/tau/finger_pose_estimation/dataset/ data_2023-10-02 14-59-55-627.edf', 
-                      '/Users/rufaelmarew/Documents/tau/finger_pose_estimation/dataset/label_2023-10-02_15-24-12_YH_lab_R.csv')
-    print(data.data.shape)
-    print(data.label.shape)
+    # data = EMGDataset('/Users/rufaelmarew/Documents/tau/finger_pose_estimation/dataset/ data_2023-10-02 14-59-55-627.edf', 
+    #                   '/Users/rufaelmarew/Documents/tau/finger_pose_estimation/dataset/label_2023-10-02_15-24-12_YH_lab_R.csv')
+    # print(data.data.shape)
+    # print(data.label.shape)
+    test_Data = TestDataset()
+    print(test_Data.data.shape)

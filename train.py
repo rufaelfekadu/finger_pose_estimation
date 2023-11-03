@@ -10,6 +10,10 @@ import argparse
 import os
 from tqdm import tqdm
 
+#setup logger
+import logging
+
+
 class AverageMeter(object):
 
     def __init__(self) -> None:
@@ -36,7 +40,7 @@ def train_epoch(cfg, epoch, model, train_loader, criterion, optimizer):
 
     avg_loss = AverageMeter()
 
-    for batch_idx, (data, target) in tqdm(enumerate(train_loader)):
+    for batch_idx, (data, target) in tqdm(enumerate(train_loader), total=len(train_loader), desc=f"Epoch {epoch}"):
 
         optimizer.zero_grad()
 
@@ -65,7 +69,7 @@ def test(model, test_loader, criterion):
 
     return avg_loss.avg
 
-def train(model, dataloaders, criterion, optimizer, epochs):
+def train(model, dataloaders, criterion, optimizer, epochs, logger):
     '''
     Train the model
     '''
@@ -75,11 +79,13 @@ def train(model, dataloaders, criterion, optimizer, epochs):
         val_loss = test(model, dataloaders['val'], criterion)
 
         if epoch % cfg.SOLVER.PRINT_FREQ == 0:
+
             print(f"Epoch: {epoch} Train Loss: {train_loss} Val Loss: {val_loss}")
+            logger.info(f"Epoch: {epoch} Train Loss: {train_loss} Val Loss: {val_loss}")
 
 
 
-def main(cfg):
+def main(cfg, logger):
 
     # Load the dataset
     dataset = make_dataset(cfg)
@@ -93,7 +99,7 @@ def main(cfg):
     optimizer = optim.Adam(model.parameters(), lr=cfg.SOLVER.LR)
     
     # Train the model
-    train(model, dataloaders, criterion, optimizer, epochs=cfg.SOLVER.NUM_EPOCHS)
+    train(model, dataloaders, criterion, optimizer, epochs=cfg.SOLVER.NUM_EPOCHS, logger=logger)
 
 def parse_arg():
     parser = argparse.ArgumentParser(description='Train the model')
@@ -113,4 +119,9 @@ if __name__ == '__main__':
     # merge config from command line
     cfg.merge_from_list(args.opts)
 
-    main(cfg)
+    # setup logging
+    logging.basicConfig(filename=os.path.join(cfg.SOLVER.LOG_DIR, 'train.log'), level=logging.INFO)
+    logger = logging.getLogger(__name__)
+
+
+    main(cfg, logger)

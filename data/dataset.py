@@ -5,7 +5,7 @@ from torch.utils.data import Subset
 
 from sklearn.model_selection import train_test_split
 
-from .EMGDataset import EMGDataset
+from .EMGDataset import EMGDataset, TestDataset
 
 
 def train_val_dataset(dataset, val_split=0.2):
@@ -25,6 +25,7 @@ def make_dataset(cfg):
                          label_source='manus',
                          seq_len=cfg.DATA.SEGMENT_LENGTH,
                          num_channels=cfg.DATA.EMG.NUM_CHANNELS)
+    # dataset = TestDataset()
     return dataset
 
 def make_dataloader(cfg, dataset):
