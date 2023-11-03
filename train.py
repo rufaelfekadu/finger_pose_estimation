@@ -52,6 +52,9 @@ def train_epoch(cfg, epoch, model, train_loader, criterion, optimizer):
         loss.backward()
         optimizer.step()
 
+        if batch_idx % cfg.SOLVER.PRINT_FREQ == 0:
+            print(f"Epoch: {epoch} Batch: {batch_idx} Loss: {avg_loss.avg}")
+
         
     return avg_loss.avg
 
@@ -78,10 +81,10 @@ def train(model, dataloaders, criterion, optimizer, epochs, logger):
         train_loss = train_epoch(cfg, epoch, model, dataloaders['train'], criterion, optimizer)
         val_loss = test(model, dataloaders['val'], criterion)
 
-        if epoch % cfg.SOLVER.PRINT_FREQ == 0:
+        # if epoch % cfg.SOLVER.PRINT_FREQ == 0:
 
-            print(f"Epoch: {epoch} Train Loss: {train_loss} Val Loss: {val_loss}")
-            logger.info(f"Epoch: {epoch} Train Loss: {train_loss} Val Loss: {val_loss}")
+        print(f"Epoch: {epoch} Train Loss: {train_loss} Val Loss: {val_loss}")
+        logger.info(f"Epoch: {epoch} Train Loss: {train_loss} Val Loss: {val_loss}")
 
 
 
@@ -109,15 +112,6 @@ def parse_arg():
     return args
 
 if __name__ == '__main__':
-
-    # parse arguments
-    args = parse_arg()
-
-    #merge configs
-    cfg.merge_from_file(args.config)
-
-    # merge config from command line
-    cfg.merge_from_list(args.opts)
 
     # setup logging
     logging.basicConfig(filename=os.path.join(cfg.SOLVER.LOG_DIR, 'train.log'), level=logging.INFO)

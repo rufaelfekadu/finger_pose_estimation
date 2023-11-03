@@ -13,3 +13,4 @@ SOLVER:
   OPTIMIZER: 'Adam'
   METRIC: 'MSE'
   DEVICE: 'cuda:0'
+  PRINT_FREQ: 1000
