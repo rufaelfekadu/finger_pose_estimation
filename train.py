@@ -34,14 +34,15 @@ class AverageMeter(object):
     def __str__(self) -> str:
         return f"{self.avg}"
 
-def train_epoch(cfg, epoch, model, train_loader, criterion, optimizer, logger=None):
+def train_epoch(cfg, epoch, model, train_loader, criterion, optimizer, logger=None, device='cpu'):
 
     model.train()
 
     avg_loss = AverageMeter()
 
     for batch_idx, (data, target) in tqdm(enumerate(train_loader), total=len(train_loader), desc=f"Epoch {epoch}"):
-
+        
+        data, target  = data.to(device), target.to(device)
         optimizer.zero_grad()
 
         output = model(data)
@@ -60,7 +61,7 @@ def train_epoch(cfg, epoch, model, train_loader, criterion, optimizer, logger=No
         
     return avg_loss.avg
 
-def test(model, test_loader, criterion):
+def test(model, test_loader, criterion, device):
     '''
     Test the model
     '''
@@ -68,20 +69,23 @@ def test(model, test_loader, criterion):
     avg_loss = AverageMeter()
     with torch.no_grad():
         for i, (data, labels) in enumerate(test_loader):
+            data, labels = data.to(device), labels.to(device)
+            
             outputs = model(data)
             loss = criterion(outputs, labels)
             avg_loss.update(loss.item(), data.size(0))
 
     return avg_loss.avg
 
-def train(model, dataloaders, criterion, optimizer, epochs, logger):
+def train(model, dataloaders, criterion, optimizer, epochs, logger, device):
     '''
     Train the model
     '''
+    
     print('Training the model')
     for epoch in range(epochs):
-        train_loss = train_epoch(cfg, epoch, model, dataloaders['train'], criterion, optimizer, logger=logger)
-        val_loss = test(model, dataloaders['val'], criterion)
+        train_loss = train_epoch(cfg, epoch, model, dataloaders['train'], criterion, optimizer, logger=logger, device=device)
+        val_loss = test(model, dataloaders['val'], criterion, device=device)
 
         # if epoch % cfg.SOLVER.PRINT_FREQ == 0:
 
@@ -92,6 +96,9 @@ def train(model, dataloaders, criterion, optimizer, epochs, logger):
 
 def main(cfg, logger):
 
+    # setup device
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
     # Load the dataset
     dataset = make_dataset(cfg)
 
@@ -100,11 +107,13 @@ def main(cfg, logger):
 
     # Initialize the model
     model = NeuroPose()
+    model = model.to(device)
+
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=cfg.SOLVER.LR)
     
     # Train the model
-    train(model, dataloaders, criterion, optimizer, epochs=cfg.SOLVER.NUM_EPOCHS, logger=logger)
+    train(model, dataloaders, criterion, optimizer, epochs=cfg.SOLVER.NUM_EPOCHS, logger=logger, device=device)
 
 def parse_arg():
     parser = argparse.ArgumentParser(description='Train the model')
