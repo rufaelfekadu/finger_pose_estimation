@@ -7,7 +7,7 @@ _C = CN()
 # ------------------------------------
 
 _C.DATA = CN()
-_C.DATA.PATH = "./dataset"
+_C.DATA.PATH = "finger_pose_estimation/dataset"
 _C.DATA.SEGMENT_LENGTH = 1000
 
 _C.DATA.EMG = CN()
