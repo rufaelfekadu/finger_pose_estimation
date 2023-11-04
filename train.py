@@ -34,7 +34,7 @@ class AverageMeter(object):
     def __str__(self) -> str:
         return f"{self.avg}"
 
-def train_epoch(cfg, epoch, model, train_loader, criterion, optimizer):
+def train_epoch(cfg, epoch, model, train_loader, criterion, optimizer, logger=None):
 
     model.train()
 
@@ -54,6 +54,8 @@ def train_epoch(cfg, epoch, model, train_loader, criterion, optimizer):
 
         if batch_idx % cfg.SOLVER.PRINT_FREQ == 0:
             print(f"Epoch: {epoch} Batch: {batch_idx} Loss: {avg_loss.avg}")
+            if logger:
+                logger.info(f"Epoch: {epoch} Batch: {batch_idx} Loss: {avg_loss.avg}")
 
         
     return avg_loss.avg
@@ -78,7 +80,7 @@ def train(model, dataloaders, criterion, optimizer, epochs, logger):
     '''
     print('Training the model')
     for epoch in range(epochs):
-        train_loss = train_epoch(cfg, epoch, model, dataloaders['train'], criterion, optimizer)
+        train_loss = train_epoch(cfg, epoch, model, dataloaders['train'], criterion, optimizer, logger=logger)
         val_loss = test(model, dataloaders['val'], criterion)
 
         # if epoch % cfg.SOLVER.PRINT_FREQ == 0:
