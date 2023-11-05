@@ -70,7 +70,7 @@ def test(model, test_loader, criterion, device):
     with torch.no_grad():
         for i, (data, labels) in enumerate(test_loader):
             data, labels = data.to(device), labels.to(device)
-            
+
             outputs = model(data)
             loss = criterion(outputs, labels)
             avg_loss.update(loss.item(), data.size(0))
@@ -114,6 +114,9 @@ def main(cfg, logger):
     
     # Train the model
     train(model, dataloaders, criterion, optimizer, epochs=cfg.SOLVER.NUM_EPOCHS, logger=logger, device=device)
+
+    #save the model
+    torch.save(model.state_dict(), os.path.join(cfg.SOLVER.LOG_DIR, 'model.pth'))
 
 def parse_arg():
     parser = argparse.ArgumentParser(description='Train the model')
