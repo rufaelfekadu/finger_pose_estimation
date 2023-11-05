@@ -54,7 +54,7 @@ def train_epoch(cfg, epoch, model, train_loader, criterion, optimizer, logger=No
         optimizer.step()
 
         if batch_idx % cfg.SOLVER.PRINT_FREQ == 0:
-            print(f"Epoch: {epoch} Batch: {batch_idx} Loss: {avg_loss.avg}")
+            # print(f"Epoch: {epoch} Batch: {batch_idx} Loss: {avg_loss.avg}")
             if logger:
                 logger.info(f"Epoch: {epoch} Batch: {batch_idx} Loss: {avg_loss.avg}")
 
@@ -131,5 +131,13 @@ if __name__ == '__main__':
     logging.basicConfig(filename=os.path.join(cfg.SOLVER.LOG_DIR, 'train.log'), level=logging.INFO)
     logger = logging.getLogger(__name__)
 
+    args = parse_arg()
+
+    # load config file
+    cfg.merge_from_file(args.config)
+    cfg.merge_from_list(args.opts)
+    cfg.freeze()
+
+    print(cfg)
 
     main(cfg, logger)
