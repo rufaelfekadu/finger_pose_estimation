@@ -91,3 +91,14 @@ class NeuroPose(nn.Module):
         x = self.decoder(x)
         return x
     
+    #load from pretrained weights
+    def load_pretrained(self, pretrained_path):
+        pretrained_dict = torch.load(pretrained_path, map_location=torch.device('cpu'))
+        model_dict = self.state_dict()
+        pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
+        
+        model_dict.update(pretrained_dict) 
+        self.load_state_dict(model_dict)
+
+        del pretrained_dict
+    

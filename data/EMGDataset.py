@@ -1,6 +1,8 @@
 from torch.utils.data import ConcatDataset, Dataset
 import pandas as pd
 import torch
+from scipy.signal import butter, filtfilt, iirnotch, sosfiltfilt, stft
+import numpy as np
 
 import sys
 sys.path.append('../')
@@ -81,6 +83,47 @@ class EMGDataset(Dataset):
         data = self.data[idx]
         label = self.label[idx]
         return data, label
+    
+    @staticmethod
+    def _filter_data(data: np.ndarray, fs: float, notch: float, low_freq: float, high_freq: float,
+                     buff_len: int = 0) -> np.ndarray:
+        """filter the data according to the pipeline
+
+        Parameters
+        ----------
+        data : np.ndarray
+            the data to filter, shape: (n_segments, n_channels, n_samples)
+
+        Returns
+        -------
+        np.ndarray
+            the filtered data, shape: (n_gestures, n_channels, n_samples - filter_buffer * sample_rate)
+        """
+        # notch filter design
+        Q = 30  # Quality factor
+        w0 = notch / (fs / 2)  # Normalized frequency
+        b_notch, a_notch = iirnotch(w0, Q)
+
+        # band pass filter design
+        low_band = low_freq / (fs / 2)
+        high_band = high_freq / (fs / 2)
+        # create bandpass filter for EMG
+        sos = butter(4, [low_band, high_band], btype='bandpass', output='sos')
+
+        # apply filters using 'filtfilt' to avoid phase shift
+        data = sosfiltfilt(sos, data, axis=2, padtype='even')
+        data = filtfilt(b_notch, a_notch, data, axis=2, padtype='even')
+
+        if buff_len > 0:
+            data = data[:, :, buff_len:]
+        return data
+        
+    @staticmethod
+    def unfold(arr, ax):
+        """
+        Unfolds a given array along the given axis
+        """
+        return np.rollaxis(arr, ax, 0).reshape(arr.shape[ax], -1)
 
 class TestDataset(EMGDataset):
     def __init__(self):
