@@ -62,8 +62,7 @@ class HandModel3D:
 
         # Define finger joints and lengths (modify as needed)
         finger_joints = [i for i in range(12)]  # Example: Five joints in each finger
-        index_finger_lengths = [(0.2, 0.2, 0.2)]  # Example: Length of each finger segment
-
+        pinky_finger_lengths = [(0.2, 0.2, 0.2)]  # Example: Length of each finger segment
         finger_lengths = pinky_finger_lengths + 3*[(0.3,0.2,0.2)] # Example: Length of each finger segment
 
         for finger in range(5):
