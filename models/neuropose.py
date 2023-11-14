@@ -28,9 +28,19 @@ class EncoderLayer(nn.Module):
         x = self.encoder(x.float())
         return x
     
+class Conv3DEncoderLayer(nn.Module):
+    def __init__(self, in_channels, out_channels, scale_factor=(2,2)):
+        super(Conv3DEncoderLayer, self).__init__()
+        self.encoder = nn.Sequential(
+            nn.Conv3d(in_channels, out_channels, kernel_size=(3,3,2), stride=(1,1,1), padding=(1,1,1)),
+            nn.BatchNorm3d(out_channels),
+            nn.ReLU(),
+            nn.MaxPool3d(kernel_size=(3,3,3), stride=scale_factor),
+        )
+    
 # Decoder layer
 class DecoderLayer(nn.Module):
-    def __init__(self, in_channels, out_channels, last=False, scale_factor=(2,2)):
+    def __init__(self, in_channels, out_channels, last=False, scale_factor=(2,2), output_shape=(1000,24)):
         super(DecoderLayer, self).__init__()
         self.decoder = nn.Sequential(
             nn.ConvTranspose2d(in_channels, out_channels, kernel_size=(3,2), stride=(1,1)),
@@ -38,7 +48,7 @@ class DecoderLayer(nn.Module):
             nn.ReLU(),
         )
         if last:
-            self.decoder.append(nn.Upsample(size=(1000, 24), mode='bilinear', align_corners=False))
+            self.decoder.append(nn.Upsample(size=output_shape, mode='bilinear', align_corners=False))
         else:
             self.decoder.append(nn.Upsample(scale_factor=scale_factor, mode='bilinear', align_corners=False))
 
@@ -56,8 +66,10 @@ class NeuroPose(nn.Module):
 
         self.encoder = self.make_encoder_layers(channels=encoder_channels, scale_factors=scale_factors)
 
-
-        self.resnet = self.make_resnet_layers(channels=[256, 256, 256])
+        # get last number of filters from encoder
+        resnet_channels = encoder_channels[-1]
+        self.resnet = self.make_resnet_layers(channel=resnet_channels, num_layers=num_residual_blocks)
+        
         self.decoder = self.make_decoder_layers(channels=encoder_channels[::-1], scale_factors=scale_factors[::-1])
 
     def make_encoder_layers(self, channels = [1, 32, 128, 256], scale_factors = [(5,2), (4,2), (2,2)]):
@@ -77,11 +89,11 @@ class NeuroPose(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def make_resnet_layers(self, channels = [256, 256, 256]):
+    def make_resnet_layers(self, channel=256, num_layers=3):
         # sequence of resnet layers
         layers = []
-        for i in range(len(channels)-1):
-            layers.append(ResidualBlock(channels[i], channels[i+1]))
+        for i in range(num_layers):
+            layers.append(ResidualBlock(channel, channel))
 
         return nn.Sequential(*layers)
     
@@ -102,3 +114,9 @@ class NeuroPose(nn.Module):
 
         del pretrained_dict
     
+
+if __name__ == '__main__':
+    model = NeuroPose()
+    print(model)
+    x = torch.randn(1, 1, 1000, 24)
+    print(model(x).shape)
