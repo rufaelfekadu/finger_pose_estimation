@@ -20,12 +20,20 @@ DATA_SOURCES = {
 }
 
 class EMGDataset(Dataset):
-    def __init__(self, data_path, label_path, transform=None, data_source='emg', label_source='manus', seq_len=1000, num_channels=16):
+    def __init__(self, data_path, label_path, transform=None, 
+                 data_source='emg', label_source='manus', 
+                 seq_len=1000, num_channels=16, filter_data=False):
+
+
+        self.data_path = data_path
+        self.label_path = label_path
 
         self.seq_len = seq_len
         self.num_channels = num_channels
-        self.data_path = data_path
-        self.label_path = label_path
+
+        #filter info
+        self.filter_data = filter_data
+        self.fs = 150
 
         self.transform = transform
 
@@ -41,7 +49,7 @@ class EMGDataset(Dataset):
                         'Pinky_DIP_Flex','time']
         
         self.prepare_data()
-        self.discritize_data() # discritize the data into sequences of length seq_len using torch
+        # self.discritize_data() # discritize the data into sequences of length seq_len using torch
 
         
     def prepare_data(self):
@@ -66,9 +74,23 @@ class EMGDataset(Dataset):
         data.reset_index(drop=True, inplace=True)
         label.reset_index(drop=True, inplace=True)
 
-        # convert to tensor
-        self.data = torch.tensor(data.values, dtype=torch.float32)
-        self.label = torch.tensor(label.values, dtype=torch.float32)
+        #save the column names for the label
+        self.label_columns = label.columns
+        #convert to numpy arrays
+        data = data.to_numpy()
+        label = label.to_numpy()
+
+        # discritize the data into sequences of length seq_len
+        data = self.unfold(data, self.seq_len)
+        label = self.unfold(label, self.seq_len)
+
+        #filter the data
+        if self.filter_data:
+            data = self._filter_data(data, fs=self.fs)
+        
+        # # convert to tensor
+        self.data = torch.tensor(data, dtype=torch.float32)
+        self.label = torch.tensor(label, dtype=torch.float32)
 
     #discritize the data into sequences of length seq_len using torch
     def discritize_data(self):
@@ -85,45 +107,36 @@ class EMGDataset(Dataset):
         return data, label
     
     @staticmethod
-    def _filter_data(data: np.ndarray, fs: float, notch: float, low_freq: float, high_freq: float,
+    def _filter_data(data: np.ndarray, fs: float, notch: float=50, low_freq: float=20.0, high_freq: float=250.0,
                      buff_len: int = 0) -> np.ndarray:
-        """filter the data according to the pipeline
+        # Define the notch frequency and quality factor
+        notch_freq = 50  # Hz
+        Q = 30
 
-        Parameters
-        ----------
-        data : np.ndarray
-            the data to filter, shape: (n_segments, n_channels, n_samples)
-
-        Returns
-        -------
-        np.ndarray
-            the filtered data, shape: (n_gestures, n_channels, n_samples - filter_buffer * sample_rate)
-        """
-        # notch filter design
-        Q = 30  # Quality factor
-        w0 = notch / (fs / 2)  # Normalized frequency
+        # Calculate the normalized frequency and design the filter
+        w0 = notch_freq / (fs / 2)
         b_notch, a_notch = iirnotch(w0, Q)
 
-        # band pass filter design
-        low_band = low_freq / (fs / 2)
-        high_band = high_freq / (fs / 2)
-        # create bandpass filter for EMG
-        sos = butter(4, [low_band, high_band], btype='bandpass', output='sos')
-
-        # apply filters using 'filtfilt' to avoid phase shift
-        data = sosfiltfilt(sos, data, axis=2, padtype='even')
-        data = filtfilt(b_notch, a_notch, data, axis=2, padtype='even')
-
-        if buff_len > 0:
-            data = data[:, :, buff_len:]
-        return data
+        # Apply the filter to your signal using filtfilt to avoid phase shift
+        filtered_signal = filtfilt(b_notch, a_notch, data)
+        
+        return filtered_signal 
         
     @staticmethod
-    def unfold(arr, ax):
-        """
-        Unfolds a given array along the given axis
-        """
-        return np.rollaxis(arr, ax, 0).reshape(arr.shape[ax], -1)
+    def unfold(data, seq_len):
+        '''
+        Unfold the data into segments of length seq_len
+        Input: data: numpy array of shape (num_samples, num_features)
+                seq_len: length of each segment
+        Output: segments: numpy array of shape (num_segments, seq_len, num_features)
+        '''
+        original_length, num_features = data.shape
+        num_segments = (original_length - seq_len + 1) * seq_len
+
+        # Reshape the data to (num_segments, seq_len, num_features)
+        segments = np.lib.stride_tricks.sliding_window_view(data, (seq_len, num_features))
+        segments = segments.squeeze(1)
+        return segments
 
 class TestDataset(EMGDataset):
     def __init__(self):

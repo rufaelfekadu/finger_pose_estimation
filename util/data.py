@@ -73,7 +73,7 @@ def read_manus(path):
     manus_df.drop(columns=acc_vel_col, inplace=True)
 
     #drop unused columns
-    unused_columns = ['Time', 'Frame'] + manus_df.filter(regex='_[X/Y/Z]', axis=1).columns.tolist()
+    unused_columns = ['Time', 'Frame'] + manus_df.filter(regex='_[X/Y/Z]', axis=1).columns.tolist()+pinch_columns
     manus_df.drop(columns=unused_columns, inplace=True)
     # assert sorted(list(manus_df.columns)) == sorted(valid_columns), 'Columns are not valid'
 
