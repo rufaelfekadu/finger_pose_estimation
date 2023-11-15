@@ -49,7 +49,7 @@ class EMGDataset(Dataset):
                         'Pinky_DIP_Flex','time']
         
         self.prepare_data()
-        # self.discritize_data() # discritize the data into sequences of length seq_len using torch
+        self.discritize_data() # discritize the data into sequences of length seq_len using torch
 
         
     def prepare_data(self):
@@ -76,17 +76,18 @@ class EMGDataset(Dataset):
 
         #save the column names for the label
         self.label_columns = label.columns
-        #convert to numpy arrays
-        data = data.to_numpy()
-        label = label.to_numpy()
 
-        # discritize the data into sequences of length seq_len
-        data = self.unfold(data, self.seq_len)
-        label = self.unfold(label, self.seq_len)
+        # #convert to numpy arrays
+        # data = data.to_numpy()
+        # label = label.to_numpy()
 
-        #filter the data
-        if self.filter_data:
-            data = self._filter_data(data, fs=self.fs)
+        # # discritize the data into sequences of length seq_len
+        # data = self.unfold(data, self.seq_len)
+        # label = self.unfold(label, self.seq_len)
+
+        # #filter the data
+        # if self.filter_data:
+        #     data = self._filter_data(data, fs=self.fs)
         
         # # convert to tensor
         self.data = torch.tensor(data, dtype=torch.float32)
