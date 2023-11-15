@@ -40,7 +40,7 @@ class Conv3DEncoderLayer(nn.Module):
     
 # Decoder layer
 class DecoderLayer(nn.Module):
-    def __init__(self, in_channels, out_channels, last=False, scale_factor=(2,2), output_shape=(1000,24)):
+    def __init__(self, in_channels, out_channels, last=False, scale_factor=(2,2), output_shape=(1000,20)):
         super(DecoderLayer, self).__init__()
         self.decoder = nn.Sequential(
             nn.ConvTranspose2d(in_channels, out_channels, kernel_size=(3,2), stride=(1,1)),
