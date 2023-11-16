@@ -26,3 +26,7 @@ dist/
 
 # Dataset
 dataset/
+
+#configuration file
+config.yaml
+
