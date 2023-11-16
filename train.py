@@ -5,14 +5,23 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from data import make_dataset, make_dataloader
 from config import cfg
-from models import NeuroPose
+from models import NeuroPose, TransformerModel, make_model
 import argparse
 import os
 from tqdm import tqdm
 
+
 #setup logger
 import logging
 
+def weights_init(m):
+    for name, param in m.named_parameters():
+        if 'weight' in name:
+            if isinstance(m, nn.Linear) or isinstance(m, nn.Conv2d):
+                nn.init.xavier_uniform_(param.data)
+        elif 'bias' in name:
+            nn.init.constant_(param.data, 0.1)
+    
 
 class AverageMeter(object):
 
@@ -39,23 +48,28 @@ def train_epoch(cfg, epoch, model, train_loader, criterion, optimizer, logger=No
     model.train()
 
     avg_loss = AverageMeter()
+    smoothness_loss_meter = AverageMeter()
 
     for batch_idx, (data, target) in tqdm(enumerate(train_loader), total=len(train_loader), desc=f"Epoch {epoch}"):
         
         data, target  = data.to(device), target.to(device)
         optimizer.zero_grad()
 
+        # forward pass
         output = model(data)
+
         loss = criterion(output, target)
-
-        #losssmoothness = ||(∇ ˆ θt − ∇ ˆ θt −1)||2 2
-        # shift the prediction by one time step and calculate the loss
-        smoothness_loss = nn.functional.mse_loss(output[:, 1:, :], output[:, :-1, :])
-        loss += smoothness_loss
-
         avg_loss.update(loss.item(), data.size(0))
 
-        loss.backward()
+        # shift the prediction by one time step and calculate the loss
+
+        smoothness_loss = nn.functional.smooth_l1_loss(output.squeeze()[:,:-1,:], output.squeeze()[:, 1:, :])
+        smoothness_loss_meter.update(smoothness_loss.item(), data.size(0))
+
+        total_loss = loss + smoothness_loss
+
+
+        total_loss.backward()
         optimizer.step()
 
         if batch_idx % cfg.SOLVER.PRINT_FREQ == 0:
@@ -111,9 +125,13 @@ def main(cfg, logger):
     dataloaders = make_dataloader(cfg, dataset)
 
     # Initialize the model
-    model = NeuroPose()
+    model = make_model(cfg)
+
+    # initialize the model with weight from xaviar unifrom dist
+    model.apply(weights_init)
     model = model.to(device)
 
+    # Define the loss function and optimizer
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=cfg.SOLVER.LR)
     
@@ -132,16 +150,24 @@ def parse_arg():
 
 if __name__ == '__main__':
 
-    # setup logging
-    logging.basicConfig(filename=os.path.join(cfg.SOLVER.LOG_DIR, 'train.log'), level=logging.INFO)
-    logger = logging.getLogger(__name__)
-
     args = parse_arg()
 
+    # only for 
+    if cfg.DEBUG:
+        cfg.SOLVER.LOG_DIR = "../debug"
+        # set the config attribute of args to 
+        args.__setattr__('config', 'config.yaml')
+        
+    
     # load config file
     cfg.merge_from_file(args.config)
     cfg.merge_from_list(args.opts)
+    cfg.SOLVER.LOG_DIR = os.path.join(cfg.SOLVER.LOG_DIR, cfg.MODEL.NAME)
     cfg.freeze()
+
+    # setup logging
+    logging.basicConfig(filename=os.path.join(cfg.SOLVER.LOG_DIR, 'train.log'), level=logging.INFO)
+    logger = logging.getLogger(__name__)
 
     print(cfg)
 

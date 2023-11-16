@@ -1,13 +1,15 @@
 from yacs.config import CfgNode as CN
 
 _C = CN()
+_C.DEBUG = True
 
 # ------------------------------------
 # DATA
 # ------------------------------------
 
 _C.DATA = CN()
-_C.DATA.PATH = "finger_pose_estimation/dataset"
+_C.DATA.PATH = "finger_pose_estimation/dataset/data_2023-10-02 14-59-55-627.edf"
+_C.DATA.LABEL_PATH = "finger_pose_estimation/dataset/label_2023-10-02_15-24-12_YH_lab_R.csv"
 _C.DATA.SEGMENT_LENGTH = 1000
 
 _C.DATA.EMG = CN()
@@ -29,13 +31,14 @@ _C.DATA.VIDEO.NUM_CHANNELS = 3
 
 _C.DATA.MANUS = CN()
 _C.DATA.MANUS.SAMPLING_RATE = 250
+_C.DATA.MANUS.NUM_JOINTS = 20
 
 
 # ------------------------------------
 # MODEL
 # ------------------------------------
 _C.MODEL = CN()
-_C.MODEL.NAME = "NeuroPose"
+_C.MODEL.NAME = "neuropose"
 
 # ------------------------------------
 # OUTPUT

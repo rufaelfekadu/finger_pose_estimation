@@ -3,6 +3,7 @@ import pandas as pd
 import torch
 from scipy.signal import butter, filtfilt, iirnotch, sosfiltfilt, stft
 import numpy as np
+import os
 
 import sys
 sys.path.append('../')
@@ -51,7 +52,6 @@ class EMGDataset(Dataset):
         self.prepare_data()
         self.discritize_data() # discritize the data into sequences of length seq_len using torch
 
-        
     def prepare_data(self):
         data =  DATA_SOURCES[self.data_source](self.data_path)
         label = DATA_SOURCES[self.label_source](self.label_path)

@@ -19,14 +19,17 @@ def train_val_dataset(dataset, val_split=0.2):
 def make_dataset(cfg):
     data_path = os.path.join(cfg.DATA.PATH, "data_2023-10-02 14-59-55-627.edf")
     label_path = os.path.join(cfg.DATA.PATH, "label_2023-10-02_15-24-12_YH_lab_R.csv")
-    dataset = EMGDataset(data_path=data_path, 
-                         label_path=label_path,
-                         transform=None,
-                         data_source='emg',
-                         label_source='manus',
-                         seq_len=cfg.DATA.SEGMENT_LENGTH,
-                         num_channels=cfg.DATA.EMG.NUM_CHANNELS)
-    # dataset = TestDataset()
+
+    if cfg.DEBUG:
+        dataset = TestDataset()
+    else:
+        dataset = EMGDataset(data_path=data_path, 
+                             label_path=label_path,
+                             transform=None,
+                             data_source='emg',
+                             label_source='manus',
+                             seq_len=cfg.DATA.SEGMENT_LENGTH,
+                             num_channels=cfg.DATA.EMG.NUM_CHANNELS)
     return dataset
 
 def make_dataloader(cfg, dataset):
@@ -49,5 +52,5 @@ def read_saved_dataset(cfg):
 
     dataset['train'] = DataLoader(train_dataset, batch_size=cfg.SOLVER.BATCH_SIZE, shuffle=False)
     dataset['val'] = DataLoader(val_dataset, batch_size=cfg.SOLVER.BATCH_SIZE, shuffle=False)
-    
+
     return dataset

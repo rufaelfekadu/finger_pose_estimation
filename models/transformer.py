@@ -47,6 +47,12 @@ class TransformerModel(nn.Module):
         x = self.decoder(x)
         return x
 
+def make_transformer_model(cfg):
+    model = TransformerModel(input_size=cfg.DATA.EMG.NUM_CHANNELS, 
+                             seq_length=cfg.DATA.SEGMENT_LENGTH, 
+                             num_channels=cfg.DATA.EMG.NUM_CHANNELS, 
+                             output_size=cfg.DATA.MANUS.NUM_JOINTS)
+    return model
 if __name__ == '__main__':
     # Example usage
     N = 100  # Number of training examples
