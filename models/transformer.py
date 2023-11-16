@@ -39,12 +39,14 @@ class TransformerModel(nn.Module):
         self.decoder = nn.Linear(self.d_model * seq_length, output_size)
 
     def forward(self, x):
+        x = x.squeeze(1)
         x = self.embedding(x)
         x = (x + self.pos_encoder(x)).permute(1, 0, 2)
         x = self.transformer_encoder(x)
         x = x.permute(1, 0, 2)
         x = x.flatten(start_dim=1)
         x = self.decoder(x)
+        x.unsqueeze(1)
         return x
 
 def make_transformer_model(cfg):
@@ -61,7 +63,7 @@ if __name__ == '__main__':
     output_dim = 20
 
     # Generate random input data
-    input_data = torch.randn(N, S, C)
+    input_data = torch.randn(N,1, S, C)
 
     # Create the Transformer model
     model = TransformerModel(input_size=C, seq_length=S, num_channels=C, output_size=output_dim)

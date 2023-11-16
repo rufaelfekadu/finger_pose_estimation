@@ -30,3 +30,5 @@ dataset/
 #configuration file
 config.yaml
 
+#outputs
+outputs/

@@ -9,10 +9,10 @@ from models import NeuroPose, TransformerModel, make_model
 import argparse
 import os
 from tqdm import tqdm
-
-
 #setup logger
 import logging
+
+from util import create_logger
 
 def weights_init(m):
     for name, param in m.named_parameters():
@@ -57,14 +57,17 @@ def train_epoch(cfg, epoch, model, train_loader, criterion, optimizer, logger=No
 
         # forward pass
         output = model(data)
-
+        if cfg.MODEL.NAME.lower() == 'transformer':
+            target = target.squeeze(1)[:,-1,:]
         loss = criterion(output, target)
         avg_loss.update(loss.item(), data.size(0))
 
         # shift the prediction by one time step and calculate the loss
-
-        smoothness_loss = nn.functional.smooth_l1_loss(output.squeeze()[:,:-1,:], output.squeeze()[:, 1:, :])
-        smoothness_loss_meter.update(smoothness_loss.item(), data.size(0))
+        if cfg.MODEL.NAME.lower() == 'transformer':
+            smoothness_loss = 0
+        else:
+            smoothness_loss = nn.functional.smooth_l1_loss(output.squeeze()[:,:-1,:], output.squeeze()[:, 1:, :])
+            smoothness_loss_meter.update(smoothness_loss.item(), data.size(0))
 
         total_loss = loss + smoothness_loss
 
@@ -72,13 +75,15 @@ def train_epoch(cfg, epoch, model, train_loader, criterion, optimizer, logger=No
         total_loss.backward()
         optimizer.step()
 
-        if batch_idx % cfg.SOLVER.PRINT_FREQ == 0:
-            # print(f"Epoch: {epoch} Batch: {batch_idx} Loss: {avg_loss.avg}")
-            if logger:
-                logger.info(f"Epoch: {epoch} Batch: {batch_idx} Loss: {avg_loss.avg}")
+        # if batch_idx % cfg.SOLVER.PRINT_FREQ == 0:
+        #     print(f"Epoch: {epoch} Batch: {batch_idx} Loss: {avg_loss.avg}")
 
-        
-    return avg_loss.avg
+    loss_dict = {
+        'loss': avg_loss.avg,
+        'smoothness_loss': smoothness_loss_meter.avg
+    }
+
+    return loss_dict
 
 def test(model, test_loader, criterion, device):
     '''
@@ -91,6 +96,8 @@ def test(model, test_loader, criterion, device):
             data, labels = data.to(device), labels.to(device)
 
             outputs = model(data)
+            if cfg.MODEL.NAME.lower() == 'transformer':
+                labels = labels.squeeze(1)[:,-1,:]
             loss = criterion(outputs, labels)
             avg_loss.update(loss.item(), data.size(0))
 
@@ -100,17 +107,21 @@ def train(model, dataloaders, criterion, optimizer, epochs, logger, device):
     '''
     Train the model
     '''
-    
-    print('Training the model')
+    logger.info("Started Training ...")
+    header = ['Epoch', 'Train Loss', 'Smoothness Loss', 'Val Loss']
+    logger.info(''.join([f' {h:<20}' for h in header]))
+
     for epoch in range(epochs):
+
         train_loss = train_epoch(cfg, epoch, model, dataloaders['train'], criterion, optimizer, logger=logger, device=device)
         val_loss = test(model, dataloaders['val'], criterion, device=device)
 
-        # if epoch % cfg.SOLVER.PRINT_FREQ == 0:
+        epoch_values = [epoch, train_loss['loss'], train_loss['smoothness_loss'], val_loss]
+        logger.info(''.join([f' {h:<20}' for h in epoch_values]))
 
-        print(f"Epoch: {epoch} Train Loss: {train_loss} Val Loss: {val_loss}")
-        logger.info(f"Epoch: {epoch} Train Loss: {train_loss} Val Loss: {val_loss}")
-
+        # print(f"Epoch: {epoch} Train Loss: {train_loss['loss']} Smoothness Loss: {train_loss['smoothness_loss']} Val Loss: {val_loss}")
+        # logger.info(f"Epoch: {epoch} Train Loss: {train_loss} Smoothness Loss: {train_loss['smoothness_loss']} Val Loss: {val_loss}")
+        
 
 
 def main(cfg, logger):
@@ -138,12 +149,12 @@ def main(cfg, logger):
     # Train the model
     train(model, dataloaders, criterion, optimizer, epochs=cfg.SOLVER.NUM_EPOCHS, logger=logger, device=device)
 
-    #save the model
+    # save the model
     torch.save(model.state_dict(), os.path.join(cfg.SOLVER.LOG_DIR, 'model.pth'))
 
 def parse_arg():
     parser = argparse.ArgumentParser(description='Train the model')
-    parser.add_argument('--config', type=str, default='finger_pose_estimation/config.yaml', help='Path to the config file')
+    parser.add_argument('--config', type=str, default='config.yaml', help='Path to the config file')
     parser.add_argument('--opts', nargs='*', default=[], help='Modify config options using the command-line')
     args = parser.parse_args()
     return args
@@ -156,7 +167,6 @@ if __name__ == '__main__':
     if cfg.DEBUG:
         cfg.SOLVER.LOG_DIR = "../debug"
         # set the config attribute of args to 
-        args.__setattr__('config', 'config.yaml')
         
     
     # load config file
@@ -166,9 +176,8 @@ if __name__ == '__main__':
     cfg.freeze()
 
     # setup logging
-    logging.basicConfig(filename=os.path.join(cfg.SOLVER.LOG_DIR, 'train.log'), level=logging.INFO)
-    logger = logging.getLogger(__name__)
+    logger = create_logger(os.path.join(cfg.SOLVER.LOG_DIR, 'train.log'))
 
-    print(cfg)
+    logger.info(f"Running using Config:\n{cfg}\n\n")
 
     main(cfg, logger)
