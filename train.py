@@ -143,7 +143,7 @@ def main(cfg, logger):
 
 def parse_arg():
     parser = argparse.ArgumentParser(description='Train the model')
-    parser.add_argument('--config', type=str, default='finger_pose_estimation/config.yaml', help='Path to the config file')
+    parser.add_argument('--config', type=str, default='config.yaml', help='Path to the config file')
     parser.add_argument('--opts', nargs='*', default=[], help='Modify config options using the command-line')
     args = parser.parse_args()
     return args
@@ -156,7 +156,6 @@ if __name__ == '__main__':
     if cfg.DEBUG:
         cfg.SOLVER.LOG_DIR = "../debug"
         # set the config attribute of args to 
-        args.__setattr__('config', 'config.yaml')
         
     
     # load config file
