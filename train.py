@@ -50,7 +50,7 @@ def train_epoch(cfg, epoch, model, train_loader, criterion, optimizer, logger=No
 
         #losssmoothness = ||(∇ ˆ θt − ∇ ˆ θt −1)||2 2
         # shift the prediction by one time step and calculate the loss
-        smoothness_loss = criterion(output[:, 1:, :], output[:, :-1, :])
+        smoothness_loss = nn.functional.mse_loss(output[:, 1:, :], output[:, :-1, :])
         loss += smoothness_loss
 
         avg_loss.update(loss.item(), data.size(0))

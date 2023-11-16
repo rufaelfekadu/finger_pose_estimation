@@ -14,3 +14,4 @@ SOLVER:
   METRIC: 'MSE'
   DEVICE: 'cuda:0'
   PRINT_FREQ: 10000
+  PRETRAINED_PATH: 'outputs/model.pth'
