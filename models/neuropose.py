@@ -58,7 +58,7 @@ class DecoderLayer(nn.Module):
     
 # Construct a model with 3 conv layers 3 residual blocks and 3 deconv layers using the ResNet architecture
 class NeuroPose(nn.Module):
-    def __init__(self, in_channels=1, num_residual_blocks=3):
+    def __init__(self, in_channels=1, num_residual_blocks=3, output_shape=(1000,20)):
         super(NeuroPose, self).__init__()
         
         encoder_channels = [in_channels, 32, 128, 256]
@@ -70,7 +70,7 @@ class NeuroPose(nn.Module):
         resnet_channels = encoder_channels[-1]
         self.resnet = self.make_resnet_layers(channel=resnet_channels, num_layers=num_residual_blocks)
         
-        self.decoder = self.make_decoder_layers(channels=encoder_channels[::-1], scale_factors=scale_factors[::-1])
+        self.decoder = self.make_decoder_layers(channels=encoder_channels[::-1], scale_factors=scale_factors[::-1], output_shape=output_shape)
 
     def make_encoder_layers(self, channels = [1, 32, 128, 256], scale_factors = [(5,2), (4,2), (2,2)]):
         # sequence of encoder layers
@@ -80,12 +80,12 @@ class NeuroPose(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def make_decoder_layers(self, channels = [256, 128, 32, 16], scale_factors = [(2,2), (4,2), (5,2)]):
+    def make_decoder_layers(self, channels = [256, 128, 32, 16], scale_factors = [(2,2), (4,2), (5,2)], output_shape=(1000,20)):
         # sequence of decoder layers
         layers = []
         for i in range(len(channels)-2):
             layers.append(DecoderLayer(channels[i], channels[i+1], scale_factor=scale_factors[i]))
-        layers.append(DecoderLayer(channels[-2], channels[-1], last=True))
+        layers.append(DecoderLayer(channels[-2], channels[-1], last=True, output_shape=output_shape))
 
         return nn.Sequential(*layers)
 
@@ -115,7 +115,7 @@ class NeuroPose(nn.Module):
         del pretrained_dict
     
 def make_neuropose_model(cfg):
-    model = NeuroPose()
+    model = NeuroPose(output_shape=(cfg.DATA.SEGMENT_LENGTH, cfg.DATA.MANUS.NUM_JOINTS))
     return model
 
 if __name__ == '__main__':
