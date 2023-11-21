@@ -32,12 +32,12 @@ class HandModel3D:
         glColor3fv(hand_color)
         
         palm_points = [
-            (-0.4, 0.35, 0.0),  # Wrist point (base)
-            (-0.15, 0.45, 0.0),  # Example: Right side of the palm
-            (0.4, 0.45, 0.0),  # Example: Top of the palm
-            (0.35, -0.35, 0.0),  # Example: Left side of the palm
-            (-0.35, -0.4, 0.0), # Example: Left side of the palm
-            (-0.4, 0.35, 0.0)  # Example: Bottom of the palm
+            (-0.4, 0.3, 0.0),  # pinky finger base 
+            (-0.15, 0.4, 0.0),  # ring finger base
+            (0.4, 0.4, 0.0),  # index finger base
+            (0.35, -0.4, 0.0),  #  thumb base
+            (-0.35, -0.45, 0.0), #  
+            (-0.4, 0.3, 0.0)  # Example: Bottom of the palm
             # Add more points as needed to draw the palm shape
         ]
         
@@ -61,7 +61,7 @@ class HandModel3D:
         glColor3fv(finger_color)
 
         # Define finger joints and lengths (modify as needed)
-        finger_joints = [i for i in range(12)]  # Example: Five joints in each finger
+        finger_joints = [i for i in range(4)]  # Example: Five joints in each finger
         pinky_finger_lengths = [(0.2, 0.2, 0.2)]  # Example: Length of each finger segment
         finger_lengths = pinky_finger_lengths + 3*[(0.3,0.2,0.2)] # Example: Length of each finger segment
 

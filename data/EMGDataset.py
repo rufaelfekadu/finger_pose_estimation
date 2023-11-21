@@ -92,6 +92,8 @@ class EMGDataset(Dataset):
         # # convert to tensor
         self.data = torch.tensor(data.values, dtype=torch.float32)
         self.label = torch.tensor(label.values, dtype=torch.float32)
+        # self.data = data
+        # self.label = label
 
     #discritize the data into sequences of length seq_len using torch
     def discritize_data(self):

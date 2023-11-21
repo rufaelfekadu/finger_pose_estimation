@@ -75,6 +75,10 @@ def train_epoch(cfg, epoch, model, train_loader, criterion, optimizer, logger=No
         total_loss.backward()
         optimizer.step()
 
+        if epoch % 5 == 0 and batch_idx == 0:
+            # print sample output values
+            print(f"Sample Output: {output[0]}")
+            print(f"Sample Target: {target[0]}")
         # if batch_idx % cfg.SOLVER.PRINT_FREQ == 0:
         #     print(f"Epoch: {epoch} Batch: {batch_idx} Loss: {avg_loss.avg}")
 
@@ -121,7 +125,6 @@ def train(model, dataloaders, criterion, optimizer, epochs, logger, device):
 
         # print(f"Epoch: {epoch} Train Loss: {train_loss['loss']} Smoothness Loss: {train_loss['smoothness_loss']} Val Loss: {val_loss}")
         # logger.info(f"Epoch: {epoch} Train Loss: {train_loss} Smoothness Loss: {train_loss['smoothness_loss']} Val Loss: {val_loss}")
-        
 
 
 def main(cfg, logger):

@@ -48,6 +48,16 @@ class TransformerModel(nn.Module):
         x = self.decoder(x)
         x.unsqueeze(1)
         return x
+    
+    def load_pretrained(self, path):
+        pretrained_dict = torch.load(path, map_location=torch.device('cpu'))
+        model_dict = self.state_dict()
+        pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
+        model_dict.update(pretrained_dict) 
+        self.load_state_dict(model_dict)
+        print('Pretrained model loaded')
+
+        del pretrained_dict
 
 def make_transformer_model(cfg):
     model = TransformerModel(input_size=cfg.DATA.EMG.NUM_CHANNELS, 

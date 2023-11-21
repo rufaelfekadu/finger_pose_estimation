@@ -45,12 +45,9 @@ def make_dataloader(cfg, dataset):
 
     return dataloader
 
-def read_saved_dataset(cfg):
-    dataset = {}
-    train_dataset = torch.load(os.path.join(cfg.SOLVER.LOG_DIR, 'train_dataset.pth'))
-    val_dataset = torch.load(os.path.join(cfg.SOLVER.LOG_DIR, 'val_dataset.pth'))
+def read_saved_dataset(cfg, path):
+    
+    dataset = torch.load(path)
+    data_loader= DataLoader(dataset, batch_size=cfg.SOLVER.BATCH_SIZE, shuffle=False)
 
-    dataset['train'] = DataLoader(train_dataset, batch_size=cfg.SOLVER.BATCH_SIZE, shuffle=False)
-    dataset['val'] = DataLoader(val_dataset, batch_size=cfg.SOLVER.BATCH_SIZE, shuffle=False)
-
-    return dataset
+    return dataset, data_loader
