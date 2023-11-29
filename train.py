@@ -1,18 +1,22 @@
-from typing import Any
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
-from data import make_dataset, make_dataloader
-from config import cfg
-from models import NeuroPose, TransformerModel, make_model
+
 import argparse
 import os
 from tqdm import tqdm
 #setup logger
 import logging
 
-from util import create_logger
+# imports form FGR module
+from util import create_logger, AverageMeter, AverageMeterList
+from loss import make_loss
+from data import make_dataset, make_dataloader
+from config import cfg
+from models import NeuroPose, TransformerModel, make_model
+
 
 def weights_init(m):
     for name, param in m.named_parameters():
@@ -23,25 +27,6 @@ def weights_init(m):
             nn.init.constant_(param.data, 0.1)
     
 
-class AverageMeter(object):
-
-    def __init__(self) -> None:
-        self.avg = 0
-        self.sum = 0
-        self.count = 0
-    
-    def update(self, value: Any, n: int = 1) -> None:
-        self.sum += value * n
-        self.count += n
-        self.avg = self.sum / self.count
-    
-    def reset(self) -> None:
-        self.avg = 0
-        self.sum = 0
-        self.count = 0
-    
-    def __str__(self) -> str:
-        return f"{self.avg}"
 
 def train_epoch(cfg, epoch, model, train_loader, criterion, optimizer, logger=None, device='cpu'):
 
@@ -59,7 +44,8 @@ def train_epoch(cfg, epoch, model, train_loader, criterion, optimizer, logger=No
         output = model(data)
         if cfg.MODEL.NAME.lower() == 'transformer':
             target = target.squeeze(1)[:,-1,:]
-        loss = criterion(output, target)
+        loss_per_keypoint = criterion(output, target)
+        loss = loss_per_keypoint.mean()
         avg_loss.update(loss.item(), data.size(0))
 
         # shift the prediction by one time step and calculate the loss
@@ -83,8 +69,8 @@ def train_epoch(cfg, epoch, model, train_loader, criterion, optimizer, logger=No
         #     print(f"Epoch: {epoch} Batch: {batch_idx} Loss: {avg_loss.avg}")
 
     loss_dict = {
-        'loss': avg_loss.avg,
-        'smoothness_loss': smoothness_loss_meter.avg
+        'loss': avg_loss,
+        'smoothness_loss': smoothness_loss_meter
     }
 
     return loss_dict
@@ -95,6 +81,8 @@ def test(model, test_loader, criterion, device):
     '''
     model.eval()
     avg_loss = AverageMeter()
+    average_loss_per_keypoint = AverageMeterList(label_names=cfg.DATA.MANUS.KEY_POINTS)
+    
     with torch.no_grad():
         for i, (data, labels) in enumerate(test_loader):
             data, labels = data.to(device), labels.to(device)
@@ -102,10 +90,12 @@ def test(model, test_loader, criterion, device):
             outputs = model(data)
             if cfg.MODEL.NAME.lower() == 'transformer':
                 labels = labels.squeeze(1)[:,-1,:]
-            loss = criterion(outputs, labels)
+            loss_per_keypoint = criterion(outputs, labels)
+            average_loss_per_keypoint.update(loss_per_keypoint, data.size(0))
+            loss = loss_per_keypoint.mean()
             avg_loss.update(loss.item(), data.size(0))
 
-    return avg_loss.avg
+    return avg_loss, average_loss_per_keypoint
 
 def train(model, dataloaders, criterion, optimizer, epochs, logger, device):
     '''
@@ -118,9 +108,9 @@ def train(model, dataloaders, criterion, optimizer, epochs, logger, device):
     for epoch in range(epochs):
 
         train_loss = train_epoch(cfg, epoch, model, dataloaders['train'], criterion, optimizer, logger=logger, device=device)
-        val_loss = test(model, dataloaders['val'], criterion, device=device)
+        val_loss, _ = test(model, dataloaders['val'], criterion, device=device)
 
-        epoch_values = [epoch, train_loss['loss'], train_loss['smoothness_loss'], val_loss]
+        epoch_values = [epoch, str(train_loss['loss']), str(train_loss['smoothness_loss']), str(val_loss)]
         logger.info(''.join([f' {h:<20}' for h in epoch_values]))
 
         # print(f"Epoch: {epoch} Train Loss: {train_loss['loss']} Smoothness Loss: {train_loss['smoothness_loss']} Val Loss: {val_loss}")
@@ -138,7 +128,12 @@ def main(cfg, logger):
     # make dataloader
     dataloaders = make_dataloader(cfg, dataset)
 
-    # Initialize the model
+    print(next(iter(dataloaders['train']))[0].shape)
+    print(dataset.label_columns)
+    cfg.DATA.MANUS.KEY_POINTS = list(dataset.label_columns)
+    cfg.freeze()
+
+    # # Initialize the model
     model = make_model(cfg)
 
     # initialize the model with weight from xaviar unifrom dist
@@ -146,12 +141,17 @@ def main(cfg, logger):
     model = model.to(device)
 
     # Define the loss function and optimizer
-    criterion = nn.MSELoss()
+    criterion = make_loss(cfg)
     optimizer = optim.Adam(model.parameters(), lr=cfg.SOLVER.LR)
     
     # Train the model
     train(model, dataloaders, criterion, optimizer, epochs=cfg.SOLVER.NUM_EPOCHS, logger=logger, device=device)
 
+    #final test
+    test_loss, per_keypoint_loss = test(model, dataloaders['val'], criterion, device=device)
+    print("----------------- Final Results -----------------")
+    logger.info(f"Test Loss: {test_loss}")
+    logger.info(f"Test Loss per Keypoint:\n{per_keypoint_loss}")
     # save the model
     torch.save(model.state_dict(), os.path.join(cfg.SOLVER.LOG_DIR, 'model.pth'))
 
@@ -176,7 +176,6 @@ if __name__ == '__main__':
     cfg.merge_from_file(args.config)
     cfg.merge_from_list(args.opts)
     cfg.SOLVER.LOG_DIR = os.path.join(cfg.SOLVER.LOG_DIR, cfg.MODEL.NAME)
-    cfg.freeze()
 
     # setup logging
     logger = create_logger(os.path.join(cfg.SOLVER.LOG_DIR, 'train.log'))

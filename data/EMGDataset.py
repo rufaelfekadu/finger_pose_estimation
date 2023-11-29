@@ -23,7 +23,7 @@ DATA_SOURCES = {
 class EMGDataset(Dataset):
     def __init__(self, data_path, label_path, transform=None, 
                  data_source='emg', label_source='manus', 
-                 seq_len=1000, num_channels=16, filter_data=False):
+                 seq_len=150, num_channels=16, filter_data=False):
 
 
         self.data_path = data_path
@@ -146,8 +146,8 @@ class TestDataset(EMGDataset):
         super().__init__(data_path='/Users/rufaelmarew/Documents/tau/finger_pose_estimation/dataset/data_2023-10-02 14-59-55-627.edf', 
                       label_path='/Users/rufaelmarew/Documents/tau/finger_pose_estimation/dataset/label_2023-10-02_15-24-12_YH_lab_R.csv')
         # tale only the first 1000 samples
-        self.data = self.data[:1000]
-        self.label = self.label[:1000]
+        self.data = self.data[:100]
+        self.label = self.label[:100]
     
 if __name__ == '__main__':
     # data = EMGDataset('/Users/rufaelmarew/Documents/tau/finger_pose_estimation/dataset/ data_2023-10-02 14-59-55-627.edf', 
