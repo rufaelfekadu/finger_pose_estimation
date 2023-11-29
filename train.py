@@ -104,14 +104,30 @@ def train(model, dataloaders, criterion, optimizer, epochs, logger, device):
     logger.info("Started Training ...")
     header = ['Epoch', 'Train Loss', 'Smoothness Loss', 'Val Loss']
     logger.info(''.join([f' {h:<20}' for h in header]))
+    best_validation_loss = float('inf')
+    counter = 0
+    patience = 4
 
     for epoch in range(epochs):
 
         train_loss = train_epoch(cfg, epoch, model, dataloaders['train'], criterion, optimizer, logger=logger, device=device)
+        
         val_loss, _ = test(model, dataloaders['val'], criterion, device=device)
 
         epoch_values = [epoch, str(train_loss['loss']), str(train_loss['smoothness_loss']), str(val_loss)]
         logger.info(''.join([f' {h:<20}' for h in epoch_values]))
+
+        # Check for improvement in validation loss
+        if val_loss.avg < best_validation_loss:
+            best_validation_loss = val_loss.avg
+            counter = 0
+            # save the model
+            torch.save(model.state_dict(), os.path.join(cfg.SOLVER.LOG_DIR, f'model_epoch_{epoch}.pth'))
+        else:
+            counter += 1
+            if counter >= patience:
+                print(f'Early stopping after epoch {epoch}.')
+                break
 
         # print(f"Epoch: {epoch} Train Loss: {train_loss['loss']} Smoothness Loss: {train_loss['smoothness_loss']} Val Loss: {val_loss}")
         # logger.info(f"Epoch: {epoch} Train Loss: {train_loss} Smoothness Loss: {train_loss['smoothness_loss']} Val Loss: {val_loss}")

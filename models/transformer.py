@@ -63,7 +63,7 @@ def make_transformer_model(cfg):
     model = TransformerModel(input_size=cfg.DATA.EMG.NUM_CHANNELS, 
                              seq_length=cfg.DATA.SEGMENT_LENGTH, 
                              num_channels=cfg.DATA.EMG.NUM_CHANNELS, 
-                             output_size=cfg.DATA.MANUS.NUM_JOINTS)
+                             output_size=len(cfg.DATA.MANUS.KEY_POINTS))
     return model
 if __name__ == '__main__':
     # Example usage

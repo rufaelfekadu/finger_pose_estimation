@@ -69,7 +69,7 @@ def read_manus(path):
 
 
     # remove acceleration and velocity columns
-    acc_vel_col = [item for item in manus_df.columns if 'Acceleration' in item or 'Velocity' in item]
+    acc_vel_col = [item for item in manus_df.columns if 'Acceleration' in item or 'Velocity' in item or 'Spread' in item]
     manus_df.drop(columns=acc_vel_col, inplace=True)
 
     #drop unused columns
