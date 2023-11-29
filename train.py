@@ -106,7 +106,6 @@ def train(model, dataloaders, criterion, optimizer, epochs, logger, device):
     logger.info(''.join([f' {h:<20}' for h in header]))
     best_validation_loss = float('inf')
     counter = 0
-    patience = 4
 
     for epoch in range(epochs):
 
@@ -122,10 +121,16 @@ def train(model, dataloaders, criterion, optimizer, epochs, logger, device):
             best_validation_loss = val_loss.avg
             counter = 0
             # save the model
-            torch.save(model.state_dict(), os.path.join(cfg.SOLVER.LOG_DIR, f'model_epoch_{epoch}.pth'))
+            dict_to_save = {
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'epoch': epoch,
+                'best_validation_loss': best_validation_loss
+            }
+            torch.save(dict_to_save, os.path.join(cfg.SOLVER.LOG_DIR, f'model_best.pth'))
         else:
             counter += 1
-            if counter >= patience:
+            if counter >= cfg.SOLVER.PATIENCE:
                 print(f'Early stopping after epoch {epoch}.')
                 break
 

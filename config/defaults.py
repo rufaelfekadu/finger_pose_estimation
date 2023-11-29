@@ -52,6 +52,7 @@ _C.MODEL.NAME = "neuropose"
 _C.SOLVER = CN()
 
 _C.SOLVER.METRIC = "mse"
+_C.SOLVER.PATIENCE = 5
 
 # Optimizer
 _C.SOLVER.OPTIMIZER = "Adam"
