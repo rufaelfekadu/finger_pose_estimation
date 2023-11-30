@@ -199,6 +199,9 @@ if __name__ == '__main__':
     cfg.merge_from_list(args.opts)
     cfg.SOLVER.LOG_DIR = os.path.join(cfg.SOLVER.LOG_DIR, cfg.MODEL.NAME)
 
+    # create log directory
+    os.makedirs(cfg.SOLVER.LOG_DIR, exist_ok=True)
+    
     # setup logging
     logger = create_logger(os.path.join(cfg.SOLVER.LOG_DIR, 'train.log'))
 

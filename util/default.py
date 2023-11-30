@@ -53,7 +53,7 @@ def create_logger(log_path):
     # Clear the log file if it exists
     if os.path.exists(log_path):
         open(log_path, 'w', ).close()
-        
+       
     # Create a logger object
     logger = logging.getLogger(__name__)
 
