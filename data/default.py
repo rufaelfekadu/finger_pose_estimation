@@ -10,10 +10,10 @@ from .EMGDataset import EMGDataset, TestDataset
 
 
 def train_val_dataset(dataset, val_split=0.2):
-    # train_idx, val_idx = train_test_split(list(range(len(dataset))), test_size=val_split, shuffle=False)
-    train_end = int((1-val_split)*len(dataset))
-    train_idx = list(range(train_end))
-    val_idx = list(range(train_end, len(dataset)))
+    train_idx, val_idx = train_test_split(list(range(len(dataset))), test_size=val_split, shuffle=False)
+    # train_end = int((1-val_split)*len(dataset))
+    # train_idx = list(range(train_end))
+    # val_idx = list(range(train_end, len(dataset)))
     datasets = {}
     datasets['train'] = Subset(dataset, train_idx)
     datasets['val'] = Subset(dataset, val_idx)
