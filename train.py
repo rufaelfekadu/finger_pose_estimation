@@ -88,8 +88,9 @@ def test(model, test_loader, criterion, device):
             data, labels = data.to(device), labels.to(device)
 
             outputs = model(data)
-            if cfg.MODEL.NAME.lower() == 'transformer':
-                labels = labels.squeeze(1)[:,-1,:]
+            labels = labels.squeeze(1)[:,-1,:]
+            if cfg.MODEL.NAME.lower() == 'neuropose':
+                outputs = outputs.squeeze()[:,-1,:]
             loss_per_keypoint = criterion(outputs, labels)
             average_loss_per_keypoint.update(loss_per_keypoint, data.size(0))
             loss = loss_per_keypoint.mean()

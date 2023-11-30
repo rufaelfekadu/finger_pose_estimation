@@ -10,7 +10,10 @@ from .EMGDataset import EMGDataset, TestDataset
 
 
 def train_val_dataset(dataset, val_split=0.2):
-    train_idx, val_idx = train_test_split(list(range(len(dataset))), test_size=val_split, )
+    # train_idx, val_idx = train_test_split(list(range(len(dataset))), test_size=val_split, shuffle=False)
+    train_end = int((1-val_split)*len(dataset))
+    train_idx = list(range(train_end))
+    val_idx = list(range(train_end, len(dataset)))
     datasets = {}
     datasets['train'] = Subset(dataset, train_idx)
     datasets['val'] = Subset(dataset, val_idx)
@@ -21,7 +24,7 @@ def make_dataset(cfg):
     label_path = os.path.join(cfg.DATA.PATH, "label_2023-10-02_15-24-12_YH_lab_R.csv")
 
     if cfg.DEBUG:
-        dataset = TestDataset()
+        dataset = TestDataset(seq_len=cfg.DATA.SEGMENT_LENGTH)
     else:
         dataset = EMGDataset(data_path=data_path, 
                              label_path=label_path,

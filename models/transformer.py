@@ -1,6 +1,9 @@
 import torch
 import torch.nn as nn
 import time
+import sys
+sys.path.append('../')
+from util import BReLU
 
 class PositionalEncoding(nn.Module):
     def __init__(self, d_model, max_len=5000):
@@ -37,7 +40,8 @@ class TransformerModel(nn.Module):
             num_layers=self.num_layers
         )
         self.decoder = nn.Linear(self.d_model * seq_length, output_size)
-
+        self.relu = BReLU()
+        
     def forward(self, x):
         x = x.squeeze(1)
         x = self.embedding(x)
@@ -47,6 +51,7 @@ class TransformerModel(nn.Module):
         x = x.flatten(start_dim=1)
         x = self.decoder(x)
         x.unsqueeze(1)
+        # Normalize input with constraint
         return x
     
     def load_pretrained(self, path):
@@ -55,7 +60,7 @@ class TransformerModel(nn.Module):
         model_dict = self.state_dict()
 
         pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
-        
+
         model_dict.update(pretrained_dict) 
         self.load_state_dict(model_dict)
         print('Pretrained model loaded')
