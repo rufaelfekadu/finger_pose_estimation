@@ -50,13 +50,13 @@ class TransformerModel(nn.Module):
         x = x.permute(1, 0, 2)
         x = x.flatten(start_dim=1)
         x = self.decoder(x)
-        x.unsqueeze(1)
+
         # Normalize input with constraint
         return x
     
     def load_pretrained(self, path):
 
-        pretrained_dict = torch.load(path, map_location=torch.device('cpu'))['model_state_dict']
+        pretrained_dict = torch.load(path, map_location=torch.device('cpu'))
         model_dict = self.state_dict()
 
         pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
