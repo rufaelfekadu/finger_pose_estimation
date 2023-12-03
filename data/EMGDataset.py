@@ -142,9 +142,10 @@ class EMGDataset(Dataset):
         return segments
 
 class TestDataset(EMGDataset):
-    def __init__(self):
+    def __init__(self, ):
         super().__init__(data_path='/Users/rufaelmarew/Documents/tau/finger_pose_estimation/dataset/data_2023-10-02 14-59-55-627.edf', 
-                      label_path='/Users/rufaelmarew/Documents/tau/finger_pose_estimation/dataset/label_2023-10-02_15-24-12_YH_lab_R.csv')
+                      label_path='/Users/rufaelmarew/Documents/tau/finger_pose_estimation/dataset/label_2023-10-02_15-24-12_YH_lab_R.csv',
+                      )
         # tale only the first 1000 samples
         self.data = self.data[:100]
         self.label = self.label[:100]

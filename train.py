@@ -44,8 +44,12 @@ def train_epoch(cfg, epoch, model, train_loader, criterion, optimizer, logger=No
         output = model(data)
         if cfg.MODEL.NAME.lower() == 'transformer':
             target = target.squeeze(1)[:,-1,:]
-        loss_per_keypoint = criterion(output, target)
-        loss = loss_per_keypoint.mean()
+            loss_per_keypoint = criterion(output, target)
+            loss = loss_per_keypoint.mean()
+        else:
+            loss_per_keypoint = criterion(output.squeeze()[:,-1,:], target.squeeze()[:, -1, :])
+            loss = loss_per_keypoint.mean()
+
         avg_loss.update(loss.item(), data.size(0))
 
         # shift the prediction by one time step and calculate the loss
@@ -84,13 +88,17 @@ def test(model, test_loader, criterion, device):
     average_loss_per_keypoint = AverageMeterList(label_names=cfg.DATA.MANUS.KEY_POINTS)
     
     with torch.no_grad():
-        for i, (data, labels) in enumerate(test_loader):
-            data, labels = data.to(device), labels.to(device)
+        for i, (data, target) in enumerate(test_loader):
+            data, target = data.to(device), target.to(device)
 
             outputs = model(data)
+
             if cfg.MODEL.NAME.lower() == 'transformer':
-                labels = labels.squeeze(1)[:,-1,:]
-            loss_per_keypoint = criterion(outputs, labels)
+                target = target.squeeze(1)[:,-1,:]
+                loss_per_keypoint = criterion(outputs, target)
+            else:
+                loss_per_keypoint = criterion(outputs.squeeze()[:,-1,:], target.squeeze()[:, -1, :])
+
             average_loss_per_keypoint.update(loss_per_keypoint, data.size(0))
             loss = loss_per_keypoint.mean()
             avg_loss.update(loss.item(), data.size(0))
