@@ -115,7 +115,7 @@ class NeuroPose(nn.Module):
         del pretrained_dict
     
 def make_neuropose_model(cfg):
-    model = NeuroPose(output_shape=(cfg.DATA.SEGMENT_LENGTH, cfg.DATA.MANUS.NUM_JOINTS))
+    model = NeuroPose(output_shape=(cfg.DATA.SEGMENT_LENGTH, len(cfg.DATA.MANUS.KEY_POINTS)))
     return model
 
 if __name__ == '__main__':
