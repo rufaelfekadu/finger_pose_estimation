@@ -47,8 +47,9 @@ def train_epoch(cfg, epoch, model, train_loader, criterion, optimizer, logger=No
             loss_per_keypoint = criterion(output, target)
             loss = loss_per_keypoint.mean()
         else:
-            loss_per_keypoint = criterion(output.squeeze()[:,-1,:], target.squeeze()[:, -1, :])
-            loss = loss_per_keypoint.mean()
+            # loss_per_keypoint = criterion(output.squeeze()[:,-1,:], target.squeeze()[:, -1, :])
+
+            loss = nn.functional.mse_loss(output, target)
 
         avg_loss.update(loss.item(), data.size(0))
 
