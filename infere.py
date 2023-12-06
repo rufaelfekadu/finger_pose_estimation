@@ -9,14 +9,14 @@ import torch.nn as nn
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-def plot(cfg, label, output):
+def plot(cfg, label, output, seg_len=100):
     #plot the label and predictions
     
     fig, axs = plt.subplots(output.size(1), 1, figsize=(10, 10))
     print(output.size(1))
     for i in range(output.size(1)):
-        axs[i].plot(label[:, i], label=f'label_{i}')
-        axs[i].plot(output[:, i], label=f'output_{i}')
+        axs[i].plot(label[:seg_len, i], label=f'label_{i}')
+        axs[i].plot(output[:seg_len, i], label=f'output_{i}')
         axs[i].legend()
     plt.savefig(os.path.join(cfg.SOLVER.LOG_DIR, 'plot.png'))
 
@@ -62,7 +62,7 @@ def inference(cfg, logger):
     to_plot_trans = torch.cat(to_plot_trans, dim=0)
 
     # torch.save(pred_cache, os.path.join(cfg.SOLVER.LOG_DIR, cfg.MODEL.NAME, 'pred_cache.pth'))
-    plot(cfg, to_plot_trans[:200,:], pred_trans[:200])
+    plot(cfg, to_plot_trans, pred_trans)
     logger.info(f"Total loss for transformer: {total_loss_trans/len(data_transformer)}")
 
 
