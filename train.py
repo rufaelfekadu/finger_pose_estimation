@@ -187,8 +187,6 @@ def main(cfg, logger):
     print("----------------- Final Results -----------------")
     logger.info(f"Test Loss: {test_loss}")
     logger.info(f"Test Loss per Keypoint:\n{per_keypoint_loss}")
-    # save the model
-    torch.save(model.state_dict(), os.path.join(cfg.SOLVER.LOG_DIR, 'model.pth'))
 
 def parse_arg():
     parser = argparse.ArgumentParser(description='Train the model')

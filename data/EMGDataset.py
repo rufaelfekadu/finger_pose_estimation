@@ -26,13 +26,15 @@ DATA_SOURCES = {
 class EMGDataset(Dataset):
     def __init__(self, data_path, label_path, transform=None, 
                  data_source='emg', label_source='manus', 
-                 seq_len=150, num_channels=16, filter_data=False, sampling_freq=125):
+                 seq_len=150, num_channels=16, filter_data=False, 
+                 sampling_freq=125, stride=1):
 
 
         self.data_path = data_path
         self.label_path = label_path
 
         self.seq_len = seq_len
+        self.stride = stride
         self.num_channels = num_channels
 
         #filter info
@@ -110,8 +112,8 @@ class EMGDataset(Dataset):
 
     #discritize the data into sequences of length seq_len using torch
     def discritize_data(self):
-        self.data = self.data.unfold(0, self.seq_len, 10).permute(0, 2, 1).unsqueeze(1)
-        self.label = self.label.unfold(0, self.seq_len, 10).permute(0, 2, 1).unsqueeze(1)
+        self.data = self.data.unfold(0, self.seq_len, self.stride).permute(0, 2, 1).unsqueeze(1)
+        self.label = self.label.unfold(0, self.seq_len, self.stride).permute(0, 2, 1).unsqueeze(1)
 
 
     def __len__(self):

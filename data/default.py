@@ -34,7 +34,9 @@ def make_dataset(cfg):
                              data_source='emg',
                              label_source='manus',
                              seq_len=cfg.DATA.SEGMENT_LENGTH,
-                             num_channels=cfg.DATA.EMG.NUM_CHANNELS)
+                             num_channels=cfg.DATA.EMG.NUM_CHANNELS,
+                             stride=cfg.DATA.STRIDE,
+                             filter_data=cfg.DATA.FILTER_DATA,)
     return dataset
 
 def make_dataloader(cfg, dataset):
