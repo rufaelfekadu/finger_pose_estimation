@@ -2,11 +2,14 @@ from torch.utils.data import ConcatDataset, Dataset
 import pandas as pd
 import torch
 from scipy.signal import butter, filtfilt, iirnotch, sosfiltfilt, stft
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 import numpy as np
+import matplotlib.pyplot as plt
+
 import os
 
 import sys
-sys.path.append('../')
+sys.path.append('/Users/rufaelmarew/Documents/tau/finger_pose_estimation')
 from util.data import read_emg, read_manus
 
 # Add data sources here
@@ -23,7 +26,7 @@ DATA_SOURCES = {
 class EMGDataset(Dataset):
     def __init__(self, data_path, label_path, transform=None, 
                  data_source='emg', label_source='manus', 
-                 seq_len=150, num_channels=16, filter_data=False):
+                 seq_len=150, num_channels=16, filter_data=False, sampling_freq=125):
 
 
         self.data_path = data_path
@@ -34,7 +37,7 @@ class EMGDataset(Dataset):
 
         #filter info
         self.filter_data = filter_data
-        self.fs = 150
+        self.fs = sampling_freq
 
         self.transform = transform
 
@@ -77,21 +80,30 @@ class EMGDataset(Dataset):
         #save the column names for the label
         self.label_columns = label.columns
 
-        # #convert to numpy arrays
-        # data = data.to_numpy()
-        # label = label.to_numpy()
+        #convert to numpy arrays
+        data = data.to_numpy()
+        label = label.to_numpy()
+        print("data shape original: ", data.shape)
+
+        # normalize the data
+        print(f'max before scaling: {np.max(data)}\nmin before scaling: {np.min(data)}')
+        scaler = StandardScaler()
+        data = scaler.fit_transform(data)
+        print(f'max after scaling: {np.max(data)}\nmin after scaling: {np.min(data)}')
 
         # # discritize the data into sequences of length seq_len
         # data = self.unfold(data, self.seq_len)
         # label = self.unfold(label, self.seq_len)
+        # print("data shape unfolded: ", data.shape)
 
-        # #filter the data
-        # if self.filter_data:
-        #     data = self._filter_data(data, fs=self.fs)
+        print("filtering data")
+        #filter the data
+        if self.filter_data:
+            data = self._filter_data(data, fs=self.fs)
         
-        # # convert to tensor
-        self.data = torch.tensor(data.values, dtype=torch.float32)
-        self.label = torch.tensor(label.values, dtype=torch.float32)
+        # convert to tensor
+        self.data = torch.tensor(data.copy(), dtype=torch.float32)
+        self.label = torch.tensor(label.copy(), dtype=torch.float32)
         # self.data = data
         # self.label = label
 
@@ -110,20 +122,25 @@ class EMGDataset(Dataset):
         return data, label
     
     @staticmethod
-    def _filter_data(data: np.ndarray, fs: float, notch: float=50, low_freq: float=20.0, high_freq: float=250.0,
+    def _filter_data(data: np.ndarray, fs: float, notch: float=50, low_freq: float=20.0, high_freq: float=55,
                      buff_len: int = 0) -> np.ndarray:
         # Define the notch frequency and quality factor
         notch_freq = 50  # Hz
         Q = 30
 
-        # Calculate the normalized frequency and design the filter
+        # Calculate the normalized frequency and design the notch filter
         w0 = notch_freq / (fs / 2)
         b_notch, a_notch = iirnotch(w0, Q)
 
-        # Apply the filter to your signal using filtfilt to avoid phase shift
-        filtered_signal = filtfilt(b_notch, a_notch, data)
-        
-        return filtered_signal 
+        #calculate the normalized frequencies and design the highpass filter
+        cutoff = low_freq / (fs / 2)
+        sos = butter(5, cutoff, btype='highpass', output='sos')
+
+        # apply filters using 'filtfilt' to avoid phase shift
+        data = sosfiltfilt(sos, data, axis=0, padtype='even')
+        data = filtfilt(b_notch, a_notch, data)
+
+        return data 
         
     @staticmethod
     def unfold(data, seq_len):
@@ -134,17 +151,53 @@ class EMGDataset(Dataset):
         Output: segments: numpy array of shape (num_segments, seq_len, num_features)
         '''
         original_length, num_features = data.shape
-        num_segments = (original_length - seq_len + 1) * seq_len
+        num_segments = (original_length - seq_len + 1)
 
         # Reshape the data to (num_segments, seq_len, num_features)
         segments = np.lib.stride_tricks.sliding_window_view(data, (seq_len, num_features))
         segments = segments.squeeze(1)
         return segments
+    @staticmethod
+    def fold(data):
+        '''
+        Fold the data into a single array
+        Input: segments: numpy array of shape (num_segments, seq_len, num_features)
+        Output: segments: numpy array of shape (num_samples, num_features)
+        '''
+        num_segments, seq_len, num_features = data.shape
+        original_length = int(num_segments) + seq_len - 1
+
+        # Reshape the data to (num_segments, seq_len, num_features)
+        segments = np.lib.stride_tricks.as_strided(data, shape=(original_length, num_features), strides=(1,1))
+        return segments
+    
+    def plot_data(self, seg_len=800, num_channels=4, channels=None, save_dir=None):
+        '''
+        Plot EMG data
+        '''
+        to_plot = self.data.numpy().squeeze()[:,0,:]
+        t = np.linspace(0, 1, to_plot[:seg_len,:].shape[0])
+        if not channels:
+            channels = np.arange(num_channels)
+
+        start = np.random.randint(0, to_plot.shape[0] - seg_len)
+        to_plot = to_plot[start:start+seg_len,:]
+
+        # setup figure with subplots
+        fig, axs = plt.subplots(num_channels, 1, figsize=(10, 10))
+        for i in channels:
+            axs[i].plot(t, to_plot[:,i])
+            axs[i].set_title(f'Channel {i}')
+        plt.tight_layout()
+        if save_dir:
+            plt.savefig(os.path.join(save_dir, 'data.png'))
+        plt.show()
 
 class TestDataset(EMGDataset):
-    def __init__(self, ):
+    def __init__(self, seq_len=150, num_channels=16, filter_data=False):
         super().__init__(data_path='/Users/rufaelmarew/Documents/tau/finger_pose_estimation/dataset/data_2023-10-02 14-59-55-627.edf', 
                       label_path='/Users/rufaelmarew/Documents/tau/finger_pose_estimation/dataset/label_2023-10-02_15-24-12_YH_lab_R.csv',
+                      seq_len=seq_len, num_channels=num_channels, filter_data=filter_data
                       )
         # tale only the first 1000 samples
         self.data = self.data[:100]
@@ -155,5 +208,10 @@ if __name__ == '__main__':
     #                   '/Users/rufaelmarew/Documents/tau/finger_pose_estimation/dataset/label_2023-10-02_15-24-12_YH_lab_R.csv')
     # print(data.data.shape)
     # print(data.label.shape)
-    test_Data = TestDataset()
-    print(test_Data.data.shape)
+    # test_Data = TestDataset(seq_len=150, num_channels=16, filter_data=True)
+    # print(test_Data.data.shape)
+    dataset = EMGDataset(data_path='/Users/rufaelmarew/Documents/tau/finger_pose_estimation/dataset/data_2023-10-02 14-59-55-627.edf',
+                            label_path='/Users/rufaelmarew/Documents/tau/finger_pose_estimation/dataset/label_2023-10-02_15-24-12_YH_lab_R.csv',
+                            seq_len=150, num_channels=16, filter_data=True)
+    print(dataset.data.shape)
+    dataset.plot_data()
