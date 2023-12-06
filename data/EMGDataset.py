@@ -54,7 +54,8 @@ class EMGDataset(Dataset):
         
         self.prepare_data()
         self.discritize_data() # discritize the data into sequences of length seq_len using torch
-
+        print("data shape: ", self.data.shape)
+        
     def prepare_data(self):
         data =  DATA_SOURCES[self.data_source](self.data_path)
         label = DATA_SOURCES[self.label_source](self.label_path)
@@ -109,8 +110,8 @@ class EMGDataset(Dataset):
 
     #discritize the data into sequences of length seq_len using torch
     def discritize_data(self):
-        self.data = self.data.unfold(0, self.seq_len, 1).permute(0, 2, 1).unsqueeze(1)
-        self.label = self.label.unfold(0, self.seq_len, 1).permute(0, 2, 1).unsqueeze(1)
+        self.data = self.data.unfold(0, self.seq_len, 10).permute(0, 2, 1).unsqueeze(1)
+        self.label = self.label.unfold(0, self.seq_len, 10).permute(0, 2, 1).unsqueeze(1)
 
 
     def __len__(self):

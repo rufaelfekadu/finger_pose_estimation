@@ -65,7 +65,6 @@ def train_epoch(cfg, epoch, model, train_loader, criterion, optimizer, logger=No
 
         total_loss.backward()
         optimizer.step()
-
         
         # if batch_idx % cfg.SOLVER.PRINT_FREQ == 0:
         #     print(f"Epoch: {epoch} Batch: {batch_idx} Loss: {avg_loss.avg}")
@@ -180,9 +179,9 @@ def main(cfg, logger):
     logger.info(f"Best Validation Loss: {best_result}")
 
     #final test
-    #read the best model
     model_best = make_model(cfg)
     model_best.load_pretrained(os.path.join(cfg.SOLVER.LOG_DIR, 'model_best.pth'))
+    model_best = model_best.to(device)
     test_loss, per_keypoint_loss = test(model_best, dataloaders['test'], criterion, device=device)
 
     print("----------------- Final Results -----------------")
