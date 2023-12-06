@@ -66,10 +66,7 @@ def train_epoch(cfg, epoch, model, train_loader, criterion, optimizer, logger=No
         total_loss.backward()
         optimizer.step()
 
-        if epoch % 5 == 0 and batch_idx == 0:
-            # print sample output values
-            print(f"Sample Output: {output[0]}")
-            print(f"Sample Target: {target[0]}")
+        
         # if batch_idx % cfg.SOLVER.PRINT_FREQ == 0:
         #     print(f"Epoch: {epoch} Batch: {batch_idx} Loss: {avg_loss.avg}")
 
@@ -92,17 +89,21 @@ def test(model, test_loader, criterion, device):
         for i, (data, target) in enumerate(test_loader):
             data, target = data.to(device), target.to(device)
 
-            outputs = model(data)
+            output = model(data)
 
             if cfg.MODEL.NAME.lower() == 'transformer':
                 target = target.squeeze(1)[:,-1,:]
-                loss_per_keypoint = criterion(outputs, target)
+                loss_per_keypoint = criterion(output, target)
             else:
-                loss_per_keypoint = criterion(outputs.squeeze()[:,-1,:], target.squeeze()[:, -1, :])
+                loss_per_keypoint = criterion(output.squeeze()[:,-1,:], target.squeeze()[:, -1, :])
 
             average_loss_per_keypoint.update(loss_per_keypoint, data.size(0))
             loss = loss_per_keypoint.mean()
             avg_loss.update(loss.item(), data.size(0))
+            if i  == len(test_loader) - 1:
+                # print sample output values
+                print(f"Sample Output: {output[0]}")
+                print(f"Sample Target: {target[0]}")
 
     return avg_loss, average_loss_per_keypoint
 
@@ -145,7 +146,7 @@ def train(model, dataloaders, criterion, optimizer, epochs, logger, device):
 
         # print(f"Epoch: {epoch} Train Loss: {train_loss['loss']} Smoothness Loss: {train_loss['smoothness_loss']} Val Loss: {val_loss}")
         # logger.info(f"Epoch: {epoch} Train Loss: {train_loss} Smoothness Loss: {train_loss['smoothness_loss']} Val Loss: {val_loss}")
-
+    return best_validation_loss
 
 def main(cfg, logger):
 
@@ -175,10 +176,15 @@ def main(cfg, logger):
     optimizer = optim.Adam(model.parameters(), lr=cfg.SOLVER.LR)
     
     # Train the model
-    train(model, dataloaders, criterion, optimizer, epochs=cfg.SOLVER.NUM_EPOCHS, logger=logger, device=device)
+    best_result = train(model, dataloaders, criterion, optimizer, epochs=cfg.SOLVER.NUM_EPOCHS, logger=logger, device=device)
+    logger.info(f"Best Validation Loss: {best_result}")
 
     #final test
-    test_loss, per_keypoint_loss = test(model, dataloaders['val'], criterion, device=device)
+    #read the best model
+    model_best = make_model(cfg)
+    model_best.load_pretrained(os.path.join(cfg.SOLVER.LOG_DIR, 'model_best.pth'))
+    test_loss, per_keypoint_loss = test(model_best, dataloaders['test'], criterion, device=device)
+
     print("----------------- Final Results -----------------")
     logger.info(f"Test Loss: {test_loss}")
     logger.info(f"Test Loss per Keypoint:\n{per_keypoint_loss}")

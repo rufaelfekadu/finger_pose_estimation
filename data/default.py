@@ -9,11 +9,16 @@ from sklearn.model_selection import train_test_split
 from .EMGDataset import EMGDataset, TestDataset
 
 
-def train_val_dataset(dataset, val_split=0.2):
-    train_idx, val_idx = train_test_split(list(range(len(dataset))), test_size=val_split, )
+def train_val_dataset(dataset, val_split=0.3):
+
+    train_idx, test_idx = train_test_split(list(range(len(dataset))), test_size=val_split, )
+    val_idx, test_idx = train_test_split(test_idx, test_size=0.5)
+
     datasets = {}
     datasets['train'] = Subset(dataset, train_idx)
     datasets['val'] = Subset(dataset, val_idx)
+    datasets['test'] = Subset(dataset, test_idx)
+
     return datasets
 
 def make_dataset(cfg):
@@ -21,7 +26,7 @@ def make_dataset(cfg):
     label_path = os.path.join(cfg.DATA.PATH, "label_2023-10-02_15-24-12_YH_lab_R.csv")
 
     if cfg.DEBUG:
-        dataset = TestDataset()
+        dataset = TestDataset(seq_len=cfg.DATA.SEGMENT_LENGTH)
     else:
         dataset = EMGDataset(data_path=data_path, 
                              label_path=label_path,
@@ -39,9 +44,11 @@ def make_dataloader(cfg, dataset):
     #save train and val datasets
     torch.save(dataset['train'], os.path.join(cfg.SOLVER.LOG_DIR, 'train_dataset.pth'))
     torch.save(dataset['val'], os.path.join(cfg.SOLVER.LOG_DIR, 'val_dataset.pth'))
+    torch.save(dataset['test'], os.path.join(cfg.SOLVER.LOG_DIR, 'test_dataset.pth'))
     dataloader = {}
     dataloader['train'] = DataLoader(dataset['train'], batch_size=cfg.SOLVER.BATCH_SIZE, shuffle=False)
     dataloader['val'] = DataLoader(dataset['val'], batch_size=cfg.SOLVER.BATCH_SIZE, shuffle=False)
+    dataloader['test'] = DataLoader(dataset['test'], batch_size=cfg.SOLVER.BATCH_SIZE, shuffle=False)
 
     return dataloader
 

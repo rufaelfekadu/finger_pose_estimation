@@ -200,16 +200,10 @@ class TestDataset(EMGDataset):
                       seq_len=seq_len, num_channels=num_channels, filter_data=filter_data
                       )
         # tale only the first 1000 samples
-        self.data = self.data[:100]
-        self.label = self.label[:100]
+        self.data = self.data[:1000]
+        self.label = self.label[:1000]
     
 if __name__ == '__main__':
-    # data = EMGDataset('/Users/rufaelmarew/Documents/tau/finger_pose_estimation/dataset/ data_2023-10-02 14-59-55-627.edf', 
-    #                   '/Users/rufaelmarew/Documents/tau/finger_pose_estimation/dataset/label_2023-10-02_15-24-12_YH_lab_R.csv')
-    # print(data.data.shape)
-    # print(data.label.shape)
-    # test_Data = TestDataset(seq_len=150, num_channels=16, filter_data=True)
-    # print(test_Data.data.shape)
     dataset = EMGDataset(data_path='/Users/rufaelmarew/Documents/tau/finger_pose_estimation/dataset/data_2023-10-02 14-59-55-627.edf',
                             label_path='/Users/rufaelmarew/Documents/tau/finger_pose_estimation/dataset/label_2023-10-02_15-24-12_YH_lab_R.csv',
                             seq_len=150, num_channels=16, filter_data=True)
