@@ -82,4 +82,15 @@ def read_manus(path):
 
     
 
-    return manus_df 
+    return manus_df
+
+def read_leap(path):
+    '''
+    Read data from leap motion
+    Input: path to csv file
+    Output: leap dataframe
+    '''
+    leap_df = pd.read_csv(path)
+    leap_df['time'] = pd.to_datetime(leap_df['time'], unit='s', origin=ExpTimes.video_Start_time)
+    leap_df = leap_df.set_index('time')
+    return leap_df

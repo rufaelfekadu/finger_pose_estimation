@@ -1,7 +1,16 @@
 import logging
 import os
 from typing import Any
+import argparse
 
+
+def parse_arg(disc="Train the model"):
+    parser = argparse.ArgumentParser(description=disc)
+    parser.add_argument('--config', type=str, default='config.yaml', help='Path to the config file')
+    parser.add_argument('--opts', nargs='*', default=[], help='Modify config options using the command-line')
+    args = parser.parse_args()
+    return args
+    
 class AverageMeterList(object):
     def __init__(self,label_names) -> None:
         self.meters = [AverageMeter() for _ in range(len(label_names))]

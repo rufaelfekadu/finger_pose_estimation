@@ -1,6 +1,6 @@
 import torch 
 from data import read_saved_dataset
-from util import create_logger, plot_time_series
+from util import create_logger, plot_time_series, parse_arg
 import argparse
 import os
 from config import cfg
@@ -11,19 +11,22 @@ from tqdm import tqdm
 
 def plot(cfg, label, output, seg_len=100):
     #plot the label and predictions
-    
+
     fig, axs = plt.subplots(output.size(1), 1, figsize=(10, 10))
     print(output.size(1))
     for i in range(output.size(1)):
         axs[i].plot(label[:seg_len, i], label=f'label_{i}')
         axs[i].plot(output[:seg_len, i], label=f'output_{i}')
         axs[i].legend()
+    
+    # add title to the plot
+    fig.suptitle(f'Label vs Output for {cfg.MODEL.NAME}')
     plt.savefig(os.path.join(cfg.SOLVER.LOG_DIR, 'plot.png'))
 
 def setup(cfg):
 
      # read the data
-    data_path = os.path.join(cfg.SOLVER.LOG_DIR, 'test_dataset.pth')
+    data_path = os.path.join(cfg.SOLVER.LOG_DIR, 'val_dataset.pth')
     data, dataloader = read_saved_dataset(cfg, data_path)
     cfg.DATA.MANUS.KEY_POINTS = [i for i in range(15)]
     print(len(data))
@@ -60,7 +63,8 @@ def inference(cfg, logger):
 
     pred_trans = torch.cat(pred_trans, dim=0)
     to_plot_trans = torch.cat(to_plot_trans, dim=0)
-
+    torch.save(pred_trans, os.path.join(cfg.SOLVER.LOG_DIR, 'pred_cache.pth'))
+    torch.save(to_plot_trans, os.path.join(cfg.SOLVER.LOG_DIR, 'label_cache.pth'))
     # torch.save(pred_cache, os.path.join(cfg.SOLVER.LOG_DIR, cfg.MODEL.NAME, 'pred_cache.pth'))
     plot(cfg, to_plot_trans, pred_trans)
     logger.info(f"Total loss for transformer: {total_loss_trans/len(data_transformer)}")
@@ -68,19 +72,20 @@ def inference(cfg, logger):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Inference')
-    parser.add_argument('--config', type=str, default='config.yaml', help='Path to the config file')
-    parser.add_argument('--opts', nargs='*', default=[], help='Modify config options using the command-line')
-    args = parser.parse_args()
+    
+    args = parse_arg(disc="Inference script for the model")
 
-    if cfg.DEBUG:
-        cfg.SOLVER.LOG_DIR = "../debug"
+    
     #setup logger
     cfg.merge_from_file(args.config)
     cfg.merge_from_list(args.opts)
+
+    if cfg.DEBUG:
+        cfg.SOLVER.LOG_DIR = "../debug"
+        
     cfg.SOLVER.LOG_DIR = os.path.join(cfg.SOLVER.LOG_DIR, cfg.MODEL.NAME)
 
     # cfg.freeze()
     logger = create_logger(os.path.join(cfg.SOLVER.LOG_DIR, 'inference.log'))
-
+    print(cfg)
     inference(cfg, logger)

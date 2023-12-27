@@ -24,6 +24,61 @@ dist/
 *.swo
 *.DS_Store
 
+
+# Unity generated
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+
+# Visual Studio / MonoDevelop generated
+/*.booproj
+/*.csproj
+/*.sln
+/*.suo
+/*.user
+/*.userprefs
+/*.pidb
+/*.unityproj
+/*.dll
+/*.exe
+
+# Unity3D generated meta files
+/*.pidb.meta
+/*.cs.meta
+
+# Unity3D generated file on crash reports
+sysinfo.txt
+
+# Builds
+/builds/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Thumbnails
+/._*
+
+# Files that might appear on external disk
+.Spotlight-V100
+.Trashes
+
+# Windows thumbnail cache files
+/Thumbs.db
+/ehthumbs.db
+/ehthumbs_vista.db
+
+# Directories potentially created on remote AFP share
+/.AppleDB/
+/.AppleDesktop/
+/.TemporaryItems/
+/.apdisk
+
 # Dataset
 dataset/
 
@@ -32,3 +87,11 @@ config.yaml
 
 #outputs
 outputs/
+
+#unity project
+hand project/
+
+misc/
+
+
+

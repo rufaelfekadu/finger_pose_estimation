@@ -3,6 +3,7 @@ import os
 from torch.utils.data import DataLoader
 from torch.utils.data import Subset
 import torch
+import numpy as np
 
 from sklearn.model_selection import train_test_split
 
@@ -20,6 +21,8 @@ def train_val_dataset(dataset, val_split=0.3):
     datasets['test'] = Subset(dataset, test_idx)
 
     return datasets
+
+
 
 def make_dataset(cfg):
     data_path = os.path.join(cfg.DATA.PATH, "data_2023-10-02 14-59-55-627.edf")

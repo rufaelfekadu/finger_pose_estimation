@@ -11,7 +11,7 @@ from tqdm import tqdm
 import logging
 
 # imports form FGR module
-from util import create_logger, AverageMeter, AverageMeterList
+from util import create_logger, AverageMeter, AverageMeterList, parse_arg
 from loss import make_loss
 from data import make_dataset, make_dataloader
 from config import cfg
@@ -188,12 +188,7 @@ def main(cfg, logger):
     logger.info(f"Test Loss: {test_loss}")
     logger.info(f"Test Loss per Keypoint:\n{per_keypoint_loss}")
 
-def parse_arg():
-    parser = argparse.ArgumentParser(description='Train the model')
-    parser.add_argument('--config', type=str, default='config.yaml', help='Path to the config file')
-    parser.add_argument('--opts', nargs='*', default=[], help='Modify config options using the command-line')
-    args = parser.parse_args()
-    return args
+
 
 if __name__ == '__main__':
 

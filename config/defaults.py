@@ -41,7 +41,7 @@ _C.DATA.MANUS.KEY_POINTS = []
 # MODEL
 # ------------------------------------
 _C.MODEL = CN()
-_C.MODEL.NAME = "neuropose"
+_C.MODEL.NAME = "transformer"
 
 # ------------------------------------
 # OUTPUT
@@ -74,3 +74,10 @@ _C.SOLVER.NUM_WORKERS = 4
 _C.SOLVER.PIN_MEMORY = True
 _C.SOLVER.SEED = 42
 _C.SOLVER.PRETRAINED_PATH = "model.pth"
+
+# ------------------------------------
+# VISAUALIZE
+# ------------------------------------
+
+_C.VISUALIZE = CN()
+_C.VISUALIZE.PORT = 9000
