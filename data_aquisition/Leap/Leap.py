@@ -1,13 +1,44 @@
 import leap
 import time
 import pandas as pd
-import cv2
 import numpy as np
-from datetime import datetime
 import argparse
 import sys
+from threading import Thread
 # Your Recording class import here
 
+class LeapRecorder(Thread):
+    def __init__(self, save_dir: str):
+        super().__init__()
+
+        self.save_dir = save_as
+        self.is_connected = False
+        self._init_client()
+
+    def _init_client(self):
+
+        self._listener = LeapListener()
+        self._client = leap.Connection()
+        self._client.add_listener(self._listener)
+
+    def run(self):
+        self.is_connected = True
+        with self._client.open():
+            self._client.set_tracking_mode(leap.TrackingMode.Desktop)
+            while self.is_connected:
+                time.sleep(1)
+    
+    def pause(self):
+        self.is_connected = False
+    
+    def save_data(self):
+        df = pd.DataFrame(self._listener.data, columns=self._listener.columns)
+        df.to_csv(self.save_as)
+
+    def stop(self):
+        self.is_connected = False
+        self._client.remove_listener(self._listener)
+        self.save_data()
 
 class LeapListener(leap.Listener):
 
@@ -24,7 +55,7 @@ class LeapListener(leap.Listener):
         self.data = []
 
     def make_columns(self):
-        self.columns = ["time","timestamp", "hand_id", "hand_type"]
+        self.columns = ["time","timestamp", "hand_id", "hand_type", "palm_x", "palm_y", "palm_z"]
         for finger in self.FINGER_NAMES:
             for joint in self.JOINT_NAMES:
                 for pos in self.POSITIONS:
@@ -34,6 +65,7 @@ class LeapListener(leap.Listener):
         
     def on_connection_event(self, event):
         print("Connected")
+        return 
 
     def on_device_event(self, event):
         try:
@@ -51,19 +83,22 @@ class LeapListener(leap.Listener):
 
     def on_tracking_event(self, event):
 
-        print(f"Frame {event.tracking_frame_id} with {len(event.hands)} hands.")
-        timestamp = datetime.utcfromtimestamp(event.timestamp).strftime('%YY-%MM-%DD %H:%M:%S.%f')
+        # print(f"Frame {event.tracking_frame_id} with {len(event.hands)} hands.")
+        # timestamp = datetime.utcfromtimestamp(event.timestamp).strftime('%YY-%MM-%DD %H:%M:%S.%f')
         start = time.time()
-
+        #  if no hands are detected, append a row of zeros
+        if len(event.hands) == 0:
+            self.data.append([time.time(), event.timestamp] + [0 for i in range(len(self.columns)-2)])
+            
         for hand in event.hands:
             hand_type = "left" if str(hand.type) == "HandType.Left" else "right"
             
             if hand_type == "right":
                 row = [
                     time.time(),
-                    timestamp,
+                    event.timestamp,
                     hand.id,
-                    hand.type,
+                    hand_type,
                     hand.palm.position.x,
                     hand.palm.position.y,
                     hand.palm.position.z
@@ -77,7 +112,7 @@ class LeapListener(leap.Listener):
                         bone.rotation.__getattribute__(rot)
                         for rot in self.ROTATIONS
                     ]
-                    for finger in hand.fingers
+                    for finger in hand.digits
                     for bone in finger.bones
                 ]
                 
@@ -100,10 +135,10 @@ def main(args):
 
     running = True
 
+    print("Press Enter Key to stop recording:")
     with connection.open():
         connection.set_tracking_mode(leap.TrackingMode.Desktop)
         while running:
-            print("Press Enter Key to stop recording:")
             try:
                 sys.stdin.readline()
             except KeyboardInterrupt:

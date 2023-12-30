@@ -1,0 +1,5 @@
+setuptools>=63.4.1
+dill
+build
+cffi
+opencv-python

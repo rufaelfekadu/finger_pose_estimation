@@ -63,3 +63,6 @@ def read_saved_dataset(cfg, path):
     data_loader= DataLoader(dataset, batch_size=cfg.SOLVER.BATCH_SIZE, shuffle=False)
 
     return dataset, data_loader
+
+if __name__ == "__main__":
+    print("hello")

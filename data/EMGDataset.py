@@ -10,7 +10,8 @@ import os
 
 import sys
 sys.path.append('/Users/rufaelmarew/Documents/tau/finger_pose_estimation')
-from util.data import read_emg, read_manus
+from util.data import read_emg, read_manus, read_leap
+from config import cfg
 
 # Add data sources here
 # TODO: 
@@ -21,14 +22,11 @@ from util.data import read_emg, read_manus
 DATA_SOURCES = {
     'manus': read_manus,
     'emg': read_emg,
+    'leap': read_leap,
 }
 
-class EMGDataset(Dataset):
-    def __init__(self, data_path, label_path, transform=None, 
-                 data_source='emg', label_source='manus', 
-                 seq_len=150, num_channels=16, filter_data=False, 
-                 sampling_freq=125, stride=1):
-
+class BaseDataset(Dataset):
+    def __init__(self, transform=None, **kwargs):
 
         self.data_path = data_path
         self.label_path = label_path
@@ -40,11 +38,42 @@ class EMGDataset(Dataset):
         #filter info
         self.filter_data = filter_data
         self.fs = sampling_freq
+        self.notch_freq = notch_freq
+        self.Q = Q
+        self.low_freq = low_freq
+        self.high_freq = high_freq
 
         self.transform = transform
 
         self.data_source = data_source # emg or imu
         self.label_source = label_source   # manus, video, or ultraleap 
+
+        
+    def prepare_data(self):
+        pass
+
+    def _filter_data(self, data: np.ndarray, buff_len: int = 0) -> np.ndarray:
+
+        # Calculate the normalized frequency and design the notch filter
+        w0 = self.notch_freq / (self.fs / 2)
+        b_notch, a_notch = iirnotch(w0, self.Q)
+
+        #calculate the normalized frequencies and design the highpass filter
+        cutoff = self.low_freq / (self.fs / 2)
+        sos = butter(5, cutoff, btype='highpass', output='sos')
+
+        # apply filters using 'filtfilt' to avoid phase shift
+        data = sosfiltfilt(sos, data, axis=0, padtype='even')
+        data = filtfilt(b_notch, a_notch, data)
+
+        return data
+
+         
+
+
+class EMGDataset(BaseDataset):
+    def __init__(self, kwargs):
+        super().__init__(**kwargs)
 
         self.emg_columns = ['channel {}'.format(i) for i in range(16)]
         self.mauns_columns = ['Pinch_ThumbToIndex','Pinch_ThumbToMiddle', 'Pinch_ThumbToRing',
@@ -107,8 +136,7 @@ class EMGDataset(Dataset):
         # convert to tensor
         self.data = torch.tensor(data.copy(), dtype=torch.float32)
         self.label = torch.tensor(label.copy(), dtype=torch.float32)
-        # self.data = data
-        # self.label = label
+
 
     #discritize the data into sequences of length seq_len using torch
     def discritize_data(self):
@@ -160,6 +188,7 @@ class EMGDataset(Dataset):
         segments = np.lib.stride_tricks.sliding_window_view(data, (seq_len, num_features))
         segments = segments.squeeze(1)
         return segments
+    
     @staticmethod
     def fold(data):
         '''
@@ -207,8 +236,23 @@ class TestDataset(EMGDataset):
         self.label = self.label[:1000]
     
 if __name__ == '__main__':
-    dataset = EMGDataset(data_path='/Users/rufaelmarew/Documents/tau/finger_pose_estimation/dataset/data_2023-10-02 14-59-55-627.edf',
-                            label_path='/Users/rufaelmarew/Documents/tau/finger_pose_estimation/dataset/label_2023-10-02_15-24-12_YH_lab_R.csv',
-                            seq_len=150, num_channels=16, filter_data=True)
+
+    kwargs = {
+        'data_path': '/Users/rufaelmarew/Documents/tau/finger_pose_estimation/dataset/data_2023-10-02 14-59-55-627.edf',
+        'label_path': '/Users/rufaelmarew/Documents/tau/finger_pose_estimation/dataset/label_2023-10-02_15-24-12_YH_lab_R.csv',
+        'seq_len': 150,
+        'num_channels': 16,
+        # filter info
+        'filter_data': True,
+        'fs': 150,
+        'notch_freq': 50,
+        'Q': 30,
+        'low_freq': 20,
+        'high_freq': 55,
+        'stride': 1,
+        'label_source': 'manus',
+        'data_source': 'emg'
+    }
+
+    dataset = EMGDataset(kwargs)
     print(dataset.data.shape)
-    dataset.plot_data()
