@@ -1,5 +1,10 @@
-setuptools>=63.4.1
+pytest>=7.3.0
+numpy
+pandas
+pillow
+psychopy
 dill
-build
 cffi
 opencv-python
+build
+
