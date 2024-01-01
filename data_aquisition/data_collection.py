@@ -6,6 +6,7 @@ from PIL import Image
 import random
 from pathlib import Path
 import argparse
+from threading import Thread
 
 try:
     from Leap import LeapRecorder, LeapVisuzalizer
@@ -194,6 +195,40 @@ class Experiment:
         elif verbose:
             print(f'TRIGGER: {msg}')
 
+
+    def do_experiment(self):
+
+        while self.running:
+            keys = event.getKeys()
+            if self.quit_key in keys:
+                self.stop_experiment()
+                break
+            elif 'space' in keys:
+                self.pause_experiment()
+                continue
+            
+            self.show_gesture()
+            if self.record:
+                self.trigger(f'end_{self.gesture_names[self.current_gesture_index]}')   
+            self.show_countdown(self.rest_duration)  
+            # self.do_transition()  
+            if not self.update_gesture():
+                break
+        
+        if self.record:
+            self.trigger('end_experiment')
+            self.emg_data.stop()
+            self.leap_data.stop()
+
+            self.emg_data.join()
+            self.leap_data.join()
+
+        self.exp_end_text.draw()
+        self.window.flip()
+        core.wait(3)
+
+        self.window.close()
+    
     def pre_exp(self, emg_data):
         '''
         Pre experiment setup
@@ -228,6 +263,7 @@ class Experiment:
         emg_viz.start()
         print("terminated")
         leap_viz.stop()
+        leap_viz.join()
 
 
     def run(self,emg_Data, leap_data):
@@ -269,38 +305,54 @@ class Experiment:
             self.emg_data.save_as = str(Path(self.data_dir, f"fpe_pos{self.exp_info['position']}_{self.exp_info['Participant'].rjust(3, '0')}_S{self.exp_info['session']}_rep{self.exp_num}_BT.edf"))
             self.leap_data.save_as = str(Path(self.data_dir, f"fpe_pos{self.exp_info['position']}_{self.exp_info['Participant'].rjust(3, '0')}_S{self.exp_info['session']}_rep{self.exp_num}_BT.csv"))
             print(f"Saving data to: {self.emg_data.save_as}")
-            if self.emg_data.running:
-                self.emg_data.stop()
+            
             self.emg_data.start()
             self.leap_data.start()
+        
+        thread = Thread(target=self.do_experiment)
+        thread.start()
 
-        while self.running:
+         # Visualize data stream in main thread:
+        secs = 10             # Time window of plots (in seconds)
+        ylim = (-1000, 1000)  # y-limits of plots
+        ica = False           # Perform and visualize ICA alongside raw data
+        update_interval = 10  # Update plots every X ms
+        max_points = 250      # Maximum number of data points to visualize per channel (render speed vs. resolution)
 
-            keys = event.getKeys()
-            if self.quit_key in keys:
-                self.stop_experiment()
-                break
-            elif 'space' in keys:
-                self.pause_experiment()
-                continue
+        emg_viz = Viz(self.emg_data, window_secs=secs, plot_exg=True, plot_imu=False, plot_ica=ica,
+                update_interval_ms=update_interval, ylim_exg=ylim, max_points=250)
+
+        emg_viz.start()
+        thread.join()
+        print("terminated")
+        
+        # while self.running:
+
+        #     keys = event.getKeys()
+        #     if self.quit_key in keys:
+        #         self.stop_experiment()
+        #         break
+        #     elif 'space' in keys:
+        #         self.pause_experiment()
+        #         continue
             
-            self.show_gesture()
-            if self.record:
-                self.trigger(f'end_{self.gesture_names[self.current_gesture_index]}')   
-            self.show_countdown(self.rest_duration)  
-            # self.do_transition()  
-            if not self.update_gesture():
-                break  # Choose a new gesture
+        #     self.show_gesture()
+        #     if self.record:
+        #         self.trigger(f'end_{self.gesture_names[self.current_gesture_index]}')   
+        #     self.show_countdown(self.rest_duration)  
+        #     # self.do_transition()  
+        #     if not self.update_gesture():
+        #         break  # Choose a new gesture
         
         
-        if self.record:
-            self.trigger('end_experiment')
-            self.emg_data.stop()
-            self.leap_data.stop()
+        # if self.record:
+        #     self.trigger('end_experiment')
+        #     self.emg_data.stop()
+        #     self.leap_data.stop()
 
-        self.exp_end_text.draw()
-        self.window.flip()
-        core.wait(3)
+        # self.exp_end_text.draw()
+        # self.window.flip()
+        # core.wait(3)
         
         # stop recording
         # self.emg_data.stop()
