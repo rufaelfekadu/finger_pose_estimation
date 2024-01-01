@@ -198,6 +198,38 @@ class Experiment:
 
     def do_experiment(self):
 
+         # setup window
+        self._init_window()
+
+        print(f"running experiment with {len(self.gesture_images)} gestures")
+
+        # show instructions
+        self.instructions_text.draw()
+
+        self.window.flip()
+        event.waitKeys(keyList=['space'])
+
+        self.show_countdown(self.rest_duration)  # Display countdown for 5 seconds
+
+        self.running = True
+        if (self.record):
+            self.exp_info['date'] = data.getDateStr()  # add a simple timestamp
+            self.exp_info['expName'] = 'fpe - real time'
+            self.exp_info['psychopyVersion'] = '2023.2.3'
+
+            self.data_dir = Path(self.data_dir, self.exp_info['Participant'].rjust(3, '0'), f"S{self.exp_info['session']}")
+            self.data_dir.mkdir(parents=True, exist_ok=True)
+
+            with open(Path(self.data_dir, "log.txt"), 'w') as f:
+                f.write(f"{self.exp_info}\n")
+            # start recording
+            self.emg_data.save_as = str(Path(self.data_dir, f"fpe_pos{self.exp_info['position']}_{self.exp_info['Participant'].rjust(3, '0')}_S{self.exp_info['session']}_rep{self.exp_num}_BT.edf"))
+            self.leap_data.save_as = str(Path(self.data_dir, f"fpe_pos{self.exp_info['position']}_{self.exp_info['Participant'].rjust(3, '0')}_S{self.exp_info['session']}_rep{self.exp_num}_BT.csv"))
+            print(f"Saving data to: {self.emg_data.save_as}")
+            
+            self.emg_data.start()
+            self.leap_data.start()
+
         while self.running:
             keys = event.getKeys()
             if self.quit_key in keys:
@@ -273,42 +305,8 @@ class Experiment:
         '''
         # collect participant info
         self.exp_info = self.collect_participant_info()
-
-        # setup window
-        self._init_window()
-
-        print(f"running experiment with {len(self.gesture_images)} gestures")
-
-        # show instructions
-        self.instructions_text.draw()
-
-        self.window.flip()
-        event.waitKeys(keyList=['space'])
-
-        self.show_countdown(self.rest_duration)  # Display countdown for 5 seconds
-
-        self.running = True
-        if (self.record):
-            self.exp_info['date'] = data.getDateStr()  # add a simple timestamp
-            self.exp_info['expName'] = 'fpe - real time'
-            self.exp_info['psychopyVersion'] = '2023.2.3'
-
-            self.emg_data = emg_Data
-            self.leap_data = leap_data
-
-            self.data_dir = Path(self.data_dir, self.exp_info['Participant'].rjust(3, '0'), f"S{self.exp_info['session']}")
-            self.data_dir.mkdir(parents=True, exist_ok=True)
-
-            with open(Path(self.data_dir, "log.txt"), 'w') as f:
-                f.write(f"{self.exp_info}\n")
-            # start recording
-            self.emg_data.save_as = str(Path(self.data_dir, f"fpe_pos{self.exp_info['position']}_{self.exp_info['Participant'].rjust(3, '0')}_S{self.exp_info['session']}_rep{self.exp_num}_BT.edf"))
-            self.leap_data.save_as = str(Path(self.data_dir, f"fpe_pos{self.exp_info['position']}_{self.exp_info['Participant'].rjust(3, '0')}_S{self.exp_info['session']}_rep{self.exp_num}_BT.csv"))
-            print(f"Saving data to: {self.emg_data.save_as}")
-            
-            self.emg_data.start()
-            self.leap_data.start()
-        
+        self.emg_data = emg_Data
+        self.leap_data = leap_data
         thread = Thread(target=self.do_experiment)
         thread.start()
 
@@ -319,10 +317,11 @@ class Experiment:
         update_interval = 10  # Update plots every X ms
         max_points = 250      # Maximum number of data points to visualize per channel (render speed vs. resolution)
 
-        emg_viz = Viz(self.emg_data, window_secs=secs, plot_exg=True, plot_imu=False, plot_ica=ica,
-                update_interval_ms=update_interval, ylim_exg=ylim, max_points=250)
+        if self.record:
+            emg_viz = Viz(self.emg_data, window_secs=secs, plot_exg=True, plot_imu=False, plot_ica=ica,
+                    update_interval_ms=update_interval, ylim_exg=ylim, max_points=250)
 
-        emg_viz.start()
+            emg_viz.start()
         thread.join()
         print("terminated")
         
@@ -358,7 +357,7 @@ class Experiment:
         # self.emg_data.stop()
         # self.leap_data.stop()
 
-        self.window.close()
+        # self.window.close()
         # print('Data saved to: ', self.data.save_as)
 
 
