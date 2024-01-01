@@ -186,7 +186,7 @@ class Experiment:
         if self.emg_data is not None:
             self.emg_data.add_annotation(msg)
             if verbose:
-                print(f'TRIGGER: {self.data.annotations[-1]}')
+                print(f'TRIGGER: {self.emg_data.annotations[-1]}')
         elif verbose:
             print(f'TRIGGER: {msg}')
 
