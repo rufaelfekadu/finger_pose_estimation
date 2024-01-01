@@ -202,7 +202,7 @@ class Experiment:
         self.instructions_text.draw()
         self.window.flip()
         event.waitKeys(keyList=['space'])
-        self.show_countdown(self.rest_duration)
+        # self.show_countdown(self.rest_duration)
 
         # Visualize data stream in main thread:
         secs = 10             # Time window of plots (in seconds)
@@ -212,9 +212,9 @@ class Experiment:
         max_points = 250      # Maximum number of data points to visualize per channel (render speed vs. resolution)
 
         # plot emg data
-        emg_viz = Viz(emg_data, window_secs=secs, plot_exg=True, plot_imu=False, plot_ica=ica,
-                update_interval_ms=update_interval, ylim_exg=ylim, max_points=250)
-        emg_viz.start()
+        # emg_viz = Viz(emg_data, window_secs=secs, plot_exg=True, plot_imu=False, plot_ica=ica,
+        #         update_interval_ms=update_interval, ylim_exg=ylim, max_points=250)
+        # emg_viz.start()
 
         # plot leap data
         leap_viz = LeapVisuzalizer()
