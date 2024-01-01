@@ -228,17 +228,6 @@ class Experiment:
         emg_viz.start()
 
 
-        while True:
-            keys = event.getKeys()
-            if self.quit_key in keys:
-                # emg_viz.stop()
-                emg_data.stop()
-                leap_viz.stop()
-                break
-            elif 'space' in keys:
-                pass
-
-
     def run(self,emg_Data, leap_data):
 
         '''
