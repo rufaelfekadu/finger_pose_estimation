@@ -219,12 +219,13 @@ class Experiment:
         # plot leap data
         leap_viz = LeapVisuzalizer()
         leap_viz.start()
-        
+
         while True:
             keys = event.getKeys()
             if self.quit_key in keys:
                 emg_viz.stop()
                 leap_viz.stop()
+                break
             elif 'space' in keys:
                 pass
 
@@ -234,7 +235,7 @@ class Experiment:
         '''
         Main function to run the experiment
         '''
-
+        self.pre_exp(emg_Data, leap_data)
         # collect participant info
         self.exp_info = self.collect_participant_info()
 
