@@ -334,7 +334,7 @@ def main():
 
     experiment = Experiment(num_repetaions, gesture_duration, rest_duration, gesture_directory=gesture_dir, record=record)
 
-    experiment.pre_exp(emg_Data=emg_data)
+    experiment.pre_exp(emg_data=emg_data)
 
     experiment.run(emg_Data=emg_data, leap_data=leap_data)
 
