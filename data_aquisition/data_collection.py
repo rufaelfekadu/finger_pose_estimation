@@ -50,30 +50,37 @@ class Experiment:
     def _init_window(self):
 
         # Setup window
-        self.window = visual.Window(
-                            size=(1000, 800), 
-                            fullscr=False,
-                            screen=0,
-                            allowGUI=True,
-                            allowStencil=False,
-                            monitor='testMonitor',
-                            colorSpace='rgb',
-                            color=self.color_palette['background'],
-                            blendMode='avg',
-                            # useFBO=True, 
-                            units='height')
+        try:
+        # Setup window
+            self.window = visual.Window(
+                                size=(1000, 800), 
+                                fullscr=False,
+                                screen=0,
+                                allowGUI=True,
+                                allowStencil=False,
+                                monitor='testMonitor',
+                                colorSpace='rgb',
+                                color=self.color_palette['background'],
+                                blendMode='avg',
+                                # useFBO=True, 
+                                units='height')
+            
+                # ... (rest of your initialization code)
+            self.exp_info['frameRate'] = self.window.getActualFrameRate()
+            self.clock = core.Clock()
+            welcome_text = 'A series of images will be shown on screen.\n\n\n' \
+                    'Perform the gesture only when\n"Perform gesture"\nis written above the image.\n\n\n' \
+                    'Relax your arm between gestures.\n\n\n' \
+                    '(Press space when ready.)'
+            # Window components
+            self.instructions_text = visual.TextStim(self.window, text=welcome_text, color=self.color_palette['text'], height=0.05)
+            self.countdown_text = visual.TextStim(self.window, text='', pos=(0, 0), color=self.color_palette['text'])
+            self.exp_end_text = visual.TextStim(self.window, text='Experiment Complete!', color=self.color_palette['text'])
+            self.running = False
+        except Exception as e:
+            print(f"Error during window initialization: {e}")
         
-        self.exp_info['frameRate'] = self.window.getActualFrameRate()
-        self.clock = core.Clock()
-        welcome_text = 'A series of images will be shown on screen.\n\n\n' \
-                 'Perform the gesture only when\n"Perform gesture"\nis written above the image.\n\n\n' \
-                 'Relax your arm between gestures.\n\n\n' \
-                 '(Press space when ready.)'
-        # Window components
-        self.instructions_text = visual.TextStim(self.window, text=welcome_text, color=self.color_palette['text'], height=0.05)
-        self.countdown_text = visual.TextStim(self.window, text='', pos=(0, 0), color=self.color_palette['text'])
-        self.exp_end_text = visual.TextStim(self.window, text='Experiment Complete!', color=self.color_palette['text'])
-        self.running = False
+        
 
         # Experiment setup
         self.gesture_images, self.gesture_names = self.load_gesture_images(self.gesture_directory)
