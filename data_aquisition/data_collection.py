@@ -29,7 +29,7 @@ class Experiment:
         self.gesture_directory = gesture_directory
         self.record = record
         self.exp_info = {}
-
+        self.exp_num = 0
 
 
         self.data_dir = Path(__file__).parent.parent / 'dataset'
@@ -293,7 +293,7 @@ def main():
         leap_data = None
 
 
-    experiment = Experiment(num_repetaions, gesture_duration, rest_duration, gesture_directory=gesture_dir, record=False)
+    experiment = Experiment(num_repetaions, gesture_duration, rest_duration, gesture_directory=gesture_dir, record=record)
     experiment.run(emg_Data=emg_data, leap_data=leap_data)
 
 if __name__ == "__main__":
