@@ -91,7 +91,7 @@ class LeapListener(leap.Listener):
     def on_tracking_event(self, event):
 
         if len(event.hands) == 0:
-            self.data.append([time.time(), event.timestamp] + [np.Nan for i in range(len(self.columns)-2)])
+            self.data.append([time.time(), event.timestamp] + [np.nan for i in range(len(self.columns)-2)])
             
         for hand in event.hands:
             hand_type = "left" if str(hand.type) == "HandType.Left" else "right"
