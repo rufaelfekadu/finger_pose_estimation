@@ -214,14 +214,15 @@ class Experiment:
 
         # emg_data.start()
 
+        # plot leap data
+        leap_viz = LeapVisuzalizer()
+        leap_viz.start()
+        
         # plot emg data
         emg_viz = EmgVisualizer(emg_data)
         
         emg_viz.start()
 
-        # plot leap data
-        leap_viz = LeapVisuzalizer()
-        leap_viz.start()
 
         while True:
             keys = event.getKeys()
