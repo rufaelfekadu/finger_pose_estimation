@@ -308,7 +308,7 @@ class Experiment:
         self.emg_data = emg_Data
         self.leap_data = leap_data
 
-        thread = Thread(target=self.do_experiment, args=(self))
+        thread = Thread(target=self.do_experiment)
         thread.start()
 
          # Visualize data stream in main thread:
