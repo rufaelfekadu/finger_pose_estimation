@@ -192,7 +192,7 @@ class Experiment:
         elif verbose:
             print(f'TRIGGER: {msg}')
 
-    def pre_exp(self, emg_Data, leap_data):
+    def pre_exp(self, emg_data):
         '''
         Pre experiment setup
         '''
@@ -212,7 +212,7 @@ class Experiment:
         max_points = 250      # Maximum number of data points to visualize per channel (render speed vs. resolution)
 
         # plot emg data
-        emg_viz = Viz(self.emg_data, window_secs=secs, plot_exg=True, plot_imu=False, plot_ica=ica,
+        emg_viz = Viz(emg_data, window_secs=secs, plot_exg=True, plot_imu=False, plot_ica=ica,
                 update_interval_ms=update_interval, ylim_exg=ylim, max_points=250)
         emg_viz.start()
 
@@ -235,7 +235,6 @@ class Experiment:
         '''
         Main function to run the experiment
         '''
-        self.pre_exp(emg_Data, leap_data)
         # collect participant info
         self.exp_info = self.collect_participant_info()
 
@@ -334,6 +333,9 @@ def main():
 
 
     experiment = Experiment(num_repetaions, gesture_duration, rest_duration, gesture_directory=gesture_dir, record=record)
+
+    experiment.pre_exp(emg_Data=emg_data)
+
     experiment.run(emg_Data=emg_data, leap_data=leap_data)
 
 if __name__ == "__main__":
