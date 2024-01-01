@@ -212,9 +212,10 @@ class Experiment:
         max_points = 250      # Maximum number of data points to visualize per channel (render speed vs. resolution)
 
         # plot emg data
-        # emg_viz = Viz(emg_data, window_secs=secs, plot_exg=True, plot_imu=False, plot_ica=ica,
-        #         update_interval_ms=update_interval, ylim_exg=ylim, max_points=250)
-        # emg_viz.start()
+        emg_viz = Viz(emg_data, window_secs=secs, plot_exg=True, plot_imu=False, plot_ica=ica,
+                update_interval_ms=update_interval, ylim_exg=ylim, max_points=250)
+        emg_data.start()
+        emg_viz.start()
 
         # plot leap data
         leap_viz = LeapVisuzalizer()
@@ -224,6 +225,7 @@ class Experiment:
             keys = event.getKeys()
             if self.quit_key in keys:
                 emg_viz.stop()
+                emg_data.stop()
                 leap_viz.stop()
                 break
             elif 'space' in keys:

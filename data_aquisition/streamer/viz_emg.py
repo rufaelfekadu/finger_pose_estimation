@@ -1,20 +1,27 @@
+from threading import Thread
+from .viz import Viz
 
-from XtrUtils.utils import Utils
-from XtrViz.plotter import Plotter
-from XtrEMG.detection import detect_emg
-from XtrUtils.filterbank import Filterer
+class EmgVisualizer(Thread):
+    def __init__(self, emg_data):
+        super().__init__()
 
+        # Visualize data stream in main thread:
+        secs = 10             # Time window of plots (in seconds)
+        ylim = (-1000, 1000)  # y-limits of plots
+        ica = False           # Perform and visualize ICA alongside raw data
+        update_interval = 10  # Update plots every X ms
+        max_points = 250      # Maximum number of data points to visualize per channel (render speed vs. resolution)
 
-def plot_emg(emg_axes, x, y, fs):
-    patch_artists = []
-    # [patch.remove() for patch in self._existing_patches]
-    for n in range(len(emg_axes)):
-        filters = {'highpass': {'W': 30}, 'comb': {'W': 50}}
-        filt = Filterer.filter_data(y[:, n], filters, fs, verbose=False)
-        is_emg = detect_emg(filt, fs=fs, emg_thresh=5e6, fft_validate=True, line_interference_validate=True,
-                            verbose=False)
-        ons, offs = Utils.get_onsets_offsets(is_emg)
-        patches = Plotter.add_patches(x, ons, offs, emg_axes[n, 0], label="EMG")
-        patch_artists.extend(patches)
+        self.emg_data = emg_data
+        self.viz = Viz(emg_data, window_secs=secs, plot_exg=True, plot_imu=False, plot_ica=ica,
+                update_interval_ms=update_interval, ylim_exg=ylim, max_points=250)
+        
+    def run(self):
+        self.emg_data.start()
+        self.viz.start()
 
-    return patch_artists
+    def pause(self):
+        pass
+
+    def stop(self):
+        pass
