@@ -181,7 +181,11 @@ class LeapVisuzalizer(Thread):
                     self._client.set_tracking_mode(leap.TrackingMode.Desktop)
                 elif key == ord("f"):
                     self.canvas.toggle_hands_format()
-
+                
+                if cv2.getWindowProperty('image',cv2.WND_PROP_VISIBLE) < 1:        
+                    break
+            cv2.destroyAllWindows()
+            self.stop()
     def stop(self):
         self.is_connected = False
         self._client.remove_listener(self._listener)

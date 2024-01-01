@@ -224,14 +224,14 @@ class Experiment:
         emg_data.start()
         emg_viz = Viz(emg_data, window_secs=secs, plot_exg=True, plot_imu=False, plot_ica=ica,
                 update_interval_ms=update_interval, ylim_exg=ylim, max_points=250)
-        
+
         emg_viz.start()
 
 
         while True:
             keys = event.getKeys()
             if self.quit_key in keys:
-                emg_viz.stop()
+                # emg_viz.stop()
                 emg_data.stop()
                 leap_viz.stop()
                 break
@@ -344,9 +344,7 @@ def main(args):
     experiment = Experiment(num_repetaions, gesture_duration, rest_duration, gesture_directory=gesture_dir, record=record)
     
     if args.vis:
-        emg_data.start()
-        emg_viz = EmgVisualizer(emg_data)
-        emg_viz.start()
+        experiment.pre_exp(emg_data=emg_data)
     else:
         experiment.pre_exp(emg_data=emg_data)
         experiment.run(emg_Data=emg_data, leap_data=leap_data)
