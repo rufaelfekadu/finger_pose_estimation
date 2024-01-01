@@ -32,6 +32,8 @@ class Experiment:
         self.record = record
         self.exp_info = {}
         self.exp_num = 0
+        self.quit_key = 'q'
+
 
 
         self.data_dir = Path(__file__).parent.parent / 'dataset'
@@ -69,7 +71,6 @@ class Experiment:
         self.instructions_text = visual.TextStim(self.window, text=welcome_text, color=self.color_palette['text'], height=0.05)
         self.countdown_text = visual.TextStim(self.window, text='', pos=(0, 0), color=self.color_palette['text'])
         self.exp_end_text = visual.TextStim(self.window, text='Experiment Complete!', color=self.color_palette['text'])
-        self.quit_key = 'q'
         self.running = False
 
         # Experiment setup
