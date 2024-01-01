@@ -192,7 +192,7 @@ class Data(Thread):
                          patientcode: str = '',
                          equipment: str = '',
                          admincode: str = '',
-                         gender: str = '',
+                         sex: str = '',
                          birthdate: Union[datetime, str] = ''):
 
         startdate = self.start_time
