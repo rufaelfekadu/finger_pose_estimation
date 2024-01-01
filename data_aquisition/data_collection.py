@@ -346,7 +346,6 @@ def main(args):
     if args.vis:
         experiment.pre_exp(emg_data=emg_data)
     else:
-        experiment.pre_exp(emg_data=emg_data)
         experiment.run(emg_Data=emg_data, leap_data=leap_data)
 
 if __name__ == "__main__":
