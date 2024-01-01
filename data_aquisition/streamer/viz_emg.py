@@ -13,15 +13,18 @@ class EmgVisualizer(Thread):
         max_points = 250      # Maximum number of data points to visualize per channel (render speed vs. resolution)
 
         self.emg_data = emg_data
+        self.emg_data.start()
         self.viz = Viz(emg_data, window_secs=secs, plot_exg=True, plot_imu=False, plot_ica=ica,
                 update_interval_ms=update_interval, ylim_exg=ylim, max_points=250)
         
     def run(self):
-        self.emg_data.start()
         self.viz.start()
 
     def pause(self):
         pass
 
     def stop(self):
-        pass
+        self.viz.stop()
+        self.emg_data.stop()
+        self.emg_data.join()
+        self.viz.join()

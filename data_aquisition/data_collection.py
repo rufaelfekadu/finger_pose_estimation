@@ -11,7 +11,7 @@ try:
 except:
     print("Leap Motion SDK not found. Leap Motion data will not be recorded.")
 
-from streamer import Data, Viz
+from streamer import Data, Viz, EmgVisualizer
 
 
 class Experiment:
@@ -196,12 +196,12 @@ class Experiment:
         '''
         Pre experiment setup
         '''
-        self.exp_info = self.collect_participant_info()
-        self._init_window()
-        print(f"running experiment with {len(self.gesture_images)} gestures")
-        self.instructions_text.draw()
-        self.window.flip()
-        event.waitKeys(keyList=['space'])
+        # self.exp_info = self.collect_participant_info()
+        # self._init_window()
+        # print(f"running experiment with {len(self.gesture_images)} gestures")
+        # self.instructions_text.draw()
+        # self.window.flip()
+        # event.waitKeys(keyList=['space'])
         # self.show_countdown(self.rest_duration)
 
         # Visualize data stream in main thread:
@@ -211,11 +211,10 @@ class Experiment:
         update_interval = 10  # Update plots every X ms
         max_points = 250      # Maximum number of data points to visualize per channel (render speed vs. resolution)
 
-        emg_data.start()
-        
+        # emg_data.start()
+
         # plot emg data
-        emg_viz = Viz(emg_data, window_secs=secs, plot_exg=True, plot_imu=False, plot_ica=ica,
-                update_interval_ms=update_interval, ylim_exg=ylim, max_points=250)
+        emg_viz = EmgVisualizer(emg_data)
         
         emg_viz.start()
 
