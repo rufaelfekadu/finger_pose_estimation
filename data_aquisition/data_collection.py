@@ -5,6 +5,7 @@ import os
 from PIL import Image
 import random
 from pathlib import Path
+import argparse
 
 try:
     from Leap import LeapRecorder, LeapVisuzalizer
@@ -316,7 +317,7 @@ class Experiment:
         # print('Data saved to: ', self.data.save_as)
 
 
-def main():
+def main(args):
     gesture_dir = './images'
     save_dir = './data'
 
@@ -341,12 +342,20 @@ def main():
 
 
     experiment = Experiment(num_repetaions, gesture_duration, rest_duration, gesture_directory=gesture_dir, record=record)
-
-    experiment.pre_exp(emg_data=emg_data)
-
-    experiment.run(emg_Data=emg_data, leap_data=leap_data)
+    
+    if args.vis:
+        emg_data.start()
+        emg_viz = EmgVisualizer(emg_data)
+        emg_viz.start()
+    else:
+        experiment.pre_exp(emg_data=emg_data)
+        experiment.run(emg_Data=emg_data, leap_data=leap_data)
 
 if __name__ == "__main__":
-    main()
+    argparser = argparse.ArgumentParser()
+    argparser.add_argument('--vis', action='store_true', help='Visualize data stream')
+
+    args = argparser.parse_args()
+    main(args)
     
 
