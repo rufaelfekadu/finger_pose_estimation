@@ -229,7 +229,7 @@ class Experiment:
             # start recording
             self.emg_data.save_as = str(Path(self.data_dir, f"fpe_pos{self.exp_info['position']}_{self.exp_info['Participant'].rjust(3, '0')}_S{self.exp_info['session']}_rep{self.exp_num}_BT.edf"))
             self.leap_data.save_as = str(Path(self.data_dir, f"fpe_pos{self.exp_info['position']}_{self.exp_info['Participant'].rjust(3, '0')}_S{self.exp_info['session']}_rep{self.exp_num}_BT.csv"))
-            
+            print(f"Saving data to: {self.emg_data.save_as}")
             self.emg_data.start()
             self.leap_data.start()
 
@@ -256,7 +256,7 @@ class Experiment:
             self.trigger('end_experiment')
             self.emg_data.stop()
             self.leap_data.stop()
-            
+
         self.exp_end_text.draw()
         self.window.flip()
         core.wait(3)
