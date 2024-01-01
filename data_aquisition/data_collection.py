@@ -7,11 +7,13 @@ import random
 from pathlib import Path
 
 try:
-    from Leap import LeapRecorder
+    from Leap import LeapRecorder, LeapVisuzalizer
 except:
     print("Leap Motion SDK not found. Leap Motion data will not be recorded.")
 
-from streamer import Data
+from streamer import Data, Viz
+
+
 class Experiment:
     def __init__(self, num_repetaions=5, gesture_duration=5, rest_duration=5, gesture_directory=None, record=False):
 
@@ -189,6 +191,43 @@ class Experiment:
                 print(f'TRIGGER: {self.emg_data.annotations[-1]}')
         elif verbose:
             print(f'TRIGGER: {msg}')
+
+    def pre_exp(self, emg_Data, leap_data):
+        '''
+        Pre experiment setup
+        '''
+        self.exp_info = self.collect_participant_info()
+        self._init_window()
+        print(f"running experiment with {len(self.gesture_images)} gestures")
+        self.instructions_text.draw()
+        self.window.flip()
+        event.waitKeys(keyList=['space'])
+        self.show_countdown(self.rest_duration)
+
+        # Visualize data stream in main thread:
+        secs = 10             # Time window of plots (in seconds)
+        ylim = (-1000, 1000)  # y-limits of plots
+        ica = False           # Perform and visualize ICA alongside raw data
+        update_interval = 10  # Update plots every X ms
+        max_points = 250      # Maximum number of data points to visualize per channel (render speed vs. resolution)
+
+        # plot emg data
+        emg_viz = Viz(self.emg_data, window_secs=secs, plot_exg=True, plot_imu=False, plot_ica=ica,
+                update_interval_ms=update_interval, ylim_exg=ylim, max_points=250)
+        emg_viz.start()
+
+        # plot leap data
+        leap_viz = LeapVisuzalizer()
+        leap_viz.start()
+        
+        while True:
+            keys = event.getKeys()
+            if self.quit_key in keys:
+                emg_viz.stop()
+                leap_viz.stop()
+            elif 'space' in keys:
+                pass
+
 
     def run(self,emg_Data, leap_data):
 

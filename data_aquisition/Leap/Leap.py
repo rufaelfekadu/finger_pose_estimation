@@ -9,6 +9,7 @@ from datetime import datetime
 import os
 # Your Recording class import here
 
+
 class LeapRecorder(Thread):
     def __init__(self, save_as: str):
         super().__init__()
