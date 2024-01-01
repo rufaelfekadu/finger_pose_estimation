@@ -404,12 +404,14 @@ class Experiment:
 
         self.emg_data = emg_data
         self.leap_data = leap_data
-
-        exp_process = Process(target=self.do_experiment)
-        exp_process.start()
+        
 
         vis_process = Process(target=self.do_visualise)
         vis_process.start()
+        
+        exp_process = Process(target=self.do_experiment)
+        exp_process.start()
+
 
         exp_process.join()
         vis_process.join()
