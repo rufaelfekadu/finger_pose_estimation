@@ -156,7 +156,7 @@ class Data(Thread):
         Records, (print details of received packet if verbose==True), and add data to growing data matrix.
         """
         #  write the start time of the recording to a log file
-        with open(os.path.join(self.save_as.split('/')[:-1], 'log.txt'), "a") as f:
+        with open(os.path.join(*self.save_as.split('/')[:-1], 'log.txt'), "a") as f:
             f.write(f"EMG Start time: {datetime.utcnow()}\n")
 
         while self.is_connected:
