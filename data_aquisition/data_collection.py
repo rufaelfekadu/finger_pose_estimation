@@ -7,7 +7,7 @@ import random
 from pathlib import Path
 
 try:
-    from Leap import LeapListener, LeapRecorder
+    from Leap import LeapRecorder
 except:
     print("Leap Motion SDK not found. Leap Motion data will not be recorded.")
 
@@ -260,9 +260,7 @@ class Experiment:
         # print('Data saved to: ', self.data.save_as)
 
 
-if __name__ == "__main__":
-
-    # Example usage:
+def main():
     gesture_dir = './images'
     save_dir = './data'
 
@@ -272,7 +270,7 @@ if __name__ == "__main__":
     gesture_duration = 5
     rest_duration = 5
     record = False
-
+    
     host = '127.0.0.1'
     port = 20001
     timeout = 20
@@ -288,4 +286,8 @@ if __name__ == "__main__":
 
     experiment = Experiment(num_repetaions, gesture_duration, rest_duration, gesture_directory=gesture_dir, record=False)
     experiment.run(emg_Data=emg_data, leap_data=leap_data)
+
+if __name__ == "__main__":
+    main()
+    
 

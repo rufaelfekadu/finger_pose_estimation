@@ -6,6 +6,7 @@ import mne
 from scipy import signal
 
 from datetime import datetime
+
 class ExpTimes:
     refernce_time = datetime.strptime('2023-10-02 14:59:55.627000', '%Y-%m-%d %H:%M:%S.%f')
     manus_start_time = datetime.strptime('2023-10-02 14:59:20.799000', '%Y-%m-%d %H:%M:%S.%f')

@@ -10,6 +10,7 @@ from typing import Union
 from threading import Thread
 from itertools import groupby
 from datetime import datetime, timedelta
+import time
 
 from .record import parse_byte_arr, EXPECTED_SAMPLES_PER_RECORD
 
@@ -154,9 +155,11 @@ class Data(Thread):
         Commands what to do when a Data thread is started: continuously receive data from the socket, parse it into
         Records, (print details of received packet if verbose==True), and add data to growing data matrix.
         """
+        #  write the start time of the recording to a log file
+        with open(os.path.join(self.save_as.split('/')[:-1], 'log.txt'), "a") as f:
+            f.write(f"EMG Start time: {datetime.utcnow()}\n")
 
         while self.is_connected:
-
             # Receive incoming record(s)
             records = self._parse_incoming_records()
 

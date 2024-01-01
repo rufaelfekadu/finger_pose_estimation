@@ -5,13 +5,15 @@ import numpy as np
 import argparse
 import sys
 from threading import Thread
+from datetime import datetime
+import os
 # Your Recording class import here
 
 class LeapRecorder(Thread):
-    def __init__(self, save_dir: str):
+    def __init__(self, save_as: str):
         super().__init__()
 
-        self.save_dir = save_as
+        self.save_as = save_as
         self.is_connected = False
         self._init_client()
 
@@ -23,6 +25,11 @@ class LeapRecorder(Thread):
 
     def run(self):
         self.is_connected = True
+        
+        #  write the start time of the recording to a log file
+        with open(os.path.join(self.save_as.split('/')[:-1], 'log.txt'), "a") as f:
+            f.write(f"Leap Start time: {datetime.utcnow()}\n")
+
         with self._client.open():
             self._client.set_tracking_mode(leap.TrackingMode.Desktop)
             while self.is_connected:
@@ -83,19 +90,15 @@ class LeapListener(leap.Listener):
 
     def on_tracking_event(self, event):
 
-        # print(f"Frame {event.tracking_frame_id} with {len(event.hands)} hands.")
-        # timestamp = datetime.utcfromtimestamp(event.timestamp).strftime('%YY-%MM-%DD %H:%M:%S.%f')
-        start = time.time()
-        #  if no hands are detected, append a row of zeros
         if len(event.hands) == 0:
-            self.data.append([time.time(), event.timestamp] + [0 for i in range(len(self.columns)-2)])
+            self.data.append([time.time(), event.timestamp] + [np.Nan for i in range(len(self.columns)-2)])
             
         for hand in event.hands:
             hand_type = "left" if str(hand.type) == "HandType.Left" else "right"
             
             if hand_type == "right":
                 row = [
-                    time.time(),
+                    datetime.utcnow(),
                     event.timestamp,
                     hand.id,
                     hand_type,
@@ -121,7 +124,6 @@ class LeapListener(leap.Listener):
 
                 self.data.append(row)
 
-        print(f"Time taken to write hands: {time.time() - start}")
 
 
 def main(args):
