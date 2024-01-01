@@ -445,7 +445,7 @@ def main(args):
     if args.vis:
         experiment.pre_exp(emg_data=emg_data)
     else:
-        experiment.start_processes(emg_Data=emg_data, leap_data=leap_data)
+        experiment.start_processes(emg_data=emg_data, leap_data=leap_data)
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
