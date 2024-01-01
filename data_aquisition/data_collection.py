@@ -408,7 +408,7 @@ class Experiment:
 
         vis_process = Process(target=self.do_visualise)
         vis_process.start()
-        
+
         exp_process = Process(target=self.do_experiment)
         exp_process.start()
 
@@ -445,7 +445,7 @@ def main(args):
     if args.vis:
         experiment.pre_exp(emg_data=emg_data)
     else:
-        experiment.run(emg_Data=emg_data, leap_data=leap_data)
+        experiment.start_processes(emg_Data=emg_data, leap_data=leap_data)
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
