@@ -226,6 +226,8 @@ class Experiment:
                 update_interval_ms=update_interval, ylim_exg=ylim, max_points=250)
 
         emg_viz.start()
+        print("terminated")
+        leap_viz.stop()
 
 
     def run(self,emg_Data, leap_data):
