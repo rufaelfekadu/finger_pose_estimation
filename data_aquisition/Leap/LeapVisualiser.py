@@ -142,15 +142,15 @@ class LeapVisuzalizer(Thread):
 
     def _init_client(self):
 
-        self._listener = TrackingListener()
+        self.canvas = Canvas()
+        self._listener = TrackingListener(self.canvas)
         self._client = leap.Connection()
         self._client.add_listener(self._listener)
 
     def run(self):
     
-        canvas = Canvas()
 
-        print(canvas.name)
+        print(self.canvas.name)
         print("")
         print("Press <key> in visualiser window to:")
         print("  x: Exit")
@@ -164,10 +164,10 @@ class LeapVisuzalizer(Thread):
 
         with self._client.open():
             self._client.set_tracking_mode(leap.TrackingMode.Desktop)
-            canvas.set_tracking_mode(leap.TrackingMode.Desktop)
+            self.canvas.set_tracking_mode(leap.TrackingMode.Desktop)
 
             while running:
-                cv2.imshow(canvas.name, canvas.output_image)
+                cv2.imshow(self.canvas.name, self.canvas.output_image)
 
                 key = cv2.waitKey(1)
 
@@ -180,7 +180,7 @@ class LeapVisuzalizer(Thread):
                 elif key == ord("d"):
                     self._client.set_tracking_mode(leap.TrackingMode.Desktop)
                 elif key == ord("f"):
-                    canvas.toggle_hands_format()
+                    self.canvas.toggle_hands_format()
 
     def stop(self):
         self.is_connected = False
