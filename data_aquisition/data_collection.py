@@ -205,8 +205,7 @@ class Experiment:
 
     def do_experiment(self):
 
-         # setup window
-        self._init_window()
+         
 
         print(f"running experiment with {len(self.gesture_images)} gestures")
 
@@ -310,6 +309,9 @@ class Experiment:
         '''
         Main function to run the experiment
         '''
+        # setup window
+        self._init_window()
+        
         # collect participant info
         self.exp_info = self.collect_participant_info()
         self.emg_data = emg_Data
