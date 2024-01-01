@@ -7,6 +7,7 @@ import random
 from pathlib import Path
 import argparse
 from threading import Thread
+from multiprocessing import Process
 
 try:
     from Leap import LeapRecorder, LeapVisuzalizer
@@ -205,7 +206,7 @@ class Experiment:
 
     def do_experiment(self):
 
-         
+        self._init_window()
 
         print(f"running experiment with {len(self.gesture_images)} gestures")
 
@@ -267,6 +268,22 @@ class Experiment:
 
         self.window.close()
     
+    def do_visualise(self):
+
+         # Visualize data stream in main thread:
+        secs = 10             # Time window of plots (in seconds)
+        ylim = (-1000, 1000)  # y-limits of plots
+        ica = False           # Perform and visualize ICA alongside raw data
+        update_interval = 10  # Update plots every X ms
+        max_points = 250      # Maximum number of data points to visualize per channel (render speed vs. resolution)
+
+
+        if self.record:
+            emg_viz = Viz(self.emg_data, window_secs=secs, plot_exg=True, plot_imu=False, plot_ica=ica,
+                    update_interval_ms=update_interval, ylim_exg=ylim, max_points=250)
+
+            emg_viz.start()
+    
     def pre_exp(self, emg_data):
         '''
         Pre experiment setup
@@ -311,65 +328,91 @@ class Experiment:
         '''
         # setup window
         self._init_window()
-        
+
         # collect participant info
         self.exp_info = self.collect_participant_info()
         self.emg_data = emg_Data
         self.leap_data = leap_data
 
-        thread = Thread(target=self.do_experiment)
-        thread.start()
+        # thread = Thread(target=self.do_experiment)
+        # thread.start()
+        print(f"running experiment with {len(self.gesture_images)} gestures")
 
-         # Visualize data stream in main thread:
-        secs = 10             # Time window of plots (in seconds)
-        ylim = (-1000, 1000)  # y-limits of plots
-        ica = False           # Perform and visualize ICA alongside raw data
-        update_interval = 10  # Update plots every X ms
-        max_points = 250      # Maximum number of data points to visualize per channel (render speed vs. resolution)
+        # show instructions
+        self.instructions_text.draw()
 
+        self.window.flip()
+        event.waitKeys(keyList=['space'])
+
+        self.show_countdown(self.rest_duration)  # Display countdown for 5 seconds
+
+        self.running = True
+        if (self.record):
+            self.exp_info['date'] = data.getDateStr()  # add a simple timestamp
+            self.exp_info['expName'] = 'fpe - real time'
+            self.exp_info['psychopyVersion'] = '2023.2.3'
+
+            self.data_dir = Path(self.data_dir, self.exp_info['Participant'].rjust(3, '0'), f"S{self.exp_info['session']}")
+            self.data_dir.mkdir(parents=True, exist_ok=True)
+
+            with open(Path(self.data_dir, "log.txt"), 'w') as f:
+                f.write(f"{self.exp_info}\n")
+            # start recording
+            self.emg_data.save_as = str(Path(self.data_dir, f"fpe_pos{self.exp_info['position']}_{self.exp_info['Participant'].rjust(3, '0')}_S{self.exp_info['session']}_rep{self.exp_num}_BT.edf"))
+            self.leap_data.save_as = str(Path(self.data_dir, f"fpe_pos{self.exp_info['position']}_{self.exp_info['Participant'].rjust(3, '0')}_S{self.exp_info['session']}_rep{self.exp_num}_BT.csv"))
+            print(f"Saving data to: {self.emg_data.save_as}")
+            
+            self.emg_data.start()
+            self.leap_data.start()
+
+        while self.running:
+            keys = event.getKeys()
+            if self.quit_key in keys:
+                self.stop_experiment()
+                break
+            elif 'space' in keys:
+                self.pause_experiment()
+                continue
+            
+            self.show_gesture()
+            if self.record:
+                self.trigger(f'end_{self.gesture_names[self.current_gesture_index]}')   
+            self.show_countdown(self.rest_duration)  
+            # self.do_transition()  
+            if not self.update_gesture():
+                break
+        
         if self.record:
-            emg_viz = Viz(self.emg_data, window_secs=secs, plot_exg=True, plot_imu=False, plot_ica=ica,
-                    update_interval_ms=update_interval, ylim_exg=ylim, max_points=250)
+            self.trigger('end_experiment')
+            self.emg_data.stop()
+            self.leap_data.stop()
 
-            emg_viz.start()
-        thread.join()
+            self.emg_data.join()
+            self.leap_data.join()
+
+        self.exp_end_text.draw()
+        self.window.flip()
+        core.wait(3)
+
+        self.window.close()
+
+        
+        
         print("terminated")
         
-        # while self.running:
+    def start_processes(self, emg_data, leap_data):
 
-        #     keys = event.getKeys()
-        #     if self.quit_key in keys:
-        #         self.stop_experiment()
-        #         break
-        #     elif 'space' in keys:
-        #         self.pause_experiment()
-        #         continue
-            
-        #     self.show_gesture()
-        #     if self.record:
-        #         self.trigger(f'end_{self.gesture_names[self.current_gesture_index]}')   
-        #     self.show_countdown(self.rest_duration)  
-        #     # self.do_transition()  
-        #     if not self.update_gesture():
-        #         break  # Choose a new gesture
-        
-        
-        # if self.record:
-        #     self.trigger('end_experiment')
-        #     self.emg_data.stop()
-        #     self.leap_data.stop()
+        self.emg_data = emg_data
+        self.leap_data = leap_data
 
-        # self.exp_end_text.draw()
-        # self.window.flip()
-        # core.wait(3)
-        
-        # stop recording
-        # self.emg_data.stop()
-        # self.leap_data.stop()
+        exp_process = Process(target=self.do_experiment)
+        exp_process.start()
 
-        # self.window.close()
-        # print('Data saved to: ', self.data.save_as)
+        vis_process = Process(target=self.do_visualise)
+        vis_process.start()
 
+        exp_process.join()
+        vis_process.join()
 
 def main(args):
     gesture_dir = './images'
