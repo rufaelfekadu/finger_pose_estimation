@@ -429,9 +429,9 @@ def main(args):
 
 
     # experiment setup
-    num_repetaions = 5
-    gesture_duration = 5
-    rest_duration = 5
+    num_repetaions = 1
+    gesture_duration = 2
+    rest_duration = 2
     record = True
     
     host = '127.0.0.1'
