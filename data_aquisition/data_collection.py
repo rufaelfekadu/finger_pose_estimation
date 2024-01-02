@@ -330,7 +330,7 @@ class Experiment:
         self._init_window()
 
         # collect participant info
-        self.exp_info = self.collect_participant_info()
+        # self.exp_info = self.collect_participant_info()
         self.emg_data = emg_data
         self.leap_data = leap_data
 
