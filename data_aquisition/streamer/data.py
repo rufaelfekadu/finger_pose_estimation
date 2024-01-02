@@ -60,7 +60,7 @@ class Data(Thread):
         # Initialize thread
         Thread.__init__(self)
 
-        self.data_dir = None
+        self.data_dir = "."
         # Initialize properties
         self.has_data = False
         self.exg_data = None
@@ -149,16 +149,17 @@ class Data(Thread):
 
         return records
 
-    def run(self):
+    def run(self, visualize: bool = False):
         """
         Overrides Thread.run().
 
         Commands what to do when a Data thread is started: continuously receive data from the socket, parse it into
         Records, (print details of received packet if verbose==True), and add data to growing data matrix.
         """
-        #  write the start time of the recording to a log file
-        with open(os.path.join(self.data_dir, 'log.txt'), "a") as f:
-            f.write(f"EMG Start time: {datetime.utcnow()}\n")
+        if not visualize:
+            #  write the start time of the recording to a log file
+            with open(os.path.join(self.data_dir, 'log.txt'), "a") as f:
+                f.write(f"EMG Start time: {datetime.utcnow()}\n")
 
         while self.is_connected:
             # Receive incoming record(s)
