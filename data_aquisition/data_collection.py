@@ -183,7 +183,7 @@ class Experiment:
         # Choose a random gesture that has not been completed enough times
         self.current_gesture_index = random.randint(0, len(self.gesture_images)-1)
         self.num_completed[self.current_gesture_index] += 1
-
+        print(self.num_completed)
         # Remove the gesture if it has been completed enough times
         if self.num_completed[self.current_gesture_index] == self.num_repetaions:
             self.num_completed[self.current_gesture_index] = 0
@@ -426,8 +426,8 @@ def main(args):
 
     # experiment setup
     num_repetaions = 1
-    gesture_duration = 2
-    rest_duration = 2
+    gesture_duration = 5
+    rest_duration = 5
     record = True
     
     host = '127.0.0.1'
