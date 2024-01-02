@@ -196,7 +196,7 @@ class Experiment:
             if self.num_completed[self.current_image] == 0:
                 self.images.remove(self.current_image)
 
-            print(self.num_repetaions*len(self.num_completed)-sum(self.num_completed.values()))
+            print(sum(self.num_completed.values()))
             # return fasle if there are no more gestures to display
             return True
         
@@ -428,9 +428,9 @@ def main(args):
 
 
     # experiment setup
-    num_repetaions = 1
-    gesture_duration = 2
-    rest_duration = 2
+    num_repetaions = 5
+    gesture_duration = 5
+    rest_duration = 5
     record = False
     
     host = '127.0.0.1'
