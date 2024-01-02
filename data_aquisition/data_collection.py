@@ -310,8 +310,8 @@ class Experiment:
         leap_viz.start()
 
         # plot emg data
-        
-        emg_data.start(visualize=True)
+        emg_data.visualize = True
+        emg_data.start()
         emg_viz = Viz(emg_data, window_secs=secs, plot_exg=True, plot_imu=False, plot_ica=ica,
                 update_interval_ms=update_interval, ylim_exg=ylim, max_points=250)
 
