@@ -9,6 +9,11 @@ from datetime import datetime
 import os
 # Your Recording class import here
 
+_TRACKING_MODES = {
+    leap.TrackingMode.Desktop: "Desktop",
+    leap.TrackingMode.HMD: "HMD",
+    leap.TrackingMode.ScreenTop: "ScreenTop",
+}
 
 class LeapRecorder(Thread):
     def __init__(self, save_as: str):

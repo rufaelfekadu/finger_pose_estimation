@@ -186,10 +186,11 @@ class Experiment:
 
         # Remove the gesture if it has been completed enough times
         if self.num_completed[self.current_gesture_index] == self.num_repetaions:
-            self.gesture_images.pop(self.current_gesture_index)
-
+            self.num_completed[self.current_gesture_index] = 0
+            # self.gesture_images.pop(self.current_gesture_index)
+        print(self.num_repetaions*len(self.num_completed)-sum(self.num_completed))
         # return fasle if there are no more gestures to display
-        if len(self.gesture_images) == 0:
+        if sum(self.num_completed) == 0:
             return False
         else:
             return True
@@ -313,7 +314,7 @@ class Experiment:
         emg_data.visualize = True
         emg_data.start()
         emg_viz = Viz(emg_data, window_secs=secs, plot_exg=True, plot_imu=False, plot_ica=ica,
-                update_interval_ms=update_interval, ylim_exg=ylim, max_points=250)
+                update_interval_ms=update_interval, ylim_exg=ylim, max_points=max_points)
 
         emg_viz.start()
         print("terminated")
