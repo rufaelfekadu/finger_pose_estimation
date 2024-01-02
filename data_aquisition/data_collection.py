@@ -186,13 +186,13 @@ class Experiment:
         print(self.num_completed)
         # Remove the gesture if it has been completed enough times
         if self.num_completed[self.current_gesture_index] == self.num_repetaions:
-            self.num_completed[self.current_gesture_index] = 0
+            # self.num_completed[self.current_gesture_index] = 0
             self.gesture_images.pop(self.current_gesture_index)
             self.gesture_names.pop(self.current_gesture_index)
 
         print(self.num_repetaions*len(self.num_completed)-sum(self.num_completed))
         # return fasle if there are no more gestures to display
-        if sum(self.num_completed) == 0:
+        if len(self.gesture_images) == 0:
             return False
         else:
             return True
