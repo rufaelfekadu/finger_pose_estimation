@@ -8,6 +8,9 @@ from pathlib import Path
 import argparse
 from threading import Thread
 from multiprocessing import Process
+from matplotlib.animation import FuncAnimation
+import matplotlib.pyplot as plt
+import numpy as np
 
 try:
     from Leap import LeapRecorder, LeapVisuzalizer
@@ -15,6 +18,7 @@ except:
     print("Leap Motion SDK not found. Leap Motion data will not be recorded.")
 
 from streamer import Data, Viz, EmgVisualizer
+
 
 
 class Experiment:
@@ -80,8 +84,6 @@ class Experiment:
             self.running = False
         except Exception as e:
             print(f"Error during window initialization: {e}")
-        
-        
 
         # Experiment setup
         self.gesture_images, self.gesture_names = self.load_gesture_images(self.gesture_directory)
@@ -219,24 +221,6 @@ class Experiment:
         self.show_countdown(self.rest_duration)  # Display countdown for 5 seconds
 
         self.running = True
-        if (self.record):
-            self.exp_info['date'] = data.getDateStr()  # add a simple timestamp
-            self.exp_info['expName'] = 'fpe - real time'
-            self.exp_info['psychopyVersion'] = '2023.2.3'
-
-            self.data_dir = Path(self.data_dir, self.exp_info['Participant'].rjust(3, '0'), f"S{self.exp_info['session']}")
-            self.data_dir.mkdir(parents=True, exist_ok=True)
-
-            with open(Path(self.data_dir, "log.txt"), 'w') as f:
-                f.write(f"{self.exp_info}\n")
-            # start recording
-            self.emg_data.save_as = str(Path(self.data_dir, f"fpe_pos{self.exp_info['position']}_{self.exp_info['Participant'].rjust(3, '0')}_S{self.exp_info['session']}_rep{self.exp_num}_BT.edf"))
-            self.leap_data.save_as = str(Path(self.data_dir, f"fpe_pos{self.exp_info['position']}_{self.exp_info['Participant'].rjust(3, '0')}_S{self.exp_info['session']}_rep{self.exp_num}_BT.csv"))
-            print(f"Saving data to: {self.emg_data.save_as}")
-            
-            self.emg_data.start()
-            self.leap_data.start()
-
         while self.running:
             keys = event.getKeys()
             if self.quit_key in keys:
@@ -261,6 +245,7 @@ class Experiment:
 
             self.emg_data.join()
             self.leap_data.join()
+        
 
         self.exp_end_text.draw()
         self.window.flip()
@@ -277,13 +262,31 @@ class Experiment:
         update_interval = 10  # Update plots every X ms
         max_points = 250      # Maximum number of data points to visualize per channel (render speed vs. resolution)
 
-
+        
         if self.record:
             emg_viz = Viz(self.emg_data, window_secs=secs, plot_exg=True, plot_imu=False, plot_ica=ica,
                     update_interval_ms=update_interval, ylim_exg=ylim, max_points=250)
 
             emg_viz.start()
-    
+        else:
+            # sample animation using matplotlib.animation
+            
+
+            fig, ax = plt.subplots()
+            ax.set_xlim(0, 2*np.pi)
+            ax.set_ylim(-1, 1)
+            line, = ax.plot([], [])
+
+            anim = FuncAnimation(fig, self.update, frames=np.arange(0, 2*np.pi, 0.1), fargs=(line,), interval=10)
+            plt.show()
+            
+
+    @staticmethod
+    def update(i, line):
+        x = np.linspace(0, 2*np.pi, 100)
+        y = np.sin(x + i)
+        line.set_data(x, y)
+
     def pre_exp(self, emg_data):
         '''
         Pre experiment setup
@@ -382,6 +385,57 @@ class Experiment:
             if not self.update_gesture():
                 break
         
+        self.exp_end_text.draw()
+        self.window.flip()
+        core.wait(3)
+
+        self.window.close()
+
+        
+        
+        print("terminated")
+        
+    def start_processes(self, emg_data, leap_data):
+
+        self.emg_data = emg_data
+        self.leap_data = leap_data
+
+        if (self.record):
+            self.exp_info['date'] = data.getDateStr()  # add a simple timestamp
+            self.exp_info['expName'] = 'fpe - real time'
+            self.exp_info['psychopyVersion'] = '2023.2.3'
+
+            self.data_dir = Path(self.data_dir, self.exp_info['Participant'].rjust(3, '0'), f"S{self.exp_info['session']}")
+            self.data_dir.mkdir(parents=True, exist_ok=True)
+
+            with open(Path(self.data_dir, "log.txt"), 'w') as f:
+                f.write(f"{self.exp_info}\n")
+            # start recording
+            self.emg_data.save_as = str(Path(self.data_dir, f"fpe_pos{self.exp_info['position']}_{self.exp_info['Participant'].rjust(3, '0')}_S{self.exp_info['session']}_rep{self.exp_num}_BT.edf"))
+            self.leap_data.save_as = str(Path(self.data_dir, f"fpe_pos{self.exp_info['position']}_{self.exp_info['Participant'].rjust(3, '0')}_S{self.exp_info['session']}_rep{self.exp_num}_BT.csv"))
+            print(f"Saving data to: {self.emg_data.save_as}")
+            
+            self.emg_data.start()
+            self.leap_data.start()
+        else:
+            self.emg_data = testClass()
+            self.leap_data = testClass()
+            self.emg_data.start()
+            self.leap_data.start()
+        
+        exp_process = Thread(target=self.do_experiment)
+        exp_process.start()
+
+        # vis_process = Process(target=self.do_visualise)
+        self.do_visualise()
+        # vis_process.start()
+
+        
+
+
+        exp_process.join()
+        # vis_process.join()
+
         if self.record:
             self.trigger('end_experiment')
             self.emg_data.stop()
@@ -390,29 +444,8 @@ class Experiment:
             self.emg_data.join()
             self.leap_data.join()
 
-        self.exp_end_text.draw()
-        self.window.flip()
-        core.wait(3)
-
-        self.window.close()
-        
-        print("terminated")
-        
-    def start_processes(self, emg_data, leap_data):
-
-        self.emg_data = emg_data
-        self.leap_data = leap_data
-        
-
-        vis_process = Process(target=self.do_visualise)
-        vis_process.start()
-
-        exp_process = Process(target=self.do_experiment)
-        exp_process.start()
 
 
-        exp_process.join()
-        vis_process.join()
 
 def main(args):
     gesture_dir = './images'
@@ -423,7 +456,7 @@ def main(args):
     num_repetaions = 5
     gesture_duration = 5
     rest_duration = 5
-    record = True
+    record = False
     
     host = '127.0.0.1'
     port = 20001
@@ -443,7 +476,26 @@ def main(args):
     if args.vis:
         experiment.pre_exp(emg_data=emg_data)
     else:
-        experiment.run(emg_data=emg_data, leap_data=leap_data)
+        experiment.start_processes(emg_data=emg_data, leap_data=leap_data)
+
+
+class testClass(Thread):
+    def __init__(self):
+        super().__init__()
+        self.is_runnig = False
+    
+    def run(self):
+        print("test")
+        self.is_runnig = True
+        while self.is_runnig:
+            core.wait(1)
+            print("test2")
+    
+    def stop(self):
+        print("stop")
+        self.is_runnig = False
+        self.join()
+        print("stopped")
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
