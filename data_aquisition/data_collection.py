@@ -143,6 +143,7 @@ class Experiment:
                 gesture_images.append(image)
                 image_names.append(file_name.split('.')[0])
                 self.image_indexs.append(i)
+                i+=1
 
         
         return gesture_images, image_names
