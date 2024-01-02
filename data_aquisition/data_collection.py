@@ -321,7 +321,7 @@ class Experiment:
         leap_viz.join()
 
 
-    def run(self,emg_Data, leap_data):
+    def run(self,emg_data, leap_data):
 
         '''
         Main function to run the experiment
@@ -331,7 +331,7 @@ class Experiment:
 
         # collect participant info
         self.exp_info = self.collect_participant_info()
-        self.emg_data = emg_Data
+        self.emg_data = emg_data
         self.leap_data = leap_data
 
         # thread = Thread(target=self.do_experiment)
