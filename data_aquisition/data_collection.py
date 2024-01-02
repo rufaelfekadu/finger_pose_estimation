@@ -86,7 +86,7 @@ class Experiment:
         # Experiment setup
         self.gestures = self.load_gesture_images(self.gesture_directory)
         self.num_completed = {
-            i: self.num_repetaions for i in range(len(self.gestures.keys()))
+            i: self.num_repetaions for i in self.gestures.keys()
         }
         self.images= list(self.gestures.keys())
         self.current_image = self.images[0]
@@ -181,7 +181,7 @@ class Experiment:
         gesture_image = self.gestures[self.current_image]
         gesture_image.draw()
         self.window.flip()
-        self.trigger(f'start_{self.gestures[self.current_image]}')
+        self.trigger(f'start_{self.current_image}')
         core.wait(5)  # Display the gesture for 5 seconds
     
     def update_gesture(self):
@@ -192,7 +192,6 @@ class Experiment:
             # self.current_gesture_index = random.randint(0, len(self.gesture_images)-1)
             self.current_image = random.choice(self.images)
             self.num_completed[self.current_image] -= 1
-            print(self.num_completed)
             # Remove the gesture if it has been completed enough times
             if self.num_completed[self.current_image] == 0:
                 self.images.remove(self.current_image)
@@ -430,9 +429,9 @@ def main(args):
 
     # experiment setup
     num_repetaions = 1
-    gesture_duration = 5
-    rest_duration = 5
-    record = True
+    gesture_duration = 2
+    rest_duration = 2
+    record = False
     
     host = '127.0.0.1'
     port = 20001
