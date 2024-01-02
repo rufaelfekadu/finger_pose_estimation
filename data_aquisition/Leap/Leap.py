@@ -15,6 +15,7 @@ class LeapRecorder(Thread):
         super().__init__()
 
         self.save_as = save_as
+        self.data_dir = None
         self.is_connected = False
         self._init_client()
 
@@ -26,9 +27,8 @@ class LeapRecorder(Thread):
 
     def run(self):
         self.is_connected = True
-
         #  write the start time of the recording to a log file
-        with open(os.path.join(*self.save_as.split(os.sep)[:-1], 'log.txt'), "a") as f:
+        with open(os.path.join(self.data_dir, 'log.txt'), "a") as f:
             f.write(f"Leap Start time: {datetime.utcnow()}\n")
 
         with self._client.open():

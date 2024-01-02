@@ -60,6 +60,7 @@ class Data(Thread):
         # Initialize thread
         Thread.__init__(self)
 
+        self.data_dir = None
         # Initialize properties
         self.has_data = False
         self.exg_data = None
@@ -156,7 +157,7 @@ class Data(Thread):
         Records, (print details of received packet if verbose==True), and add data to growing data matrix.
         """
         #  write the start time of the recording to a log file
-        with open(os.path.join(*self.save_as.split(os.sep)[:-1], 'log.txt'), "a") as f:
+        with open(os.path.join(self.data_dir, 'log.txt'), "a") as f:
             f.write(f"EMG Start time: {datetime.utcnow()}\n")
 
         while self.is_connected:

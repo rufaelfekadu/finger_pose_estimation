@@ -355,9 +355,11 @@ class Experiment:
             self.data_dir = Path(self.data_dir, self.exp_info['Participant'].rjust(3, '0'), f"S{self.exp_info['session']}")
             self.data_dir.mkdir(parents=True, exist_ok=True)
 
+            self.leap_data.data_dir = self.data_dir
             with open(Path(self.data_dir, "log.txt"), 'w') as f:
                 f.write(f"{self.exp_info}\n")
             # start recording
+            self.emg_data.data_dir = self.data_dir
             self.emg_data.save_as = str(Path(self.data_dir, f"fpe_pos{self.exp_info['position']}_{self.exp_info['Participant'].rjust(3, '0')}_S{self.exp_info['session']}_rep{self.exp_num}_BT.edf"))
             self.leap_data.save_as = str(Path(self.data_dir, f"fpe_pos{self.exp_info['position']}_{self.exp_info['Participant'].rjust(3, '0')}_S{self.exp_info['session']}_rep{self.exp_num}_BT.csv"))
             print(f"Saving data to: {self.emg_data.save_as}")
