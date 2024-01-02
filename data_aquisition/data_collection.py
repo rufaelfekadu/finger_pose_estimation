@@ -88,7 +88,8 @@ class Experiment:
         self.num_completed = {
             i: self.num_repetaions for i in range(len(self.gestures.keys()))
         }
-        self.images= list(self.gestures.values())
+        self.images= list(self.gestures.keys())
+        self.current_image = self.images[0]
 
     def collect_participant_info(self):
         info_dialog = gui.Dlg(title='Participant Information')
@@ -177,10 +178,10 @@ class Experiment:
             core.wait(1)
 
     def show_gesture(self):
-        gesture_image = self.gesture_images[self.current_gesture_index]
+        gesture_image = self.gestures[self.current_image]
         gesture_image.draw()
         self.window.flip()
-        self.trigger(f'start_{self.gesture_names[self.current_gesture_index]}')
+        self.trigger(f'start_{self.gestures[self.current_image]}')
         core.wait(5)  # Display the gesture for 5 seconds
     
     def update_gesture(self):
@@ -214,7 +215,7 @@ class Experiment:
 
         self._init_window()
 
-        print(f"running experiment with {len(self.gesture_images)} gestures")
+        print(f"running experiment with {len(self.images)} gestures")
 
         # show instructions
         self.instructions_text.draw()
@@ -254,7 +255,7 @@ class Experiment:
             
             self.show_gesture()
             if self.record:
-                self.trigger(f'end_{self.gesture_names[self.current_gesture_index]}')   
+                self.trigger(f'end_{self.current_image}')   
             self.show_countdown(self.rest_duration)  
             # self.do_transition()  
             if not self.update_gesture():
@@ -342,7 +343,7 @@ class Experiment:
 
         # thread = Thread(target=self.do_experiment)
         # thread.start()
-        print(f"running experiment with {len(self.gesture_images)} gestures")
+        print(f"running experiment with {len(self.images)} gestures")
 
         # show instructions
         self.instructions_text.draw()
@@ -384,7 +385,7 @@ class Experiment:
             
             self.show_gesture()
             if self.record:
-                self.trigger(f'end_{self.gesture_names[self.current_gesture_index]}')   
+                self.trigger(f'end_{self.current_image}')   
             self.show_countdown(self.rest_duration)  
             # self.do_transition()  
             if not self.update_gesture():
