@@ -26,9 +26,9 @@ class LeapRecorder(Thread):
 
     def run(self):
         self.is_connected = True
-        
+
         #  write the start time of the recording to a log file
-        with open(os.path.join(*self.save_as.split('\\')[:-1], 'log.txt'), "a") as f:
+        with open(os.path.join(*self.save_as.split(os.sep)[:-1], 'log.txt'), "a") as f:
             f.write(f"Leap Start time: {datetime.utcnow()}\n")
 
         with self._client.open():

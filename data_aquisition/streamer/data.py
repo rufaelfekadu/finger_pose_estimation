@@ -213,7 +213,6 @@ class Data(Thread):
                 header[var] = local[var]
             else:
                 header[var] = str(local[var])
-        print(header)
         return header
 
     def _preprocess_edf_signals(self):
