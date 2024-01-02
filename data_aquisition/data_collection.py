@@ -130,9 +130,7 @@ class Experiment:
     def load_gesture_images(self, gesture_directory):
         gesture_images = []
         image_names = []
-        self.image_indexs = []
         gesture_files = os.listdir(gesture_directory)
-        i = 0
         for file_name in gesture_files:
             file_name = file_name.lower()
             if file_name.endswith('.png') or file_name.endswith('.jpg'):
@@ -142,9 +140,6 @@ class Experiment:
                 image = visual.ImageStim(self.window, image=pil_image)
                 gesture_images.append(image)
                 image_names.append(file_name.split('.')[0])
-                self.image_indexs.append(i)
-                i+=1
-
         
         return gesture_images, image_names
 
@@ -186,13 +181,14 @@ class Experiment:
     def update_gesture(self):
 
         # Choose a random gesture that has not been completed enough times
-        self.current_gesture_index = random.choice(self.image_indexs)
+        self.current_gesture_index = random.randint(0, len(self.gesture_images)-1)
         self.num_completed[self.current_gesture_index] += 1
 
         # Remove the gesture if it has been completed enough times
         if self.num_completed[self.current_gesture_index] == self.num_repetaions:
             self.num_completed[self.current_gesture_index] = 0
-            self.image_indexs.pop(self.current_gesture_index)
+            self.gesture_images.pop(self.current_gesture_index)
+            self.gesture_names.pop(self.current_gesture_index)
 
         print(self.num_repetaions*len(self.num_completed)-sum(self.num_completed))
         # return fasle if there are no more gestures to display
