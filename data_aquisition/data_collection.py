@@ -184,21 +184,20 @@ class Experiment:
         core.wait(5)  # Display the gesture for 5 seconds
     
     def update_gesture(self):
-
-        # Choose a random gesture that has not been completed enough times
-        # self.current_gesture_index = random.randint(0, len(self.gesture_images)-1)
-        self.current_image = random.choice(self.images)
-        self.num_completed[self.current_image] -= 1
-        print(self.num_completed)
-        # Remove the gesture if it has been completed enough times
-        if self.num_completed[self.current_image] == 0:
-            self.images.remove(self.current_image)
-
-        print(self.num_repetaions*len(self.num_completed)-sum(self.num_completed.values()))
-        # return fasle if there are no more gestures to display
-        if len(self.gesture_images) == 0:
+        if len(self.images) == 0:
             return False
         else:
+            # Choose a random gesture that has not been completed enough times
+            # self.current_gesture_index = random.randint(0, len(self.gesture_images)-1)
+            self.current_image = random.choice(self.images)
+            self.num_completed[self.current_image] -= 1
+            print(self.num_completed)
+            # Remove the gesture if it has been completed enough times
+            if self.num_completed[self.current_image] == 0:
+                self.images.remove(self.current_image)
+
+            print(self.num_repetaions*len(self.num_completed)-sum(self.num_completed.values()))
+            # return fasle if there are no more gestures to display
             return True
         
     def trigger(self, msg, verbose=True):
