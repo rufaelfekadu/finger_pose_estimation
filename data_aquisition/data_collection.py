@@ -84,8 +84,11 @@ class Experiment:
         
 
         # Experiment setup
-        self.gesture_images, self.gesture_names = self.load_gesture_images(self.gesture_directory)
-        self.num_completed = [0 for _ in self.gesture_images]
+        self.gestures = self.load_gesture_images(self.gesture_directory)
+        self.num_completed = {
+            i: self.num_repetaions for i in range(len(self.gestures.keys()))
+        }
+        self.images= list(self.gestures.values())
 
     def collect_participant_info(self):
         info_dialog = gui.Dlg(title='Participant Information')
@@ -130,6 +133,7 @@ class Experiment:
     def load_gesture_images(self, gesture_directory):
         gesture_images = []
         image_names = []
+        gestures = {}
         gesture_files = os.listdir(gesture_directory)
         for file_name in gesture_files:
             file_name = file_name.lower()
@@ -138,10 +142,11 @@ class Experiment:
                 pil_image = Image.open(image_path)
                 pil_image = self.resize_and_crop(pil_image)
                 image = visual.ImageStim(self.window, image=pil_image)
-                gesture_images.append(image)
-                image_names.append(file_name.split('.')[0])
+                gestures[file_name.split('.')[0]] = image
+                # gesture_images.append(image)
+                # image_names.append(file_name.split('.')[0])
         
-        return gesture_images, image_names
+        return gestures
 
     def check_quit_key(self):
         if event.getKeys(keyList=[self.quit_key]):
@@ -181,16 +186,15 @@ class Experiment:
     def update_gesture(self):
 
         # Choose a random gesture that has not been completed enough times
-        self.current_gesture_index = random.randint(0, len(self.gesture_images)-1)
-        self.num_completed[self.current_gesture_index] += 1
+        # self.current_gesture_index = random.randint(0, len(self.gesture_images)-1)
+        self.current_image = random.choice(self.images)
+        self.num_completed[self.current_image] -= 1
         print(self.num_completed)
         # Remove the gesture if it has been completed enough times
-        if self.num_completed[self.current_gesture_index] == self.num_repetaions:
-            # self.num_completed[self.current_gesture_index] = 0
-            self.gesture_images.pop(self.current_gesture_index)
-            self.gesture_names.pop(self.current_gesture_index)
+        if self.num_completed[self.current_image] == 0:
+            self.images.remove(self.current_image)
 
-        print(self.num_repetaions*len(self.num_completed)-sum(self.num_completed))
+        print(self.num_repetaions*len(self.num_completed)-sum(self.num_completed.values()))
         # return fasle if there are no more gestures to display
         if len(self.gesture_images) == 0:
             return False
