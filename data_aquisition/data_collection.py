@@ -8,13 +8,13 @@ from pathlib import Path
 import argparse
 from threading import Thread
 from multiprocessing import Process
-
+import json
 try:
     from Leap import LeapRecorder, LeapVisuzalizer
 except:
     print("Leap Motion SDK not found. Leap Motion data will not be recorded.")
 
-from streamer import Data, Viz, EmgVisualizer
+from streamer import Data, Viz, EmgVisualizer, EMG
 
 
 class Experiment:
@@ -358,12 +358,15 @@ class Experiment:
             self.exp_info['expName'] = 'fpe - real time'
             self.exp_info['psychopyVersion'] = '2023.2.3'
 
-            self.data_dir = Path(self.data_dir, self.exp_info['Participant'].rjust(3, '0'), f"S{self.exp_info['session']}")
+            self.data_dir = Path(self.data_dir, self.exp_info['Participant'].rjust(3, '0'), f"Session_{self.exp_info['session']}", f"Posision_{self.exp_info['position']}")
             self.data_dir.mkdir(parents=True, exist_ok=True)
 
             self.leap_data.data_dir = self.data_dir
-            with open(Path(self.data_dir, "log.txt"), 'w') as f:
-                f.write(f"{self.exp_info}\n")
+            # dump json file
+            with open(Path(self.data_dir, "log.json"), 'w') as f:
+                json.dump(self.exp_info, f)
+
+
             # start recording
             self.emg_data.data_dir = self.data_dir
             self.emg_data.save_as = str(Path(self.data_dir, f"fpe_pos{self.exp_info['position']}_{self.exp_info['Participant'].rjust(3, '0')}_S{self.exp_info['session']}_rep{self.exp_num}_BT.edf"))
@@ -439,7 +442,7 @@ def main(args):
     verbose = False
 
     if record:
-        emg_data = Data(host_name=host, port=port, timeout_secs=timeout, verbose=verbose, save_as="test.edf")
+        emg_data = EMG(host_name=host, port=port, timeout_secs=timeout, verbose=verbose, save_as="test.edf")
         leap_data = LeapRecorder(save_dir)
     else:
         emg_data = None

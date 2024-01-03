@@ -116,7 +116,7 @@ class Data(Thread):
         except:
             # What else might raise errors?
             raise ConnectionTimeoutError
-
+            
     @staticmethod
     def _print_records(records: list):
 

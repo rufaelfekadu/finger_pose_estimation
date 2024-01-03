@@ -10,7 +10,7 @@ import os
 
 import sys
 sys.path.append('/Users/rufaelmarew/Documents/tau/finger_pose_estimation')
-from util.data import read_emg, read_manus, read_leap
+from util.data import read_emg, read_manus, read_leap, build_leap_columns, build_manus_columns
 from config import cfg
 
 # Add data sources here
@@ -27,9 +27,12 @@ DATA_SOURCES = {
 
 class BaseDataset(Dataset):
     def __init__(self, transform=None, **kwargs):
+        self.fingers = ['Thumb', 'Index', 'Middle', 'Ring', 'Pinky']
+        self.joints = ['CMC', 'MCP', 'PIP', 'DIP']
+        self.movements = ['Flex', 'Spread']
+        self.ROTATIONS = ['x', 'y', 'z', 'w']
 
         self.data_path = data_path
-        self.label_path = label_path
 
         self.seq_len = seq_len
         self.stride = stride
@@ -48,6 +51,8 @@ class BaseDataset(Dataset):
         self.data_source = data_source # emg or imu
         self.label_source = label_source   # manus, video, or ultraleap 
 
+    def apply_ica_to_emg(self):
+        pass
         
     def prepare_data(self):
         pass
@@ -76,20 +81,20 @@ class EMGDataset(BaseDataset):
         super().__init__(**kwargs)
 
         self.emg_columns = ['channel {}'.format(i) for i in range(16)]
-        self.mauns_columns = ['Pinch_ThumbToIndex','Pinch_ThumbToMiddle', 'Pinch_ThumbToRing',
-                        'Pinch_ThumbToPinky', 'Thumb_CMC_Spread', 'Thumb_CMC_Flex', 'Thumb_PIP_Flex', 'Thumb_DIP_Flex',
-                        'Index_MCP_Spread', 'Index_MCP_Flex', 'Index_PIP_Flex', 'Index_DIP_Flex', 'Middle_MCP_Spread',
-                        'Middle_MCP_Flex', 'Middle_PIP_Flex', 'Middle_DIP_Flex', 'Ring_MCP_Spread', 'Ring_MCP_Flex',
-                        'Ring_PIP_Flex', 'Ring_DIP_Flex', 'Pinky_MCP_Spread', 'Pinky_MCP_Flex', 'Pinky_PIP_Flex',
-                        'Pinky_DIP_Flex','time']
+        if self.label_source == 'manus':
+            self.label_columns = build_manus_columns()
+        elif self.label_source == 'leap':
+            self.label_columns = build_leap_columns()
         
         self.prepare_data()
+
         self.discritize_data() # discritize the data into sequences of length seq_len using torch
         print("data shape: ", self.data.shape)
-        
+
+    
     def prepare_data(self):
-        data =  DATA_SOURCES[self.data_source](self.data_path)
-        label = DATA_SOURCES[self.label_source](self.label_path)
+        data, annotations, header =  DATA_SOURCES[self.data_source](self.data_path)
+        label, _, _ = DATA_SOURCES[self.label_source](self.label_path)
         
         # set the start and end of experiment
         start_time = max(min(data.index), min(label.index))

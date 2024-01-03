@@ -7,6 +7,10 @@ import sys
 from threading import Thread
 from datetime import datetime
 import os
+import json
+import sys
+sys.path.append('../')
+from lock import lock
 # Your Recording class import here
 
 _TRACKING_MODES = {
@@ -23,6 +27,7 @@ class LeapRecorder(Thread):
         self.data_dir = None
         self.is_connected = False
         self._init_client()
+        self.exp_start_time = None
 
     def _init_client(self):
 
@@ -32,10 +37,7 @@ class LeapRecorder(Thread):
 
     def run(self):
         self.is_connected = True
-        #  write the start time of the recording to a log file
-        with open(os.path.join(self.data_dir, 'log.txt'), "a") as f:
-            f.write(f"Leap Start time: {datetime.utcnow()}\n")
-
+        self.exp_start_time = datetime.utcnow()
         with self._client.open():
             self._client.set_tracking_mode(leap.TrackingMode.Desktop)
             while self.is_connected:
@@ -47,8 +49,25 @@ class LeapRecorder(Thread):
     def save_data(self):
         df = pd.DataFrame(self._listener.data, columns=self._listener.columns)
         df.to_csv(self.save_as)
+        
 
     def stop(self):
+        # append the start time to the log.json file
+        filename = os.path.join(self.data_dir, 'log.json')
+        with open(filename, 'r') as f:
+            try:
+                existing_data = json.load(f)
+            except ValueError:
+                existing_data = []
+
+        # Append the new data
+        existing_data.append({'leap_start_time': str(self.exp_start_time), 'leap_end_time': str(datetime.utcnow())})
+
+        # Write everything back to the file
+        with lock:
+            with open(filename, 'w') as f:
+                json.dump(existing_data, f)
+
         self.is_connected = False
         self._client.remove_listener(self._listener)
         self.save_data()
@@ -68,7 +87,7 @@ class LeapListener(leap.Listener):
         self.data = []
 
     def make_columns(self):
-        self.columns = ["time","timestamp", "hand_id", "hand_type", "palm_x", "palm_y", "palm_z"]
+        self.columns = ["time","timestamp", "hand_id", "hand_type", "palm_x", "palm_y", "palm_z", "arm_x", "arm_y", "arm_z"]
         for finger in self.FINGER_NAMES:
             for joint in self.JOINT_NAMES:
                 for pos in self.POSITIONS:
@@ -97,7 +116,7 @@ class LeapListener(leap.Listener):
     def on_tracking_event(self, event):
 
         if len(event.hands) == 0:
-            self.data.append([time.time(), event.timestamp] + [np.nan for i in range(len(self.columns)-2)])
+            self.data.append([datetime.utcnow(), event.timestamp] + [np.nan for i in range(len(self.columns)-2)])
             
         for hand in event.hands:
             hand_type = "left" if str(hand.type) == "HandType.Left" else "right"
@@ -110,7 +129,10 @@ class LeapListener(leap.Listener):
                     hand_type,
                     hand.palm.position.x,
                     hand.palm.position.y,
-                    hand.palm.position.z
+                    hand.palm.position.z,
+                    hand.arm.prev_joint.x,
+                    hand.arm.prev_joint.y,
+                    hand.arm.prev_joint.z,
                 ]
                 
                 fingers_data = [
