@@ -7,7 +7,7 @@ import numpy as np
 
 from sklearn.model_selection import train_test_split
 
-from .EMGDataset import EMGDataset, TestDataset
+from .EMGLeap import EMGLeap
 
 
 def train_val_dataset(dataset, val_split=0.3):
@@ -25,21 +25,25 @@ def train_val_dataset(dataset, val_split=0.3):
 
 
 def make_dataset(cfg):
-    data_path = os.path.join(cfg.DATA.PATH, "data_2023-10-02 14-59-55-627.edf")
+    # data_path = os.path.join(cfg.DATA.PATH, "data_2023-10-02 14-59-55-627.edf")
     label_path = os.path.join(cfg.DATA.PATH, "label_2023-10-02_15-24-12_YH_lab_R.csv")
 
     if cfg.DEBUG:
-        dataset = TestDataset(seq_len=cfg.DATA.SEGMENT_LENGTH)
+        dataset = None
     else:
-        dataset = EMGDataset(data_path=data_path, 
-                             label_path=label_path,
-                             transform=None,
-                             data_source='emg',
-                             label_source='manus',
-                             seq_len=cfg.DATA.SEGMENT_LENGTH,
-                             num_channels=cfg.DATA.EMG.NUM_CHANNELS,
-                             stride=cfg.DATA.STRIDE,
-                             filter_data=cfg.DATA.FILTER_DATA,)
+        args = {
+            'data_path': cfg.DATA.PATH,
+            'seq_len':cfg.DATA.SEGMENT_LENGTH,
+            'num_channels':cfg.DATA.EMG.NUM_CHANNELS,
+            'stride':cfg.DATA.STRIDE,
+            'filter_data':cfg.DATA.FILTER_DATA,
+            'fs':cfg.DATA.EMG.SAMPLING_RATE,
+            'Q':cfg.DATA.EMG.Q,
+            'low_freq':cfg.DATA.EMG.LOW_FREQ,
+            'high_freq':cfg.DATA.EMG.HIGH_FREQ,
+            'notch_freq':cfg.DATA.EMG.NOTCH_FREQ,
+        }
+        dataset = EMGLeap(ica=False, kwargs=args)
     return dataset
 
 def make_dataloader(cfg, dataset):

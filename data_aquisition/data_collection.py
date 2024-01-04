@@ -183,6 +183,7 @@ class Experiment:
         self.window.flip()
         self.trigger(f'start_{self.current_image}')
         core.wait(5)  # Display the gesture for 5 seconds
+        self.trigger(f'end_{self.current_image}')
     
     def update_gesture(self):
         if len(self.images) == 0:
@@ -377,6 +378,7 @@ class Experiment:
             self.leap_data.start()
 
         while self.running:
+
             keys = event.getKeys()
             if self.quit_key in keys:
                 self.stop_experiment()

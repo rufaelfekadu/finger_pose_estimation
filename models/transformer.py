@@ -22,7 +22,7 @@ class PositionalEncoding(nn.Module):
 
 
 class TransformerModel(nn.Module):
-    def __init__(self, input_size, seq_length, num_channels, output_size):
+    def __init__(self, input_size, seq_length, output_size):
         super(TransformerModel, self).__init__()
 
         self.d_model = 128
@@ -39,7 +39,7 @@ class TransformerModel(nn.Module):
         self.decoder = nn.Linear(self.d_model * seq_length, output_size)
 
     def forward(self, x):
-        x = x.squeeze(1)
+        
         x = self.embedding(x)
         x = (x + self.pos_encoder(x)).permute(1, 0, 2)
         x = self.transformer_encoder(x)
@@ -63,11 +63,11 @@ class TransformerModel(nn.Module):
         del pretrained_dict
 
 def make_transformer_model(cfg):
-    model = TransformerModel(input_size=cfg.DATA.EMG.NUM_CHANNELS, 
+
+    return TransformerModel(input_size=cfg.DATA.EMG.NUM_CHANNELS, 
                              seq_length=cfg.DATA.SEGMENT_LENGTH, 
-                             num_channels=cfg.DATA.EMG.NUM_CHANNELS, 
                              output_size=len(cfg.DATA.MANUS.KEY_POINTS))
-    return model
+
 if __name__ == '__main__':
     # Example usage
     N = 100  # Number of training examples

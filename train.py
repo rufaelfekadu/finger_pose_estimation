@@ -15,7 +15,7 @@ from util import create_logger, AverageMeter, AverageMeterList, parse_arg
 from loss import make_loss
 from data import make_dataset, make_dataloader
 from config import cfg
-from models import NeuroPose, TransformerModel, make_model
+from models import make_model
 
 
 def weights_init(m):
@@ -35,7 +35,7 @@ def train_epoch(cfg, epoch, model, train_loader, criterion, optimizer, logger=No
     avg_loss = AverageMeter()
     smoothness_loss_meter = AverageMeter()
 
-    for batch_idx, (data, target) in tqdm(enumerate(train_loader), total=len(train_loader), desc=f"Epoch {epoch}"):
+    for batch_idx, (data, target, gesture) in tqdm(enumerate(train_loader), total=len(train_loader), desc=f"Epoch {epoch}"):
         
         data, target  = data.to(device), target.to(device)
         optimizer.zero_grad()
@@ -43,7 +43,6 @@ def train_epoch(cfg, epoch, model, train_loader, criterion, optimizer, logger=No
         # forward pass
         output = model(data)
         if cfg.MODEL.NAME.lower() == 'transformer':
-            target = target.squeeze(1)[:,-1,:]
             loss_per_keypoint = criterion(output, target)
             loss = loss_per_keypoint.mean()
         else:
