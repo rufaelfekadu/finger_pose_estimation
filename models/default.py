@@ -6,6 +6,7 @@ MODEL_DICT = {
     'transformer': make_transformer_model
 }
 def make_model(cfg):
+    print(f"Building {cfg.MODEL.NAME.lower()} model ")
     if cfg.MODEL.NAME.lower() not in MODEL_DICT:
         raise NotImplementedError(f"Model {cfg.MODEL.NAME.lower()} not implemented")
     model = MODEL_DICT[cfg.MODEL.NAME.lower()](cfg)

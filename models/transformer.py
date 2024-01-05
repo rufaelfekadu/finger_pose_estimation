@@ -63,10 +63,9 @@ class TransformerModel(nn.Module):
         del pretrained_dict
 
 def make_transformer_model(cfg):
-
     return TransformerModel(input_size=cfg.DATA.EMG.NUM_CHANNELS, 
                              seq_length=cfg.DATA.SEGMENT_LENGTH, 
-                             output_size=len(cfg.DATA.MANUS.KEY_POINTS))
+                             output_size=len(cfg.DATA.LABEL_COLUMNS))
 
 if __name__ == '__main__':
     # Example usage

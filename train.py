@@ -152,14 +152,13 @@ def main(cfg, logger):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # Load the dataset
-    dataset = make_dataset(cfg)
+    # dataset = make_dataset(cfg)
 
     # make dataloader
-    dataloaders = make_dataloader(cfg, dataset)
+    dataloaders = make_dataloader(cfg)
 
     print(next(iter(dataloaders['train']))[0].shape)
-    print(dataset.label_columns)
-    cfg.DATA.MANUS.KEY_POINTS = list(dataset.label_columns)
+    
     cfg.freeze()
 
     # # Initialize the model

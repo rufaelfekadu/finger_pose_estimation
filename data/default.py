@@ -16,7 +16,7 @@ def train_val_dataset(dataset, val_split=0.3):
 
     train_idx, test_idx = train_test_split(list(range(len(dataset))), test_size=val_split, )
     val_idx, test_idx = train_test_split(test_idx, test_size=0.5)
-    
+
     datasets = {}
     datasets['train'] = Subset(dataset, train_idx)
     datasets['val'] = Subset(dataset, val_idx)
@@ -53,6 +53,8 @@ def make_dataset(cfg):
             }
             dataset = EMGLeap(kwargs=args)
             dataset.save_dataset()
+            
+    cfg.DATA.LABEL_COLUMNS = dataset.label_columns
     return dataset
 
 def make_dataloader(cfg):
