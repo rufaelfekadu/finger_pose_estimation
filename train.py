@@ -75,7 +75,7 @@ def train_epoch(cfg, epoch, model, train_loader, criterion, optimizer, logger=No
 
     return loss_dict
 
-def test(model, test_loader, criterion, device):
+def test(cfg, model, test_loader, criterion, device):
     '''
     Test the model
     '''
@@ -119,7 +119,7 @@ def train(model, dataloaders, criterion, optimizer, epochs, logger, device):
 
         train_loss = train_epoch(cfg, epoch, model, dataloaders['train'], criterion, optimizer, logger=logger, device=device)
         
-        val_loss, _ = test(model, dataloaders['val'], criterion, device=device)
+        val_loss, _ = test(cfg, model, dataloaders['val'], criterion, device=device)
 
         epoch_values = [epoch, str(train_loss['loss']), str(train_loss['smoothness_loss']), str(val_loss)]
         logger.info(''.join([f' {h:<20}' for h in epoch_values]))
