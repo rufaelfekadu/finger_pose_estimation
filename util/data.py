@@ -32,16 +32,25 @@ def build_manus_columns():
                 manus_columns.append(f'{finger}_{joint}_{flex}')
     return manus_columns
 
-def build_leap_columns():
+def build_leap_columns(positions=False, rotations=False):
     
     fingers = ['Thumb', 'Index', 'Middle', 'Ring', 'Pinky']
     joints = ['Metacarpal', 'Proximal', 'Intermediate', 'Distal']
     rotations = ['x', 'y', 'z', 'w']
+    positions = ['x', 'y', 'z']
     leap_columns = []
-
-    for finger in fingers:
-        for joint in joints:
-            leap_columns.append(f'{finger}_{joint}_rotation_w')
+    if positions:
+        for finger in fingers:
+            for joint in joints:
+                leap_columns.append(f'{finger}_{joint}_position_x')
+                leap_columns.append(f'{finger}_{joint}_position_y')
+                leap_columns.append(f'{finger}_{joint}_position_z')
+    if rotations:
+        for finger in fingers:
+            for joint in joints:
+                leap_columns.append(f'{finger}_{joint}_rotation_w')
+    else:
+        leap_columns = None
 
     return leap_columns
 
@@ -270,11 +279,12 @@ def read_leap(path, fs=125):
     
     # leap_df = leap_df.resample(f'{int(1000/fs)}ms', origin='start').ffill()
 
-    valid_columns = build_leap_columns()
-    leap_df = leap_df[valid_columns]
+    valid_columns = build_leap_columns(positions=True)
+    if valid_columns is not None:
+        leap_df = leap_df[valid_columns]
 
     #  convert radians to degrees
-    leap_df = leap_df.apply(np.degrees)
+    # leap_df = leap_df.apply(np.degrees)
 
     return leap_df, None, None
 
