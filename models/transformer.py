@@ -25,7 +25,7 @@ class TransformerModel(nn.Module):
     def __init__(self, input_size, seq_length, output_size):
         super(TransformerModel, self).__init__()
 
-        self.d_model = 128
+        self.d_model = 512
         self.nhead = 4
         self.num_layers = 4
         self.dropout = 0.1
