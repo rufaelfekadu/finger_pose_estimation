@@ -27,6 +27,8 @@ class BaseDataset(Dataset):
         self.Q = kwargs['Q']
         self.low_freq = kwargs['low_freq']
         self.high_freq = kwargs['high_freq']
+        self.ica = kwargs['ica']
+        
         self.transform = transform
 
     def apply_ica_to_emg(self):

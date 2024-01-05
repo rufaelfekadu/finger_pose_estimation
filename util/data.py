@@ -7,6 +7,9 @@ from scipy import signal
 
 from datetime import datetime
 
+from concurrent.futures import ThreadPoolExecutor
+import time
+
 class ExpTimes:
     refernce_time = datetime.strptime('2023-10-02 14:59:55.627000', '%Y-%m-%d %H:%M:%S.%f')
     manus_start_time = datetime.strptime('2023-10-02 14:59:20.799000', '%Y-%m-%d %H:%M:%S.%f')
@@ -45,7 +48,7 @@ def build_leap_columns():
 
 def read_emg(path, start_time=None, end_time=None, fs: int=250):
 
-    raw = mne.io.read_raw_edf(path, preload=True)
+    raw = mne.io.read_raw_edf(path, preload=True, verbose=False)
 
     # get header
     header = raw.info
@@ -118,7 +121,54 @@ def read_emg(path, start_time=None, end_time=None, fs: int=250):
 #     emg_df = emg_df.resample(f'{int(1000/fs)}ms', origin='start').mean()
 #     return emg_df, annotaions, header
 
-def create_windowed_dataset(df, w, s, unit='sequence'):
+# def process_window(df, i, w_rows):
+#     window = df.iloc[i:i+w_rows]
+#     return window.values, window.index[-1]
+
+# def create_windowed_dataset(df, w, s, unit='sequence'):
+#     # Convert window size and stride from seconds to number of rows
+#     if unit == 'second':
+#         w_rows = int(w * df.index.freq.delta.total_seconds())
+#         s_rows = int(s * df.index.freq.delta.total_seconds())
+#     elif unit == 'sequence':
+#         w_rows = w
+#         s_rows = s
+#     else:
+#         raise ValueError(f'unit must be second or sequence, got {unit}')
+    
+#     start_time = time.time()
+#     with ThreadPoolExecutor(max_workers=2) as executor:
+#         results = list(executor.map(process_window, [df]*len(range(0, len(df) - w_rows, s_rows)), range(0, len(df) - w_rows, s_rows), [w_rows]*len(range(0, len(df) - w_rows, s_rows))))
+
+#     data = np.array([result[0] for result in results])
+#     times = np.array([result[1] for result in results])
+
+#     # Reshape data to (N-w)/(S)*W*C
+#     data = data.reshape((-1, w_rows, df.shape[1]))
+#     print(f'Time taken: {time.time() - start_time}')
+
+#     return data, times
+
+def get_gesture(time, ann_df):
+    gesture_df = ann_df[(ann_df['start_time'] <= time) & (ann_df['end_time'] >= time)]
+    if not gesture_df.empty:
+        return gesture_df['gesture'].iloc[0]
+    return 'rest'
+
+def find_closest(leap_data, times, annotations):
+    start_time = time.time()
+    index = []
+    gestures = []   
+    for i in times:
+        #  find the time indeex closest to i
+        index.append(leap_data.index.asof(i))
+        gestures.append(get_gesture(i,annotations))
+        #  find the gesture closest to i
+    leap_closest = leap_data.loc[index]
+    print(f'Time taken to find closest: {time.time() - start_time}')
+    return leap_closest.to_numpy(), gestures
+
+def create_windowed_dataset(df, label, annotations, w, s, unit='sequence'):
     # Convert window size and stride from seconds to number of rows
     if unit == 's':
         w_rows = int(w * df.index.freq.delta.total_seconds())
@@ -129,39 +179,31 @@ def create_windowed_dataset(df, w, s, unit='sequence'):
     else:
         raise ValueError(f'unit must be s or sequence, got {unit}')
 
+    start_time = time.time()
     data = []
     times = []
+    gestures = []
+    leap_indexs = []
     for i in range(0, len(df) - w_rows, s_rows):
         window = df.iloc[i:i+w_rows]
         data.append(window.values)
-        times.append(window.index[-1])
+        # times.append(window.index[-1])
+        leap_indexs.append(label.index.asof(window.index[-1]))
+        gestures.append(get_gesture(window.index[-1], annotations))
 
     data = np.array(data)
-    times = np.array(times)
+    # times = np.array(times)
+    gestures = np.array(gestures)
+    label = label.loc[leap_indexs].to_numpy()
 
     # Reshape data to (N-w)/(S)*W*C
     data = data.reshape((-1, w_rows, df.shape[1]))
+    print(f'Time taken to create windowed dataset: {time.time() - start_time}')
 
-    return data, times
+    return data, label, gestures
 
 
-def get_gesture(time, ann_df):
-    gesture_df = ann_df[(ann_df['start_time'] <= time) & (ann_df['end_time'] >= time)]
-    if not gesture_df.empty:
-        return gesture_df['gesture'].iloc[0]
-    return 'rest'
 
-def find_closest(leap_data, times, annotations):
-    index = []
-    gestures = []   
-    for i in times:
-        #  find the time indeex closest to i
-        index.append(leap_data.index.asof(i))
-        gestures.append(get_gesture(i,annotations))
-        #  find the gesture closest to i
-    leap_closest = leap_data.loc[index]
-    
-    return leap_closest.to_numpy(), gestures
 
 def read_manus(path, start_time=None, end_time=None):
 

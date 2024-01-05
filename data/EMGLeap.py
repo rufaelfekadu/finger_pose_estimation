@@ -6,6 +6,7 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.decomposition import FastICA
 import numpy as np
 import matplotlib.pyplot as plt
+from threading import Thread
 
 import os
 import glob
@@ -29,7 +30,7 @@ DATA_SOURCES = {
 }
 
 class EMGLeap(BaseDataset):
-    def __init__(self, ica: bool, kwargs):
+    def __init__(self,kwargs):
         super().__init__( **kwargs)
 
         # read the data
@@ -40,23 +41,43 @@ class EMGLeap(BaseDataset):
         if len(csv_files) == 0:
             raise ValueError(f'No csv files found in {self.data_path}')
         
+
+        threads = [None]*len(edf_files)
+        results = {
+            'data': [None]*len(edf_files),
+            'label': [None]*len(edf_files),
+            'gestures': [None]*len(edf_files)
+        }
+
         #  read the data
         self.data, self.label, self.gestures = [], [], []
         for i in range(len(edf_files)):
             print(f'Reading data from {edf_files[i]} and {csv_files[i]}')
-            data, label, gestures = self.prepare_data(edf_files[i], csv_files[i])
+            # thread = Thread(target=self.prepare_data, args=(edf_files[i], csv_files[i], results, i))
+            # threads[i] = thread
+            # thread.start()
+            data, label, gestures = self.prepare_data(edf_files[i], csv_files[i], results, i)
             self.data.append(data)
             self.label.append(label)
             self.gestures.append(gestures)
-        # concatenate the data
+
+
+        # for i in range(len(edf_files)):
+        #     threads[i].join()
+
         self.data = np.concatenate(self.data, axis=0)
         self.label = np.concatenate(self.label, axis=0)
         self.gestures = np.concatenate(self.gestures, axis=0)
+        
+        # self.data = np.concatenate(results['data'], axis=0)
+        # self.label = np.concatenate(results['label'], axis=0)
+        # self.gestures = np.concatenate(results['gestures'], axis=0)
+
 
         #  print dataset specs
         self.print_dataset_specs()
 
-        if ica:
+        if self.ica:
             self.apply_ica_to_emg()
         else:
             self.data_ica = None
@@ -67,11 +88,10 @@ class EMGLeap(BaseDataset):
             raise ValueError(f'{self.data_path} is not a directory')
 
         # Traverse through all the directories and read the data
-        all_files = glob.glob(os.path.join(self.data_path, '**/*'), recursive=True)
-
+        all_files = [f for f in glob.glob(os.path.join(self.data_path, '**/*'), recursive=True) if os.path.splitext(f)[1] in ['.edf', '.csv']]
         # Separate .edf and .csv files
-        edf_files = [file for file in all_files if file.endswith('.edf')]
-        csv_files = [file for file in all_files if file.endswith('.csv')]
+        edf_files = sorted([file for file in all_files if file.endswith('.edf')])
+        csv_files = sorted([file for file in all_files if file.endswith('.csv')])
 
         return edf_files, csv_files
     
@@ -79,14 +99,15 @@ class EMGLeap(BaseDataset):
     def print_dataset_specs(self):
         print("data shape: ", self.data.shape)
 
-    def prepare_data(self, data_path, label_path):
+    def prepare_data(self, data_path, label_path, results={}, index=0):
 
         data, annotations, header =  DATA_SOURCES['emg'](data_path)
         label, _, _ = DATA_SOURCES['leap'](label_path)
 
-        #save the column names for the label
-        self.label_columns = label.columns
-        self.data_columns = data.columns
+        if index == 0:
+            #save the column names for the label
+            self.label_columns = label.columns
+            self.data_columns = data.columns
         
         # set the start and end of experiment
         start_time = max(min(data.index), min(label.index))
@@ -96,11 +117,16 @@ class EMGLeap(BaseDataset):
         data = data.loc[start_time:end_time]
         label = label.loc[start_time:end_time]
 
-        data, label_index = create_windowed_dataset(data, self.seq_len, self.stride)
-        label, gestures = find_closest(label, label_index, annotations)
-        print("data shape: ", data.shape)
+        data, label, gestures = create_windowed_dataset(data, label, annotations, self.seq_len, self.stride)
+
+        # label, gestures = find_closest(label, label_index, annotations)
+
         # normalize the data
         data = self.normalize_and_filter(data)
+
+        # results['data'][index] = data
+        # results['label'][index] = label
+        # results['gestures'][index] = gestures
 
         # convert to tensor
         # self.data = torch.tensor(self.data, dtype=torch.float32)
@@ -165,6 +191,11 @@ class EMGLeap(BaseDataset):
 
         if save_dir is not None:
             plt.savefig(os.path.join(save_dir, f'plot_{idx}.png'))
+    
+    def save_dataset(self):
+        if self.data_path is None:
+            raise ValueError('save_dir cannot be None')
+        torch.save(self, os.path.join(self.data_path, 'dataset.pth'))
 
     def __len__(self):
         return self.data.shape[0]

@@ -13,6 +13,7 @@ _C.DATA.LABEL_PATH = "finger_pose_estimation/dataset/label_2023-10-02_15-24-12_Y
 _C.DATA.SEGMENT_LENGTH = 150
 _C.DATA.STRIDE = 1
 _C.DATA.FILTER_DATA = True
+_C.DATA.ICA = False
 
 _C.DATA.EMG = CN()
 _C.DATA.EMG.SAMPLING_RATE = 150
