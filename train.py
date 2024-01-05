@@ -81,7 +81,7 @@ def test(model, test_loader, criterion, device):
     '''
     model.eval()
     avg_loss = AverageMeter()
-    average_loss_per_keypoint = AverageMeterList(label_names=cfg.DATA.MANUS.KEY_POINTS)
+    average_loss_per_keypoint = AverageMeterList(label_names=cfg.DATA.LABEL_COLUMNS)
     
     with torch.no_grad():
         for i, (data, target, gestures) in enumerate(test_loader):
