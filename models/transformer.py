@@ -25,9 +25,9 @@ class TransformerModel(nn.Module):
     def __init__(self, input_size, seq_length, output_size):
         super(TransformerModel, self).__init__()
 
-        self.d_model = 256
-        self.nhead = 8
-        self.num_layers = 10
+        self.d_model = 128
+        self.nhead = 4
+        self.num_layers = 4
         self.dropout = 0.1
 
         self.embedding = nn.Linear(input_size, self.d_model)
