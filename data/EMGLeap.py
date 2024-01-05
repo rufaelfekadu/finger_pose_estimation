@@ -86,7 +86,7 @@ class EMGLeap(BaseDataset):
         # to tensor
         self.data = torch.tensor(self.data, dtype=torch.float32)
         self.label = torch.tensor(self.label, dtype=torch.float32)
-        
+
     def read_dirs(self):
         if not os.path.isdir(self.data_path):
             raise ValueError(f'{self.data_path} is not a directory')
@@ -206,9 +206,12 @@ class EMGLeap(BaseDataset):
         return self.data.shape[0]
 
     def __getitem__(self, idx):
-        if self.transform:
-            return self.transform(self.data[idx]), self.data_ica[idx], self.label[idx], self.gestures[idx]
-        return self.data[idx], self.data_ica[idx], self.label[idx], self.gestures[idx]
+        if self.ica:
+            if self.transform:
+                return self.transform(self.data[idx]), self.data_ica[idx], self.label[idx], self.gestures[idx]
+            return self.data[idx], self.data_ica[idx], self.label[idx], self.gestures[idx]
+        else:
+            return self.data[idx], None,  self.label[idx], self.gestures[idx]
 
 def get_ica_components(data, mixing_matrix):
     #  return the ICA components
