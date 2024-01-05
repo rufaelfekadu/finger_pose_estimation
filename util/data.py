@@ -273,6 +273,9 @@ def read_leap(path, fs=125):
     valid_columns = build_leap_columns()
     leap_df = leap_df[valid_columns]
 
+    #  convert radians to degrees
+    leap_df = leap_df.apply(np.degrees)
+
     return leap_df, None, None
 
 # def read_leap(path, fs=125):
