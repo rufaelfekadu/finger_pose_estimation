@@ -37,7 +37,7 @@ def train_epoch(cfg, epoch, model, train_loader, criterion, optimizer, logger=No
 
     for batch_idx, (data, target, gesture) in tqdm(enumerate(train_loader), total=len(train_loader), desc=f"Epoch {epoch}"):
         
-        data, target  = data.to(device), target.to(device)
+        data, target  = data[0].to(device), target.to(device)
         optimizer.zero_grad()
 
         # forward pass
@@ -158,7 +158,7 @@ def main(cfg, logger):
     dataloaders = make_dataloader(cfg)
 
     print(next(iter(dataloaders['train']))[0].shape)
-    
+
     cfg.freeze()
 
     # # Initialize the model

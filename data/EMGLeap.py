@@ -110,8 +110,8 @@ class EMGLeap(BaseDataset):
 
         if index == 0:
             #save the column names for the label
-            self.label_columns = label.columns
-            self.data_columns = data.columns
+            self.label_columns = list(label.columns)
+            self.data_columns = list(data.columns)
         
         # set the start and end of experiment
         start_time = max(min(data.index), min(label.index))
@@ -211,7 +211,7 @@ class EMGLeap(BaseDataset):
                 return self.transform(self.data[idx]), self.data_ica[idx], self.label[idx], self.gestures[idx]
             return self.data[idx], self.data_ica[idx], self.label[idx], self.gestures[idx]
         else:
-            return self.data[idx], None,  self.label[idx], self.gestures[idx]
+            return (self.data[idx], np.NAN),  self.label[idx], self.gestures[idx]
 
 def get_ica_components(data, mixing_matrix):
     #  return the ICA components
