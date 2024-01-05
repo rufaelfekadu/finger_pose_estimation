@@ -84,8 +84,8 @@ def test(model, test_loader, criterion, device):
     average_loss_per_keypoint = AverageMeterList(label_names=cfg.DATA.MANUS.KEY_POINTS)
     
     with torch.no_grad():
-        for i, (data, target) in enumerate(test_loader):
-            data, target = data.to(device), target.to(device)
+        for i, (data, target, gestures) in enumerate(test_loader):
+            data, target = data[0].to(device), target.to(device)
 
             output = model(data)
 
@@ -163,6 +163,7 @@ def main(cfg, logger):
 
     # # Initialize the model
     model = make_model(cfg)
+    print(model)
 
     # initialize the model with weight from xaviar unifrom dist
     model.apply(weights_init)
