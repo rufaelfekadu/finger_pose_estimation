@@ -181,7 +181,7 @@ def main(cfg, logger):
     model_best = make_model(cfg)
     model_best.load_pretrained(os.path.join(cfg.SOLVER.LOG_DIR, 'model_best.pth'))
     model_best = model_best.to(device)
-    test_loss, per_keypoint_loss = test(model_best, dataloaders['test'], criterion, device=device)
+    test_loss, per_keypoint_loss = test(cfg, model_best, dataloaders['test'], criterion, device=device)
 
     print("----------------- Final Results -----------------")
     logger.info(f"Test Loss: {test_loss}")
