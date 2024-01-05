@@ -157,7 +157,7 @@ def main(cfg, logger):
     # make dataloader
     dataloaders = make_dataloader(cfg)
 
-    print(next(iter(dataloaders['train']))[0].shape)
+    print(next(iter(dataloaders['train']))[1].shape)
 
     cfg.freeze()
 
