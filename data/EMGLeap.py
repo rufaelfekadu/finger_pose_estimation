@@ -53,25 +53,25 @@ class EMGLeap(BaseDataset):
         self.data, self.label, self.gestures = [], [], []
         for i in range(len(edf_files)):
             print(f'Reading data from {edf_files[i]} and {csv_files[i]}')
-            # thread = Thread(target=self.prepare_data, args=(edf_files[i], csv_files[i], results, i))
-            # threads[i] = thread
-            # thread.start()
-            data, label, gestures = self.prepare_data(edf_files[i], csv_files[i], results, i)
-            self.data.append(data)
-            self.label.append(label)
-            self.gestures.append(gestures)
+            thread = Thread(target=self.prepare_data, args=(edf_files[i], csv_files[i], results, i))
+            threads[i] = thread
+            thread.start()
+            # data, label, gestures = self.prepare_data(edf_files[i], csv_files[i], results, i)
+            # self.data.append(data)
+            # self.label.append(label)
+            # self.gestures.append(gestures)
 
 
-        # for i in range(len(edf_files)):
-        #     threads[i].join()
+        for i in range(len(edf_files)):
+            threads[i].join()
 
-        self.data = np.concatenate(self.data, axis=0)
-        self.label = np.concatenate(self.label, axis=0)
-        self.gestures = np.concatenate(self.gestures, axis=0)
+        # self.data = np.concatenate(self.data, axis=0)
+        # self.label = np.concatenate(self.label, axis=0)
+        # self.gestures = np.concatenate(self.gestures, axis=0)
         
-        # self.data = np.concatenate(results['data'], axis=0)
-        # self.label = np.concatenate(results['label'], axis=0)
-        # self.gestures = np.concatenate(results['gestures'], axis=0)
+        self.data = np.concatenate(results['data'], axis=0)
+        self.label = np.concatenate(results['label'], axis=0)
+        self.gestures = np.concatenate(results['gestures'], axis=0)
 
 
         #  print dataset specs
@@ -83,6 +83,10 @@ class EMGLeap(BaseDataset):
             self.data_ica = None
             self.mixing_matrix = None
 
+        # to tensor
+        self.data = torch.tensor(self.data, dtype=torch.float32)
+        self.label = torch.tensor(self.label, dtype=torch.float32)
+        
     def read_dirs(self):
         if not os.path.isdir(self.data_path):
             raise ValueError(f'{self.data_path} is not a directory')
@@ -124,14 +128,15 @@ class EMGLeap(BaseDataset):
         # normalize the data
         data = self.normalize_and_filter(data)
 
-        # results['data'][index] = data
-        # results['label'][index] = label
-        # results['gestures'][index] = gestures
+        results['data'][index] = data
+        results['label'][index] = label
+        results['gestures'][index] = gestures
 
         # convert to tensor
         # self.data = torch.tensor(self.data, dtype=torch.float32)
         # self.label = torch.tensor(self.label, dtype=torch.float32)
         return data, label, gestures
+    
     def normalize_and_filter(self, data=None):
 
         N, C, L = data.shape
