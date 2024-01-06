@@ -16,8 +16,8 @@ exp_setups = {
     'exp0': None,
 
     'exp1': {
-        'train': ['S1/p1', 'S1/p2', 'S1/p3'],
-        'test': ['S1/p4']
+        'train': ['S1/p4', 'S1/p2'],
+        'test': ['S1/p1']
     },
 
     'exp2': {
@@ -45,7 +45,7 @@ def make_args(cfg):
 def get_dirs_for_exp(cfg):
 
     data_path = cfg.DATA.PATH
-    
+
     if cfg.DATA.EXP_SETUP not in exp_setups.keys():
         raise ValueError(f'Invalid experiment setup {cfg.DATA.EXP_SETUP}')
     
