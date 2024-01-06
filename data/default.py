@@ -44,7 +44,8 @@ def make_args(cfg):
 
 def get_dirs_for_exp(cfg):
 
-    data_path = "../dataset/FPE"
+    data_path = cfg.DATA.PATH
+    
     if cfg.DATA.EXP_SETUP not in exp_setups.keys():
         raise ValueError(f'Invalid experiment setup {cfg.DATA.EXP_SETUP}')
     
