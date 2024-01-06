@@ -181,9 +181,9 @@ class Experiment:
         gesture_image = self.gestures[self.current_image]
         gesture_image.draw()
         self.window.flip()
-        self.trigger(f'start_{self.current_image}')
+        self.trigger(f'start_{self.current_image}_{self.num_repetaions-self.num_completed[self.current_image]}')
         core.wait(5)  # Display the gesture for 5 seconds
-        self.trigger(f'end_{self.current_image}')
+        self.trigger(f'end_{self.current_image}_{self.num_repetaions-self.num_completed[self.current_image]}')
     
     def update_gesture(self):
         if len(self.images) == 0:

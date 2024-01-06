@@ -11,35 +11,23 @@ from sklearn.model_selection import train_test_split
 
 from .EMGLeap import EMGLeap
 
+exp_setups = {
 
-def train_val_dataset(dataset, val_split=0.3):
+    'exp0': None,
 
-    train_idx, test_idx = train_test_split(list(range(len(dataset))), test_size=val_split, )
-    val_idx, test_idx = train_test_split(test_idx, test_size=0.5)
+    'exp1': {
+        'train': ['S1/p1', 'S1/p2', 'S1/p3'],
+        'test': ['S1/p4']
+    },
 
-    datasets = {}
-    datasets['train'] = Subset(dataset, train_idx)
-    datasets['val'] = Subset(dataset, val_idx)
-    datasets['test'] = Subset(dataset, test_idx)
+    'exp2': {
+        'train': ['S1/p1', 'S1/p2', 'S1/p3'],
+        'test': ['S1/p4']
+    },
+}
 
-    return datasets
-
-
-
-def make_dataset(cfg):
-    # data_path = os.path.join(cfg.DATA.PATH, "data_2023-10-02 14-59-55-627.edf")
-    label_path = os.path.join(cfg.DATA.PATH, "label_2023-10-02_15-24-12_YH_lab_R.csv")
-
-    if os.path.isfile(os.path.join(cfg.DATA.PATH, 'dataset.pth')):
-        print("Loading saved dataset from {}".format(os.path.join(cfg.DATA.PATH, 'dataset.pth')))
-        dataset = torch.load(os.path.join(cfg.DATA.PATH, 'dataset.pth'))
-        cfg.DATA.LABEL_COLUMNS = dataset.label_columns
-        
-    else:
-        if cfg.DEBUG:
-            dataset = None
-        else:
-            args = {
+def make_args(cfg):
+    data_args = {
                 'data_path': cfg.DATA.PATH,
                 'seq_len':cfg.DATA.SEGMENT_LENGTH,
                 'num_channels':cfg.DATA.EMG.NUM_CHANNELS,
@@ -52,21 +40,91 @@ def make_dataset(cfg):
                 'notch_freq':cfg.DATA.EMG.NOTCH_FREQ,
                 'ica': cfg.DATA.ICA,
             }
+    return data_args
+
+def get_dirs_for_exp(cfg):
+
+    data_path = "../dataset/FPE"
+    if cfg.DATA.EXP_SETUP not in exp_setups.keys():
+        raise ValueError(f'Invalid experiment setup {cfg.DATA.EXP_SETUP}')
+    
+    train_dirs = []
+    test_dirs = []
+
+    for dir in exp_setups[cfg.DATA.EXP_SETUP]['train']:
+        train_dirs.append(os.path.join(data_path, dir))
+
+    for dir in exp_setups[cfg.DATA.EXP_SETUP]['test']:
+        test_dirs.append(os.path.join(data_path, dir))
+
+    return train_dirs, test_dirs
+
+
+def make_exp_dataset(cfg,):
+
+    if not cfg.DATA.EXP_SETUP:
+        #  do default train val test split
+        dataset = make_dataset(cfg)
+    else:
+
+        train_dirs, test_dirs = get_dirs_for_exp(cfg)
+        args = make_args(cfg)
+
+        args['data_path'] = train_dirs
+        train_dataset = EMGLeap(args)
+
+        args['data_path'] = test_dirs
+        test_dataset = EMGLeap(args)
+
+        dataset = train_val_test(train_dataset, val_split=0.3)
+        dataset['test'] = test_dataset
+        cfg.DATA.LABEL_COLUMNS = train_dataset.label_columns
+
+    return dataset
+
+def train_val_test(dataset, val_split=0.3, test_split=None):
+
+    datasets = {}
+    train_idx, val_idx = train_test_split(list(range(len(dataset))), test_size=val_split, )
+    if test_split is not None:
+        val_idx, test_idx = train_test_split(val_idx, test_size=test_split)
+        datasets['test'] = Subset(dataset, test_idx)
+
+    datasets['train'] = Subset(dataset, train_idx)
+    datasets['val'] = Subset(dataset, val_idx)
+
+    return datasets
+
+
+def make_dataset(cfg):
+
+    if os.path.isfile(os.path.join(cfg.DATA.PATH, 'dataset.pth')):
+        print("Loading saved dataset from {}".format(os.path.join(cfg.DATA.PATH, 'dataset.pth')))
+        dataset = torch.load(os.path.join(cfg.DATA.PATH, 'dataset.pth'))
+        cfg.DATA.LABEL_COLUMNS = dataset.label_columns
+        
+    else:
+        if cfg.DEBUG:
+            dataset = None
+        else:
+            args = make_args(cfg)
             dataset = EMGLeap(kwargs=args)
             dataset.save_dataset()
             cfg.DATA.LABEL_COLUMNS = dataset.label_columns
-            
+
+    dataset = train_val_test(dataset, val_split=0.3, test_split=0.5)
+
     return dataset
 
 def make_dataloader(cfg):
 
-    dataset = make_dataset(cfg)
-    dataset = train_val_dataset(dataset)
+    dataset = make_exp_dataset(cfg)
 
     #save train and val datasets
     torch.save(dataset['train'], os.path.join(cfg.SOLVER.LOG_DIR, 'train_dataset.pth'))
     torch.save(dataset['val'], os.path.join(cfg.SOLVER.LOG_DIR, 'val_dataset.pth'))
     torch.save(dataset['test'], os.path.join(cfg.SOLVER.LOG_DIR, 'test_dataset.pth'))
+
     dataloader = {}
     dataloader['train'] = DataLoader(dataset['train'], batch_size=cfg.SOLVER.BATCH_SIZE, shuffle=False)
     dataloader['val'] = DataLoader(dataset['val'], batch_size=cfg.SOLVER.BATCH_SIZE, shuffle=False)
@@ -75,10 +133,8 @@ def make_dataloader(cfg):
     return dataloader
 
 def read_saved_dataset(cfg, path):
-    
     dataset = torch.load(path)
     data_loader= DataLoader(dataset, batch_size=cfg.SOLVER.BATCH_SIZE, shuffle=False)
-
     return dataset, data_loader
 
 if __name__ == "__main__":

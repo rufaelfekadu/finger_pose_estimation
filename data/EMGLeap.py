@@ -88,12 +88,21 @@ class EMGLeap(BaseDataset):
         self.label = torch.tensor(self.label, dtype=torch.float32)
 
     def read_dirs(self):
-        if not os.path.isdir(self.data_path):
-            raise ValueError(f'{self.data_path} is not a directory')
 
-        # Traverse through all the directories and read the data
-        all_files = [f for f in glob.glob(os.path.join(self.data_path, '**/*'), recursive=True) if os.path.splitext(f)[1] in ['.edf', '.csv']]
+        if isinstance(self.data_path, str):
+            self.data_path = [self.data_path]
+        all_files = []
+        for path in self.data_path:
+            if not os.path.isdir(path):
+                raise ValueError(f'{path} is not a directory')
+            else:
+                print(f'Reading data from {path}')
+                all_files += [f for f in glob.glob(os.path.join(path, '**/*'), recursive=True) if os.path.splitext(f)[1] in ['.edf', '.csv']]
+        
+        # # Traverse through all the directories and read the data
+        # all_files = [f for f in glob.glob(os.path.join(self.data_path, '**/*'), recursive=True) if os.path.splitext(f)[1] in ['.edf', '.csv']]
         # Separate .edf and .csv files
+                
         edf_files = sorted([file for file in all_files if file.endswith('.edf')])
         csv_files = sorted([file for file in all_files if file.endswith('.csv')])
 
