@@ -62,7 +62,7 @@ def get_dirs_for_exp(cfg):
 
 def make_exp_dataset(cfg,):
 
-    if not cfg.DATA.EXP_SETUP:
+    if not cfg.DATA.EXP_SETUP or cfg.DATA.EXP_SETUP == 'exp0':
         #  do default train val test split
         dataset = make_dataset(cfg)
     else:
@@ -79,6 +79,14 @@ def make_exp_dataset(cfg,):
         dataset = train_val_test(train_dataset, val_split=0.3)
         dataset['test'] = test_dataset
         cfg.DATA.LABEL_COLUMNS = train_dataset.label_columns
+    
+    #  print some statistics about the dataset
+    print(f"Runnig experiment setup {cfg.DATA.EXP_SETUP} with \n\ntrain: {exp_setups[cfg.DATA.EXP_SETUP]['train']}\nand test: {exp_setups[cfg.DATA.EXP_SETUP]['test']}\n\n")
+    print(f"Number of training examples: {len(dataset['train'].dataset)}")
+    print(f"Number of validation examples: {len(dataset['val'].dataset)}")
+    print(f"Number of test examples: {len(dataset['test'])}")
+    print(f"Number of classes: {len(dataset['test'].label_columns)}")
+
 
     return dataset
 
