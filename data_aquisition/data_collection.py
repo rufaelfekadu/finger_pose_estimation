@@ -466,7 +466,7 @@ def main(args):
     num_repetaions = 5
     gesture_duration = 5
     rest_duration = 5
-    record = False
+    record = True
     
     host = '127.0.0.1'
     port = 20001
