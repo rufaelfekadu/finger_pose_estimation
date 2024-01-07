@@ -90,7 +90,9 @@ class Experiment:
             i: self.num_repetaions for i in self.gestures.keys()
         }
         self.images= list(self.gestures.keys())
-        self.current_image = self.images[0]
+        # choose a random gesture to start with
+        start_gesture_index = random.randint(0, len(self.gesture_images)-1)
+        self.current_image = self.images[start_gesture_index]
 
     def collect_participant_info(self):
         info_dialog = gui.Dlg(title='Participant Information')
