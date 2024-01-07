@@ -49,8 +49,6 @@ def build_leap_columns(positions=False, rotations=False):
         for finger in fingers:
             for joint in joints:
                 leap_columns.append(f'{finger}_{joint}_rotation_w')
-    else:
-        leap_columns = None
 
     return leap_columns
 
@@ -280,7 +278,7 @@ def read_leap(path, fs=125):
     # leap_df = leap_df.resample(f'{int(1000/fs)}ms', origin='start').ffill()
 
     valid_columns = build_leap_columns(positions=True)
-    if valid_columns is not None:
+    if len(valid_columns) != 0:
         leap_df = leap_df[valid_columns]
 
     #  convert radians to degrees

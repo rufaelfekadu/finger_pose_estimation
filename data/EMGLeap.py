@@ -15,7 +15,7 @@ import sys
 sys.path.append('/Users/rufaelmarew/Documents/tau/finger_pose_estimation')
 from util.data import *
 from config import cfg
-from .base import BaseDataset
+from base import BaseDataset
 
 # Add data sources here
 # TODO: 
@@ -55,12 +55,15 @@ class EMGLeap(BaseDataset):
             print(f'Reading data from {edf_files[i]} and {csv_files[i]}')
             thread = Thread(target=self.prepare_data, args=(edf_files[i], csv_files[i], results, i))
             threads[i] = thread
-            thread.start()
+            
+            
             # data, label, gestures = self.prepare_data(edf_files[i], csv_files[i], results, i)
             # self.data.append(data)
             # self.label.append(label)
             # self.gestures.append(gestures)
 
+        for i in range(len(edf_files)):
+            threads[i].start()
 
         for i in range(len(edf_files)):
             threads[i].join()
@@ -240,8 +243,7 @@ class ICATransform(object):
 if __name__ == '__main__':
 
     kwargs = {
-        'data_path': '/Users/rufaelmarew/Documents/tau/finger_pose_estimation/dataset/data_2023-10-02 14-59-55-627.edf',
-        'label_path': '/Users/rufaelmarew/Documents/tau/finger_pose_estimation/dataset/label_2023-10-02_15-24-12_YH_lab_R.csv',
+        'data_path': './dataset/FPE/S1/p1',
         'seq_len': 150,
         'num_channels': 16,
         # filter info
@@ -252,9 +254,9 @@ if __name__ == '__main__':
         'low_freq': 20,
         'high_freq': 55,
         'stride': 1,
-        'label_source': 'manus',
-        'data_source': 'emg'
+        'data_source': 'emg',
+        'ica': False,
     }
 
-    dataset = EMGLeap(ica=False, kwargs=kwargs)
+    dataset = EMGLeap(kwargs=kwargs)
     print(dataset.data.shape)
