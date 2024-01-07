@@ -34,7 +34,7 @@ class EMG(Data):
             except ValueError:
                 existing_data = []
         # Append the new data
-        existing_data.append({'emg_start_time': str(self.exp_start_time), 'emg_end_time': str(datetime.utcnow())})
+        existing_data.update({'emg_start_time': str(self.exp_start_time), 'emg_end_time': str(datetime.utcnow())})
 
         # Write everything back to the file
         with lock:
