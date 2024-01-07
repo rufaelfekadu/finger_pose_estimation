@@ -471,7 +471,7 @@ def main(args):
     host = '127.0.0.1'
     port = 20001
     timeout = 20
-    verbose = True
+    verbose = False
 
     if record:
         emg_data = EMG(host_name=host, port=port, timeout_secs=timeout, verbose=verbose, save_as="test.edf")
