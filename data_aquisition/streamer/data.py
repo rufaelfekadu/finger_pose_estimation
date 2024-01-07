@@ -10,7 +10,6 @@ from typing import Union
 from threading import Thread
 from itertools import groupby
 from datetime import datetime, timedelta
-import time
 
 from .record import parse_byte_arr, EXPECTED_SAMPLES_PER_RECORD
 
@@ -114,7 +113,7 @@ class Data(Thread):
         except:
             # What else might raise errors?
             raise ConnectionTimeoutError
-            
+
     @staticmethod
     def _print_records(records: list):
 
@@ -155,8 +154,9 @@ class Data(Thread):
         Commands what to do when a Data thread is started: continuously receive data from the socket, parse it into
         Records, (print details of received packet if verbose==True), and add data to growing data matrix.
         """
-    
+
         while self.is_connected:
+
             # Receive incoming record(s)
             records = self._parse_incoming_records()
 
@@ -268,7 +268,6 @@ class Data(Thread):
         assert len(signal_headers) == len(signals), 'signals and signal_headers must be same length'
 
         n_channels = len(signals)
-
         with pyedflib.EdfWriter(filepath, n_channels=n_channels) as edf:
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", category=UserWarning)
@@ -372,7 +371,7 @@ class Data(Thread):
 
             # Save time of first received record, regardless of type
             if self.start_time is None:
-                self.start_time = datetime.fromtimestamp(records[0].unix_time_secs) + \
+                self.start_time = datetime.utcfromtimestamp(records[0].unix_time_secs) + \
                                   timedelta(milliseconds=records[0].unix_time_ms)
 
             if not self.has_data and (self.exg_data is not None or self.imu_data is not None):  # TODO: change or to and with IMU
