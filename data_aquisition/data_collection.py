@@ -77,6 +77,7 @@ class Experiment:
             self.instructions_text = visual.TextStim(self.window, text=welcome_text, color=self.color_palette['text'], height=0.05)
             self.countdown_text = visual.TextStim(self.window, text='', pos=(0, 0), color=self.color_palette['text'])
             self.exp_end_text = visual.TextStim(self.window, text='Experiment Complete!', color=self.color_palette['text'])
+            self.image_text = visual.TextStim(self.window, text='Perform Gesture', pos=(0.4, 0.4), color=self.color_palette['text'], height=0.05)
             self.running = False
         except Exception as e:
             print(f"Error during window initialization: {e}")
@@ -177,12 +178,38 @@ class Experiment:
             self.window.flip()
             core.wait(1)
 
+    # def show_gesture(self):
+    #     gesture_image = self.gestures[self.current_image]
+    #     self.image_text.text = self.current_image
+    #     self.image_text.draw()
+    #     gesture_image.draw()
+    #     self.window.flip()
+    #     self.trigger(f'start_{self.current_image}_{self.num_repetaions-self.num_completed[self.current_image]}')
+    #     core.wait(5)  # Display the gesture for 5 seconds
+    #     self.trigger(f'end_{self.current_image}_{self.num_repetaions-self.num_completed[self.current_image]}')
+    
     def show_gesture(self):
         gesture_image = self.gestures[self.current_image]
-        gesture_image.draw()
-        self.window.flip()
+        self.image_text.text = self.current_image.upper()
+        # self.window.flip()
         self.trigger(f'start_{self.current_image}_{self.num_repetaions-self.num_completed[self.current_image]}')
-        core.wait(5)  # Display the gesture for 5 seconds
+
+        # Create a clock
+        countdown_clock = core.Clock()
+
+        # Display the gesture for 5 seconds with a countdown
+        for i in range(5, 0, -1):
+            # Reset the clock
+            countdown_clock.reset()
+            while countdown_clock.getTime() < 1:  # Display each number for 1 second
+                # Update the countdown text
+                
+                self.image_text.draw()
+                gesture_image.draw()
+                countdown_text = visual.TextStim(self.window, text=str(i), pos=(0, 0.4), color=self.color_palette['text'], height=0.05)
+                countdown_text.draw()
+                self.window.flip()
+
         self.trigger(f'end_{self.current_image}_{self.num_repetaions-self.num_completed[self.current_image]}')
     
     def update_gesture(self):
@@ -290,6 +317,11 @@ class Experiment:
                     update_interval_ms=update_interval, ylim_exg=ylim, max_points=250)
 
             emg_viz.start()
+
+    def visualize_leap(self):
+        if self.leap_data is not None:
+            leap_viz = LeapVisuzalizer()
+            leap_viz.start()
     
     def pre_exp(self, emg_data):
         '''
@@ -387,9 +419,7 @@ class Experiment:
                 self.pause_experiment()
                 continue
             
-            self.show_gesture()
-            if self.record:
-                self.trigger(f'end_{self.current_image}')   
+            self.show_gesture()  
             self.show_countdown(self.rest_duration)  
             # self.do_transition()  
             if not self.update_gesture():
@@ -441,7 +471,7 @@ def main(args):
     host = '127.0.0.1'
     port = 20001
     timeout = 20
-    verbose = False
+    verbose = True
 
     if record:
         emg_data = EMG(host_name=host, port=port, timeout_secs=timeout, verbose=verbose, save_as="test.edf")
