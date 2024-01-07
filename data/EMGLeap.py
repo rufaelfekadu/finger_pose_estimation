@@ -206,10 +206,10 @@ class EMGLeap(BaseDataset):
         if save_dir is not None:
             plt.savefig(os.path.join(save_dir, f'plot_{idx}.png'))
     
-    def save_dataset(self, save_dir=None):
-        if save_dir is None:
+    def save_dataset(self, save_path=None):
+        if save_path is None:
             raise ValueError('save_dir cannot be None')
-        torch.save(self, os.path.join(save_dir, 'dataset.pth'))
+        torch.save(self, save_path)
 
     def __len__(self):
         return self.data.shape[0]
