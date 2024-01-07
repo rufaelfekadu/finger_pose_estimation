@@ -58,10 +58,10 @@ class LeapRecorder(Thread):
             try:
                 existing_data = json.load(f)
             except ValueError:
-                existing_data = []
+                existing_data = {}
 
         # Append the new data
-        existing_data.append({'leap_start_time': str(self.exp_start_time), 'leap_end_time': str(datetime.utcnow())})
+        existing_data.update({'leap_start_time': str(self.exp_start_time), 'leap_end_time': str(datetime.utcnow())})
 
         # Write everything back to the file
         with lock:
