@@ -91,7 +91,7 @@ class Experiment:
         }
         self.images= list(self.gestures.keys())
         # choose a random gesture to start with
-        start_gesture_index = random.randint(0, len(self.gesture_images)-1)
+        start_gesture_index = random.randint(0, len(self.images)-1)
         self.current_image = self.images[start_gesture_index]
 
     def collect_participant_info(self):
