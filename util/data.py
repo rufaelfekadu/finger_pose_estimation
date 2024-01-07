@@ -36,8 +36,8 @@ def build_leap_columns(positions=False, rotations=False):
     
     fingers = ['Thumb', 'Index', 'Middle', 'Ring', 'Pinky']
     joints = ['Metacarpal', 'Proximal', 'Intermediate', 'Distal']
-    rotations = ['x', 'y', 'z', 'w']
-    positions = ['x', 'y', 'z']
+    # rotations = ['x', 'y', 'z', 'w']
+    # positions = ['x', 'y', 'z']
     leap_columns = []
     if positions:
         for finger in fingers:
