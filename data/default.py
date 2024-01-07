@@ -118,7 +118,7 @@ def make_dataset(cfg):
         else:
             args = make_args(cfg)
             dataset = EMGLeap(kwargs=args)
-            dataset.save_dataset()
+            dataset.save_dataset(os.path.join(cfg.DATA.PATH, 'dataset.pth'))
             cfg.DATA.LABEL_COLUMNS = dataset.label_columns
 
     dataset = train_val_test(dataset, val_split=0.3, test_split=0.5)

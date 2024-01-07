@@ -109,7 +109,7 @@ def train(model, dataloaders, criterion, optimizer, epochs, logger, device):
     '''
     Train the model
     '''
-    logger.info("Started Training ...")
+    logger.info("\n\nStarted Training ...\n")
     header = ['Epoch', 'Train Loss', 'Smoothness Loss', 'Val Loss']
     logger.info(''.join([f' {h:<20}' for h in header]))
     best_validation_loss = float('inf')
@@ -202,7 +202,7 @@ if __name__ == '__main__':
     # load config file
     cfg.merge_from_file(args.config)
     cfg.merge_from_list(args.opts)
-    cfg.SOLVER.LOG_DIR = os.path.join(cfg.SOLVER.LOG_DIR, cfg.MODEL.NAME)
+    cfg.SOLVER.LOG_DIR = os.path.join(cfg.SOLVER.LOG_DIR, cfg.DATA.EXP_SETUP, cfg.MODEL.NAME)
 
     # create log directory
     os.makedirs(cfg.SOLVER.LOG_DIR, exist_ok=True)

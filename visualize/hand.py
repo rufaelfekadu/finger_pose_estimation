@@ -8,7 +8,7 @@ import os
 import sys
 sys.path.append('/Users/rufaelmarew/Documents/tau/finger_pose_estimation')
 from config import cfg
-from util import read_manus, read_emg, parse_arg
+from util import read_manus, read_emg, parse_arg, build_leap_columns
 
 @dataclass
 class params:
@@ -72,10 +72,17 @@ class HandManus(HandBase):
 
 class HandLeap(HandBase):
     def __init__(self):
-        pass
+        self.joint_names = build_leap_columns()
+        angles = self.convert_to_manus([0 for i in range(len(self.joint_names))])
+        self.params = params(angles=angles, jointNames=self.joint_names, handName="Prediction")
+        
 
-    def update(self, keypoints: Any):
-        pass
+    def convert_to_manus(self, keypoints: Any):
+        #  convert anlges to list of lists with x,y,z coordinates
+        new_keypoints = []
+        for i in range(0, len(keypoints), 3):
+            new_keypoints.append([keypoints[i], keypoints[i+1], keypoints[i+2]])
+        return new_keypoints
 
     def reset(self):
         pass
