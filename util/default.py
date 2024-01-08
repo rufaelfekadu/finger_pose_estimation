@@ -39,11 +39,17 @@ class AverageMeterList(object):
     def plot(self,dir):
         import matplotlib.pyplot as plt
         import numpy as np
-        data = {}
-        for name, meter in zip(self.label_names, self.meters):
-            data[name] = meter.avg
-        plt.bar(range(len(data)), list(data.values()), align='center')
-        plt.xticks(range(len(data)), list(data.keys()))
+
+        plt.figure(figsize=(10, 5))
+        plt.xticks(range(len(self.label_names)), self.label_names)
+        # rotate axis labels
+        plt.setp(plt.gca().get_xticklabels(), rotation=90, horizontalalignment='right')
+        bar = plt.bar(np.arange(len(self.label_names)), [meter.avg for meter in self.meters], align='center', )
+        for i in range(0, len(self.label_names), 3):
+            bar[i].set_color('coral')
+            bar[i+1].set_color('olivedrab')
+            bar[i+2].set_color('b')
+        # set plot size
         plt.savefig(os.path.join(dir,'losses.png'))
         plt.close()
     
