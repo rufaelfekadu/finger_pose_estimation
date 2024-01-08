@@ -40,7 +40,7 @@ class AverageMeterList(object):
         import matplotlib.pyplot as plt
         import numpy as np
 
-        plt.figure(figsize=(10, 5))
+        plt.figure(figsize=(10, 8))
         plt.xticks(range(len(self.label_names)), self.label_names)
         # rotate axis labels
         plt.setp(plt.gca().get_xticklabels(), rotation=90, horizontalalignment='right')
@@ -48,9 +48,8 @@ class AverageMeterList(object):
         for i in range(0, len(self.label_names), 3):
             bar[i].set_color('coral')
             bar[i+1].set_color('olivedrab')
-            bar[i+2].set_color('b')
         # set plot size
-        plt.savefig(os.path.join(dir,'losses.png'))
+        plt.savefig(os.path.join(dir,'losses.png'), bbox_inches='tight', pad_inches=0.1)
         plt.close()
     
 class AverageMeter(object):
