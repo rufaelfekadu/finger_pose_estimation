@@ -140,7 +140,7 @@ def make_dataset(cfg):
     rep = np.random.randint(1,5)
     unique_gestures = np.unique([x.split('_')[1] for x in dataset.gestures])
     # select the rep-th repetition of the gestures in the test set
-     
+    
     test_gestures = [f'{rep}_'+i for i in unique_gestures if f'{rep}_'+i  in dataset.gestures]
     dataset = train_test_gesture_split(dataset, test_gestures=test_gestures)
 

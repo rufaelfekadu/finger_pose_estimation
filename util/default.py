@@ -39,7 +39,9 @@ class AverageMeterList(object):
     def plot(self,dir):
         import matplotlib.pyplot as plt
         import numpy as np
-
+        # update label names. replace 'position' by ''
+        self.label_names = [name.replace('_position', '') for name in self.label_names]
+        self.label_names = [name.replace('_rotation', '') for name in self.label_names]
         plt.figure(figsize=(10, 8))
         plt.xticks(range(len(self.label_names)), self.label_names)
         # rotate axis labels
