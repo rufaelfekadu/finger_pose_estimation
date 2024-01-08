@@ -6,10 +6,8 @@ import torch
 import numpy as np
 # import stratified sampler
 from sklearn.model_selection import StratifiedShuffleSplit
-
 from sklearn.model_selection import train_test_split
-
-from .EMGLeap import EMGLeap
+from EMGLeap import EMGLeap
 
 exp_setups = {
 
@@ -82,7 +80,6 @@ def make_exp_dataset(cfg,):
         dataset['test'] = test_dataset
         cfg.DATA.LABEL_COLUMNS = train_dataset.label_columns
         print(f"Runnig experiment setup {cfg.DATA.EXP_SETUP} with \n\ntrain: {exp_setups[cfg.DATA.EXP_SETUP]['train']}\nand test: {exp_setups[cfg.DATA.EXP_SETUP]['test']}\n\n")
-
         #  print some statistics about the dataset
         print(f"Number of training examples: {len(dataset['train'].dataset)}")
         print(f"Number of validation examples: {len(dataset['val'].dataset)}")
@@ -91,6 +88,23 @@ def make_exp_dataset(cfg,):
 
 
     return dataset
+
+def train_test_gesture_split(dataset, test_gestures):
+
+    datasets = {}
+    train_idx = []
+    test_idx = []
+    val_idx = []
+    for idx, gesture in enumerate(dataset.gestures):
+        if gesture in test_gestures:
+            test_idx.append(idx)
+        else:
+            train_idx.append(idx)
+    train_idx, val_idx = train_test_split(train_idx, test_size=0.25)
+    datasets['train'] = Subset(dataset, train_idx)
+    datasets['val'] = Subset(dataset, val_idx)
+    datasets['test'] = Subset(dataset, test_idx)
+    return datasets
 
 def train_val_test(dataset, val_split=0.3, test_split=None):
 
@@ -119,11 +133,21 @@ def make_dataset(cfg):
         else:
             args = make_args(cfg)
             dataset = EMGLeap(kwargs=args)
-            dataset.save_dataset(os.path.join(cfg.DATA.PATH, 'dataset.pth'))
+            dataset.save_dataset(os.path.join(cfg.DATA.PATH, f'dataset_segment_{cfg.DATA.SEGMENT_LENGTH}_stride_{cfg.DATA.STRIDE}.pth'))
             cfg.DATA.LABEL_COLUMNS = dataset.label_columns
 
-    dataset = train_val_test(dataset, val_split=0.3, test_split=0.5)
+    rep = np.random.randint(1,5)
+    unique_gestures = np.unique([x.split('_')[1] for x in dataset.gestures])
+    # select the rep-th repetition of the gestures in the test set
+     
+    test_gestures = [f'{rep}_'+i for i in unique_gestures if f'{rep}_'+i  in dataset.gestures]
+    dataset = train_test_gesture_split(dataset, test_gestures=test_gestures)
 
+    # dataset statistics
+    print("Number of training examples: {}".format(len(dataset['train'])))
+    print("Testing on rep {}".format(rep))
+    print("Number of validation examples: {}".format(len(dataset['val'])))
+    print("Number of test examples: {}".format(len(dataset['test'])))
     return dataset
 
 def make_dataloader(cfg):
@@ -148,4 +172,12 @@ def read_saved_dataset(cfg, path):
     return dataset, data_loader
 
 if __name__ == "__main__":
-    print("hello")
+    import sys
+    sys.path.append('../')
+    from config import cfg
+    cfg.DATA.PATH = './dataset/FPE/S1/p3'
+    cfg.DATA.SEGMENT_LENGTH = 100
+    cfg.DATA.STRIDE = 10
+    cfg.DEBUG = False
+    dataset = make_dataset(cfg)
+    

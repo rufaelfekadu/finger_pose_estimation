@@ -15,7 +15,7 @@ import sys
 sys.path.append('/Users/rufaelmarew/Documents/tau/finger_pose_estimation')
 from util.data import *
 from config import cfg
-from .base import BaseDataset
+from base import BaseDataset
 
 # Add data sources here
 # TODO: 
@@ -243,7 +243,7 @@ class ICATransform(object):
 if __name__ == '__main__':
 
     kwargs = {
-        'data_path': './dataset/FPE/S1/p1',
+        'data_path': './dataset/FPE/S1/p4',
         'seq_len': 150,
         'num_channels': 16,
         # filter info

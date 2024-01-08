@@ -2,7 +2,6 @@ import leap
 import numpy as np
 import cv2
 from threading import Thread
-from multiprocessing import Process, Queue
 
 _TRACKING_MODES = {
     leap.TrackingMode.Desktop: "Desktop",

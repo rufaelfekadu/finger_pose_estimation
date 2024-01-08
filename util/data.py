@@ -74,15 +74,24 @@ def read_emg(path, start_time=None, end_time=None, fs: int=250):
     
     # get annotations as df
     to_append = []
+    gestures_rep ={i:0 for i in set(annotations.description) if 'start' in i}
     for ind, (i,j) in enumerate(zip(annotations.onset, annotations.description)):
-        if 'start' in j:
-            if 'end_' in annotations.description[ind+1]:
-                new_j = j.replace('start', '').strip('_')
+        if 'start_' in j:
+            if 'end_' in annotations.description[ind+1] and j.replace('start_', '') == annotations.description[ind+1].replace('end_', ''):
+                gestures_rep[j] += 1
+                new_j = j.replace('start', f'{gestures_rep[j]}').strip('_')
                 #  add 1 sec ofset to onset and append
                 offset = pd.to_timedelta(1, unit='s')
                 to_append.append([annotations.onset[ind]+offset, annotations.onset[ind+1]+offset, new_j])
-        
+    
+    #  append rest periods
+    for i in range(len(to_append)-1):
+        if to_append[i][1] != to_append[i+1][0]:
+            to_append.append([to_append[i][1], to_append[i+1][0], f'{i}_rest'])
+
     ann_df = pd.DataFrame(to_append, columns=['start_time', 'end_time', 'gesture'])
+    # sort by start time
+    ann_df.sort_values(by='start_time', inplace=True)
     #  if duration is greater than 10 sec, drop
     ann_df = ann_df[ann_df['end_time'] - ann_df['start_time'] < pd.to_timedelta(10, unit='s')]
 
@@ -160,13 +169,13 @@ def get_gesture(time, ann_df):
     gesture_df = ann_df[(ann_df['start_time'] <= time) & (ann_df['end_time'] >= time)]
     if not gesture_df.empty:
         return gesture_df['gesture'].iloc[0]
-    return 'rest'
+    return '50_rest'
 
 def find_closest(leap_data, times, annotations):
     start_time = time.time()
     index = []
     gestures = []   
-    for i in times:
+    for idx, i in enumerate(times):
         #  find the time indeex closest to i
         index.append(leap_data.index.asof(i))
         gestures.append(get_gesture(i,annotations))
