@@ -122,9 +122,10 @@ def train_val_test(dataset, val_split=0.3, test_split=None):
 
 def make_dataset(cfg):
 
-    if os.path.isfile(os.path.join(cfg.DATA.PATH, 'dataset.pth')):
+    save_path = os.path.join(cfg.DATA.PATH, f'dataset_segment_{cfg.DATA.SEGMENT_LENGTH}_stride_{cfg.DATA.STRIDE}.pth')
+    if os.path.isfile(save_path):
         print("Loading saved dataset from {}".format(os.path.join(cfg.DATA.PATH, 'dataset.pth')))
-        dataset = torch.load(os.path.join(cfg.DATA.PATH, 'dataset.pth'))
+        dataset = torch.load(save_path)
         cfg.DATA.LABEL_COLUMNS = dataset.label_columns
         
     else:
@@ -133,7 +134,7 @@ def make_dataset(cfg):
         else:
             args = make_args(cfg)
             dataset = EMGLeap(kwargs=args)
-            dataset.save_dataset(os.path.join(cfg.DATA.PATH, f'dataset_segment_{cfg.DATA.SEGMENT_LENGTH}_stride_{cfg.DATA.STRIDE}.pth'))
+            dataset.save_dataset(save_path=save_path)
             cfg.DATA.LABEL_COLUMNS = dataset.label_columns
 
     rep = np.random.randint(1,5)
