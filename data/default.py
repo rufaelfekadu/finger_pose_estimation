@@ -7,7 +7,7 @@ import numpy as np
 # import stratified sampler
 from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.model_selection import train_test_split
-from .EMGLeap import EMGLeap
+from EMGLeap import EMGLeap
 
 exp_setups = {
 

@@ -185,6 +185,9 @@ def main(cfg, logger):
 
     print("----------------- Final Results -----------------")
     logger.info(f"Test Loss: {test_loss}")
+    #  save per keypoint loss to json file
+    per_keypoint_loss.save_to_json(cfg.SOLVER.LOG_DIR)
+    per_keypoint_loss.plot(cfg.SOLVER.LOG_DIR)
     logger.info(f"Test Loss per Keypoint:\n{per_keypoint_loss}")
 
 

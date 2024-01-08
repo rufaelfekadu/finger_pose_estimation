@@ -15,7 +15,7 @@ import sys
 sys.path.append('/Users/rufaelmarew/Documents/tau/finger_pose_estimation')
 from util.data import *
 from config import cfg
-from .base import BaseDataset
+from base import BaseDataset
 
 # Add data sources here
 # TODO: 

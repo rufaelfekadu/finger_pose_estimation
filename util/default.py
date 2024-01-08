@@ -28,6 +28,25 @@ class AverageMeterList(object):
     def __str__(self) -> str:
         return ''.join([f'{name}: {meter.avg:.3f}\n' for name, meter in zip(self.label_names, self.meters)])
     
+    def save_to_json(self,dir):
+        import json
+        data = {}
+        for name, meter in zip(self.label_names, self.meters):
+            data[name] = meter.avg
+        with open(os.path.join(dir,'losses.json'), 'w') as f:
+            json.dump(data, f, indent=4)
+    
+    def plot(self,dir):
+        import matplotlib.pyplot as plt
+        import numpy as np
+        data = {}
+        for name, meter in zip(self.label_names, self.meters):
+            data[name] = meter.avg
+        plt.bar(range(len(data)), list(data.values()), align='center')
+        plt.xticks(range(len(data)), list(data.keys()))
+        plt.savefig(os.path.join(dir,'losses.png'))
+        plt.close()
+    
 class AverageMeter(object):
 
     def __init__(self) -> None:
