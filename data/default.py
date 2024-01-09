@@ -90,6 +90,12 @@ def make_exp_dataset(cfg,):
     return dataset
 
 def train_test_gesture_split(dataset, test_gestures):
+    # use stratifiedsampler to sample from the dataset
+    # stratifiedsampler ensures that the train and val set have the same distribution of gestures
+    # this is important because the gestures are not uniformly distributed
+    gestures = [x.split('_')[1] for x in dataset.gestures]
+    gestures = np.array(gestures)
+    gestures = gestures.astype(np.int)
 
     datasets = {}
     train_idx = []

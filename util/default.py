@@ -51,7 +51,7 @@ class AverageMeterList(object):
             bar[i].set_color('coral')
             bar[i+1].set_color('olivedrab')
         # set plot size
-        plt.savefig(os.path.join(path,'losses.png'), bbox_inches='tight', pad_inches=0.1)
+        plt.savefig(path, bbox_inches='tight', pad_inches=0.1)
         plt.close()
     
 class AverageMeter(object):
