@@ -393,7 +393,7 @@ class Experiment:
             self.exp_info['expName'] = 'fpe - real time'
             self.exp_info['psychopyVersion'] = '2023.2.3'
 
-            self.data_dir = Path(self.data_dir, self.exp_info['Participant'].rjust(3, '0'), f"S_{self.exp_info['session']}", f"P_{self.exp_info['position']}")
+            self.data_dir = Path(self.data_dir, self.exp_info['Participant'].rjust(3, '0'), f"S{self.exp_info['session']}", f"P{self.exp_info['position']}")
             self.data_dir.mkdir(parents=True, exist_ok=True)
 
             self.leap_data.data_dir = self.data_dir

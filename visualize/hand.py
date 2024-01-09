@@ -3,12 +3,13 @@ from peaceful_pie.unity_comms import UnityComms
 from dataclasses import dataclass
 from threading import Thread
 import time
-# import torch
+import torch
 import os
 import sys
 sys.path.append('/Users/rufaelmarew/Documents/tau/finger_pose_estimation')
 from config import cfg
 from util import read_manus, read_leap, build_leap_columns
+import numpy as np
 
 @dataclass
 class params:
@@ -105,10 +106,12 @@ class HandLeap(HandBase):
         dataset = dataset.drop(columns=[i for i in dataset.columns if "thumb" in i.lower() or "distal" in i.lower()])
         self.joint_names = dataset.columns.tolist()
         # update the column names: replace 'position' by ''
-        self.joint_names = [name.replace('Metacarpal', 'MCP') for name in self.joint_names]
+        self.params.joint_names = [name.replace('Metacarpal', 'MCP') for name in self.joint_names]
         self.joint_names = [name.replace('Proximal', 'PIP') for name in self.joint_names]
         self.joint_names = [name.replace('Intermediate', 'DIP') for name in self.joint_names]
-
+        self.
+        #  conver to degree
+        dataset = dataset.apply(lambda x: np.rad2deg(x))
         dataset = dataset[3000:]
         print("started visualisation with {} data points".format(len(dataset)))
         print("press enter to exit")
