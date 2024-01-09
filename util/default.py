@@ -36,7 +36,7 @@ class AverageMeterList(object):
         with open(os.path.join(dir,'losses.json'), 'w') as f:
             json.dump(data, f, indent=4)
     
-    def plot(self,dir):
+    def plot(self,path):
         import matplotlib.pyplot as plt
         import numpy as np
         # update label names. replace 'position' by ''
@@ -51,7 +51,7 @@ class AverageMeterList(object):
             bar[i].set_color('coral')
             bar[i+1].set_color('olivedrab')
         # set plot size
-        plt.savefig(os.path.join(dir,'losses.png'), bbox_inches='tight', pad_inches=0.1)
+        plt.savefig(os.path.join(path,'losses.png'), bbox_inches='tight', pad_inches=0.1)
         plt.close()
     
 class AverageMeter(object):

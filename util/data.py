@@ -261,7 +261,7 @@ def read_manus(path, start_time=None, end_time=None):
     manus_df = manus_df.set_index('time')
     return manus_df, None, None
 
-def read_leap(path, fs=125):
+def read_leap(path, fs=125, positions=True, rotations=False):
 
     leap_df = pd.read_csv(path, index_col=False)
 
@@ -286,7 +286,7 @@ def read_leap(path, fs=125):
     
     # leap_df = leap_df.resample(f'{int(1000/fs)}ms', origin='start').ffill()
 
-    valid_columns = build_leap_columns(positions=True)
+    valid_columns = build_leap_columns(positions=positions, rotations=rotations)
     if len(valid_columns) != 0:
         leap_df = leap_df[valid_columns]
 

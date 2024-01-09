@@ -3,7 +3,8 @@ from torch import nn
 
 metric_dict = {
     'MSE': nn.functional.mse_loss,
-    'MAE': nn.functional.l1_loss
+    'MAE': nn.functional.l1_loss,
+    'SmoothL1': nn.functional.smooth_l1_loss,
 }
 class NeuroLoss(_Loss):
     def __init__(self, metric='MSE', keypoints=None):

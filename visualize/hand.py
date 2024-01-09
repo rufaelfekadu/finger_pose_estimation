@@ -3,12 +3,12 @@ from peaceful_pie.unity_comms import UnityComms
 from dataclasses import dataclass
 from threading import Thread
 import time
-import torch
+# import torch
 import os
 import sys
 sys.path.append('/Users/rufaelmarew/Documents/tau/finger_pose_estimation')
 from config import cfg
-from util import read_manus, read_emg, parse_arg, build_leap_columns
+from util import read_manus, read_leap, build_leap_columns
 
 @dataclass
 class params:
@@ -26,6 +26,7 @@ class params:
 class HandBase:
     def __init__(self):
         self.fingers = ["Thumb", "Index", "Middle", "Ring", "Pinky"]
+        self.joints = ["CMC", "MCP", "PIP", "DIP"]
         pass
 
     def update(self, angles: list, unity_comms: UnityComms):
@@ -71,11 +72,12 @@ class HandManus(HandBase):
 
 
 class HandLeap(HandBase):
-    def __init__(self):
+    def __init__(self, cfg):
+        super().__init__()
         self.joint_names = build_leap_columns()
-        angles = self.convert_to_manus([0 for i in range(len(self.joint_names))])
-        self.params = params(angles=angles, jointNames=self.joint_names, handName="Prediction")
-        
+        # angles = self.convert_to_manus([0 for i in range(len(self.joint_names))])
+        self.params = params(angles=[0 for i in range(len(self.joint_names))], jointNames=self.joint_names, handName="Prediction")
+        self.unity_comms = UnityComms(cfg.VISUALIZE.PORT)
 
     def convert_to_manus(self, keypoints: Any):
         #  convert anlges to list of lists with x,y,z coordinates
@@ -86,6 +88,34 @@ class HandLeap(HandBase):
 
     def reset(self):
         pass
+    def update(self, keypoints: Any, unity_comms: UnityComms):
+        #  convert to manus angles
+        self.params.angles = keypoints
+        unity_comms.UpdateLeapHands(angles=self.params)
+    
+    def read_csv(self, cfg, sleep_time=1):
+
+        label_dir = cfg.VISUALIZE.LABEL_PATH
+        file_name = [i for i in os.listdir(label_dir) if i.endswith(".csv")][0]
+        label_path = os.path.join(label_dir, file_name)
+
+        dataset,_,_ = read_leap(label_path, positions=False, rotations=True)
+        # drop thumb joints
+        dataset = dataset.drop(columns=[i for i in dataset.columns if "thumb" in i.lower() or "distal" in i.lower()])
+        self.joint_names = dataset.columns.tolist()
+        # update the column names: replace 'position' by ''
+        self.joint_names = [name.replace('Metacarpal', 'MCP') for name in self.joint_names]
+        self.joint_names = [name.replace('Proximal', 'PIP') for name in self.joint_names]
+        self.joint_names = [name.replace('Intermediate', 'DIP') for name in self.joint_names]
+
+        dataset = dataset[3000:]
+        print("started visualisation with {} data points".format(len(dataset)))
+        print("press enter to exit")
+        for i in range(0, len(dataset)):
+            angles = dataset.iloc[i].tolist()
+            self.update(angles, self.unity_comms)
+            time.sleep(sleep_time)
+
 
 class HandEMG(HandBase):
     def __init__(self):
@@ -163,9 +193,9 @@ def make_hands(mode):
     return HAND_MODES[mode]()
 
 def main(cfg):
-    hands = Hands(cfg)
+    hands = HandLeap(cfg)
     hands.reset()
-    hands.run_saved_data(cfg, sleep_time=0.1)
+    hands.read_csv(cfg, sleep_time=0.1)
 
 if __name__ == "__main__":
 

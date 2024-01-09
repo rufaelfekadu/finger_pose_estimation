@@ -182,12 +182,16 @@ def main(cfg, logger):
     model_best.load_pretrained(os.path.join(cfg.SOLVER.LOG_DIR, 'model_best.pth'))
     model_best = model_best.to(device)
     test_loss, per_keypoint_loss = test(cfg, model_best, dataloaders['test'], criterion, device=device)
+    val_loss, per_keypoint_loss_val = test(cfg, model_best, dataloaders['val'], criterion, device=device)
 
     print("----------------- Final Results -----------------")
     logger.info(f"Test Loss: {test_loss}")
     #  save per keypoint loss to json file
     per_keypoint_loss.save_to_json(cfg.SOLVER.LOG_DIR)
-    per_keypoint_loss.plot(cfg.SOLVER.LOG_DIR)
+    per_keypoint_loss.plot(os.path.join(cfg.SOLVER.LOG_DIR, 'test_loss.png'))
+
+    per_keypoint_loss_val.plot(os.path.join(cfg.SOLVER.LOG_DIR, 'val_loss.png'))
+    
     logger.info(f"Test Loss per Keypoint:\n{per_keypoint_loss}")
 
 
