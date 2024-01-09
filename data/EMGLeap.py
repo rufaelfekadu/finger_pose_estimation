@@ -118,7 +118,7 @@ class EMGLeap(BaseDataset):
     def prepare_data(self, data_path, label_path, results={}, index=0):
 
         data, annotations, header =  DATA_SOURCES['emg'](data_path)
-        label, _, _ = DATA_SOURCES['leap'](label_path)
+        label, _, _ = DATA_SOURCES['leap'](label_path, rotations=True, positions=False)
 
         if index == 0:
             #save the column names for the label
@@ -243,7 +243,7 @@ class ICATransform(object):
 if __name__ == '__main__':
 
     kwargs = {
-        'data_path': './dataset/FPE/S1/p4',
+        'data_path': './dataset/FPE/S1/p3',
         'seq_len': 150,
         'num_channels': 16,
         # filter info
@@ -253,7 +253,7 @@ if __name__ == '__main__':
         'Q': 30,
         'low_freq': 20,
         'high_freq': 55,
-        'stride': 1,
+        'stride': 50,
         'data_source': 'emg',
         'ica': False,
     }

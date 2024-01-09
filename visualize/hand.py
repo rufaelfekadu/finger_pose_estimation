@@ -9,6 +9,8 @@ import sys
 sys.path.append('/Users/rufaelmarew/Documents/tau/finger_pose_estimation')
 from config import cfg
 from util import read_manus, read_leap, build_leap_columns
+from data import make_exp_dataset, make_dataloader
+from models import make_model
 import numpy as np
 
 @dataclass
@@ -52,7 +54,7 @@ class HandBase:
 
 class HandManus(HandBase):
 
-    def __init__(self, hand_name="Prediction", cfg=cfg):
+    def __init__(self, cfg, hand_name="Prediction"):
         super().__init__()
         self.joints = ["CMC", "MCP", "PIP", "DIP"]
         self.rotations = ["Spread", "Flex"]
@@ -73,11 +75,11 @@ class HandManus(HandBase):
 
 
 class HandLeap(HandBase):
-    def __init__(self, cfg):
+    def __init__(self, cfg, hand_name="Prediction"):
         super().__init__()
         self.joint_names = build_leap_columns()
         # angles = self.convert_to_manus([0 for i in range(len(self.joint_names))])
-        self.params = params(angles=[0 for i in range(12)], jointNames=self.joint_names, handName="Prediction")
+        self.params = params(angles=[0 for i in range(12)], jointNames=self.joint_names, handName=hand_name)
         self.unity_comms = UnityComms(cfg.VISUALIZE.PORT)
 
     def convert_to_manus(self, keypoints: Any):
@@ -92,33 +94,43 @@ class HandLeap(HandBase):
     def update(self, keypoints: Any, unity_comms: UnityComms):
         #  convert to manus angles
         self.params.angles = keypoints
-        print(self.params.angles)
         unity_comms.UpdateLeapHands(angles=self.params)
     
-    def read_csv(self, cfg, sleep_time=1):
+    def read_csv(self, cfg, sleep_time=0.001):
 
         label_dir = cfg.VISUALIZE.LABEL_PATH
         file_name = [i for i in os.listdir(label_dir) if i.endswith(".csv")][0]
         label_path = os.path.join(label_dir, file_name)
 
         dataset,_,_ = read_leap(label_path, positions=False, rotations=True)
-        # drop thumb joints
-        dataset = dataset.drop(columns=[i for i in dataset.columns if "thumb" in i.lower() or "distal" in i.lower()])
         self.joint_names = dataset.columns.tolist()
-        # update the column names: replace 'position' by ''
-        self.params.joint_names = [name.replace('Metacarpal', 'MCP') for name in self.joint_names]
-        self.joint_names = [name.replace('Proximal', 'PIP') for name in self.joint_names]
-        self.joint_names = [name.replace('Intermediate', 'DIP') for name in self.joint_names]
-        self.
-        #  conver to degree
-        dataset = dataset.apply(lambda x: np.rad2deg(x))
-        dataset = dataset[3000:]
+        self.params.jointNames = self.joint_names
         print("started visualisation with {} data points".format(len(dataset)))
         print("press enter to exit")
         for i in range(0, len(dataset)):
             angles = dataset.iloc[i].tolist()
+            print(len(angles), len(self.params.jointNames))
+            # self.params.angles = angles
             self.update(angles, self.unity_comms)
             time.sleep(sleep_time)
+
+    def run_from_loader(self, cfg, sleep_time=0.001, dataloader=None):
+        if dataloader is None:
+            dataloader = make_exp_dataset(cfg, save=False)
+        print("started visualisation with {} data points".format(len(dataloader)))
+        self.joint_names = dataloader.dataset.dataset.label_columns
+        self.params.jointNames = self.joint_names
+        data_iter = iter(dataloader)
+        for i in range(0, len(dataloader)):
+            data, leap_data, gesture = next(data_iter)
+            for j in range(0, len(leap_data)):
+                print(gesture[j])
+                angles = leap_data[j].tolist()
+                self.update(angles, self.unity_comms)
+                #  exit when enter is pressed
+                if input() == "q":
+                    return
+                time.sleep(sleep_time)
 
 
 class HandEMG(HandBase):
@@ -132,13 +144,15 @@ class HandEMG(HandBase):
         pass   
 
 class Hands:
-    def __init__(self, cfg):
+    def __init__(self, cfg, model=None, data_loader=None):
         
         self.unity_comms = UnityComms(cfg.VISUALIZE.PORT)
 
-        self.handPrediction = HandManus(hand_name="Prediction")
-        self.handLabel = HandManus(hand_name="Label")
+        self.handPrediction = HandLeap(hand_name="Prediction")
+        self.handLabel = HandLeap(hand_name="Label")
         self.mode = cfg.VISUALIZE.MODE
+        self.model = model
+        self.data_loader = data_loader
 
     def update(self, keypoints: Any):
         print(len(keypoints[0]), len(keypoints[1]))
@@ -178,15 +192,33 @@ class Hands:
                 break
             time.sleep(sleep_time)
 
+    def run_from_dataloader(self, cfg, sleep_time=1):
+        if self.data_loader is None:
+            self.data_loaders = make_dataloader(cfg, save=False)
+
+        if self.model is None:
+            self.model = make_model(cfg)
+            self.model.load_pretrained(cfg.SOLVER.PRETRAINED_PATH)
+
+        print("started visualisation with {} data points".format(len(self.dataloader)))
+        self.params.jointNames = self.dataloader.dataset.dataset.label_columns
+        data_iter = iter(self.dataloader)
+        for i in range(0, len(self.dataloader)):
+            data, label, gesture = next(data_iter)
+            output = self.model(data.unsqueeze(0))
+            for j in range(0, len(label)):
+                print(gesture[j])
+                self.update((output.tolist()[0], label[j].tolist()))
+                #  exit when enter is pressed
+                if input() == "q":
+                    return
+                time.sleep(sleep_time)
+
     #  TODO: implement this  
     def run_online(self, cfg, model, model_path, sleep_time=1):
         model.load_pretrained(model_path)
         model.eval()
         pass
-
-
-
-
 
 HAND_MODES = {
     "manus": HandManus,
@@ -196,12 +228,18 @@ HAND_MODES = {
 def make_hands(mode):
     return HAND_MODES[mode]()
 
-def main(cfg):
+def main(cfg, data_loader):
     hands = HandLeap(cfg)
     hands.reset()
-    hands.read_csv(cfg, sleep_time=0.1)
+    hands.run_from_loader(cfg, sleep_time=0.01, dataloader=data_loader)
+    # hands.read_csv(cfg, sleep_time=0.01, data_loader=data_loader)
 
 if __name__ == "__main__":
 
     cfg.SOLVER.LOG_DIR = os.path.join(cfg.SOLVER.LOG_DIR, cfg.MODEL.NAME)
-    main(cfg)
+    cfg.DATA.EXP_SETUP = 'exp0'
+    cfg.DATA.PATH = './dataset/FPE/S1/p3'
+    cfg.DEBUG = False
+    dataloaders = make_dataloader(cfg, save=False)
+
+    main(cfg, dataloaders["train"])

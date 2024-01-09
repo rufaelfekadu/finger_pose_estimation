@@ -100,7 +100,7 @@ def train_test_gesture_split(dataset, test_gestures):
             test_idx.append(idx)
         else:
             train_idx.append(idx)
-    train_idx, val_idx = train_test_split(train_idx, test_size=0.25)
+    train_idx, val_idx = train_test_split(train_idx, test_size=0.25, shuffle=False)
     datasets['train'] = Subset(dataset, train_idx)
     datasets['val'] = Subset(dataset, val_idx)
     datasets['test'] = Subset(dataset, test_idx)
@@ -109,9 +109,9 @@ def train_test_gesture_split(dataset, test_gestures):
 def train_val_test(dataset, val_split=0.3, test_split=None):
 
     datasets = {}
-    train_idx, val_idx = train_test_split(list(range(len(dataset))), test_size=val_split, )
+    train_idx, val_idx = train_test_split(list(range(len(dataset))), test_size=val_split, shuffle=False)
     if test_split is not None:
-        val_idx, test_idx = train_test_split(val_idx, test_size=test_split)
+        val_idx, test_idx = train_test_split(val_idx, test_size=test_split, shuffle=False)
         datasets['test'] = Subset(dataset, test_idx)
 
     datasets['train'] = Subset(dataset, train_idx)
@@ -151,14 +151,15 @@ def make_dataset(cfg):
     print("Number of test examples: {}".format(len(dataset['test'])))
     return dataset
 
-def make_dataloader(cfg):
+def make_dataloader(cfg, save=False):
 
     dataset = make_exp_dataset(cfg)
 
     #save train and val datasets
-    torch.save(dataset['train'], os.path.join(cfg.SOLVER.LOG_DIR, 'train_dataset.pth'))
-    torch.save(dataset['val'], os.path.join(cfg.SOLVER.LOG_DIR, 'val_dataset.pth'))
-    torch.save(dataset['test'], os.path.join(cfg.SOLVER.LOG_DIR, 'test_dataset.pth'))
+    if save:
+        torch.save(dataset['train'], os.path.join(cfg.SOLVER.LOG_DIR, 'train_dataset.pth'))
+        torch.save(dataset['val'], os.path.join(cfg.SOLVER.LOG_DIR, 'val_dataset.pth'))
+        torch.save(dataset['test'], os.path.join(cfg.SOLVER.LOG_DIR, 'test_dataset.pth'))
 
     dataloader = {}
     dataloader['train'] = DataLoader(dataset['train'], batch_size=cfg.SOLVER.BATCH_SIZE, shuffle=False)
