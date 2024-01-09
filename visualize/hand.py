@@ -76,7 +76,7 @@ class HandLeap(HandBase):
         super().__init__()
         self.joint_names = build_leap_columns()
         # angles = self.convert_to_manus([0 for i in range(len(self.joint_names))])
-        self.params = params(angles=[0 for i in range(len(self.joint_names))], jointNames=self.joint_names, handName="Prediction")
+        self.params = params(angles=[0 for i in range(12)], jointNames=self.joint_names, handName="Prediction")
         self.unity_comms = UnityComms(cfg.VISUALIZE.PORT)
 
     def convert_to_manus(self, keypoints: Any):
@@ -91,6 +91,7 @@ class HandLeap(HandBase):
     def update(self, keypoints: Any, unity_comms: UnityComms):
         #  convert to manus angles
         self.params.angles = keypoints
+        print(self.params.angles)
         unity_comms.UpdateLeapHands(angles=self.params)
     
     def read_csv(self, cfg, sleep_time=1):

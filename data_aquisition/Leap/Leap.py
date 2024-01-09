@@ -153,7 +153,7 @@ class LeapListener(leap.Listener):
                 self.data.append(row)
 
             elif hand_type=="left":
-                self.data.append([datetime.utcnow(), event.timestamp, hand_type] + [np.nan for i in range(len(self.columns)-3)])
+                self.data.append([datetime.utcnow(), event.timestamp, hand.id, hand_type] + [np.nan for i in range(len(self.columns)-3)])
 
 def main(args):
 
