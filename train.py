@@ -28,7 +28,7 @@ def weights_init(m):
     
 
 
-def train_epoch(cfg, epoch, model, train_loader, criterion, optimizer, logger=None, device='cpu'):
+def train_epoch(cfg, epoch, model, train_loader, criterion, optimizer, scheduler, logger=None, device='cpu'):
 
     model.train()
 
@@ -64,6 +64,7 @@ def train_epoch(cfg, epoch, model, train_loader, criterion, optimizer, logger=No
 
         total_loss.backward()
         optimizer.step()
+        scheduler.step(total_loss)
         
         # if batch_idx % cfg.SOLVER.PRINT_FREQ == 0:
         #     print(f"Epoch: {epoch} Batch: {batch_idx} Loss: {avg_loss.avg}")
@@ -105,7 +106,7 @@ def test(cfg, model, test_loader, criterion, device):
 
     return avg_loss, average_loss_per_keypoint
 
-def train(model, dataloaders, criterion, optimizer, epochs, logger, device):
+def train(model, dataloaders, criterion, optimizer, scheduler, epochs, logger, device):
     '''
     Train the model
     '''
@@ -117,7 +118,7 @@ def train(model, dataloaders, criterion, optimizer, epochs, logger, device):
 
     for epoch in range(epochs):
 
-        train_loss = train_epoch(cfg, epoch, model, dataloaders['train'], criterion, optimizer, logger=logger, device=device)
+        train_loss = train_epoch(cfg, epoch, model, dataloaders['train'], criterion, optimizer, scheduler, logger=logger, device=device)
         
         val_loss, _ = test(cfg, model, dataloaders['val'], criterion, device=device)
 
@@ -171,10 +172,11 @@ def main(cfg, logger):
 
     # Define the loss function and optimizer
     criterion = make_loss(cfg)
-    optimizer = optim.Adam(model.parameters(), lr=cfg.SOLVER.LR)
+    optimizer = optim.Adam(model.parameters(), lr=cfg.SOLVER.LR, weight_decay=cfg.SOLVER.WEIGHT_DECAY,)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=cfg.SOLVER.PATIENCE, verbose=True)
     
     # Train the model
-    best_result = train(model, dataloaders, criterion, optimizer, epochs=cfg.SOLVER.NUM_EPOCHS, logger=logger, device=device)
+    best_result = train(model, dataloaders, criterion, optimizer, scheduler, epochs=cfg.SOLVER.NUM_EPOCHS, logger=logger, device=device)
     logger.info(f"Best Validation Loss: {best_result}")
 
     #final test
