@@ -289,13 +289,15 @@ def read_leap(path, fs=125, positions=True, rotations=False):
     
     # leap_df = leap_df.resample(f'{int(1000/fs)}ms', origin='start').ffill()
     
-    #  remove distal columns
-    distal = [i for i in leap_df.columns if "distal" in i.lower()]
-    leap_df.drop(columns=distal, inplace=True)
+    
 
     valid_columns = build_leap_columns(positions=positions, rotations=rotations)
     if len(valid_columns) != 0:
         leap_df = leap_df[valid_columns]
+        
+    #  remove distal columns
+    distal = [i for i in leap_df.columns if "distal" in i.lower()]
+    leap_df.drop(columns=distal, inplace=True)
 
     if rotations and len(valid_columns) != 0 and not positions:
         leap_df = leap_df.apply(lambda x: np.rad2deg(x))
