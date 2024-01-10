@@ -20,6 +20,18 @@ class PositionalEncoding(nn.Module):
         seq_length = x.size(1)
         return self.encoding[:, :seq_length].to(x.device)
 
+class MLP(nn.Module):
+    def __init__(self, input_size, output_size):
+        super(MLP, self).__init__()
+        self.fc1 = nn.Linear(input_size, 256)
+        self.fc2 = nn.Linear(256, 128)
+        self.fc3 = nn.Linear(128, output_size)
+        self.relu = nn.ReLU()
+    
+    def forward(self, x):
+        x = self.relu(self.fc1(x))
+        x = self.relu(self.fc2(x))
+        return self.fc3(x)
 
 class TransformerModel(nn.Module):
     def __init__(self, input_size, seq_length, output_size):
@@ -36,10 +48,10 @@ class TransformerModel(nn.Module):
             nn.TransformerEncoderLayer(self.d_model, self.nhead, self.d_model, self.dropout),
             num_layers=self.num_layers
         )
-        self.decoder = nn.Linear(self.d_model * seq_length, output_size)
+        self.decoder = MLP(self.d_model * seq_length, output_size)
 
     def forward(self, x):
-        
+    
         x = self.embedding(x)
         x = (x + self.pos_encoder(x)).permute(1, 0, 2)
         x = self.transformer_encoder(x)
