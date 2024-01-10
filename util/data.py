@@ -294,8 +294,9 @@ def read_leap(path, fs=125, positions=True, rotations=False):
     if len(valid_columns) != 0:
         leap_df = leap_df[valid_columns]
 
-    # if rotations and len(valid_columns) != 0 and not positions:
-    #     leap_df = leap_df.apply(lambda x: np.rad2deg(x))
+    if rotations and len(valid_columns) != 0 and not positions:
+        leap_df = leap_df.apply(lambda x: np.rad2deg(x))
+        
     #     # add offset value of 50 degrees to all angles
     #     leap_df = leap_df.apply(lambda x: x - 50)
     #     #  proximal columns
