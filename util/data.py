@@ -48,10 +48,10 @@ def build_leap_columns(positions=False, rotations=False):
     if rotations:
         for finger in fingers:
             for joint in joints:
-                leap_columns.append(f'{finger}_{joint}_rotation_w')
+                # leap_columns.append(f'{finger}_{joint}_rotation_z')
                 # leap_columns.append(f'{finger}_{joint}_rotation_x')
                 # leap_columns.append(f'{finger}_{joint}_rotation_y')
-                # leap_columns.append(f'{finger}_{joint}_rotation_z')
+                leap_columns.append(f'{finger}_{joint}_rotation_w')
 
     return leap_columns
 
@@ -210,6 +210,11 @@ def create_windowed_dataset(df, label, annotations, w, s, unit='sequence'):
         leap_indexs.append(label.index.asof(window.index[-1]))
         gestures.append(get_gesture(window.index[-1], annotations))
 
+    #  remove all rest gestures from data and label
+    data = [i for i, j in zip(data, gestures) if 'rest' not in j]
+    leap_indexs = [i for i, j in zip(leap_indexs, gestures) if 'rest' not in j]
+    gestures = [i for i in gestures if 'rest' not in i]
+
     data = np.array(data)
     # times = np.array(times)
     gestures = np.array(gestures)
@@ -220,8 +225,6 @@ def create_windowed_dataset(df, label, annotations, w, s, unit='sequence'):
     print(f'Time taken to create windowed dataset: {time.time() - start_time}')
 
     return data, label, gestures
-
-
 
 
 def read_manus(path, start_time=None, end_time=None):
@@ -264,7 +267,7 @@ def read_manus(path, start_time=None, end_time=None):
     manus_df = manus_df.set_index('time')
     return manus_df, None, None
 
-def read_leap(path, fs=125, positions=True, rotations=False):
+def read_leap(path, fs=250, positions=True, rotations=False):
 
     leap_df = pd.read_csv(path, index_col=False)
 
@@ -287,31 +290,27 @@ def read_leap(path, fs=125, positions=True, rotations=False):
         else:
             continue
     
-    # leap_df = leap_df.resample(f'{int(1000/fs)}ms', origin='start').ffill()
-    
+    leap_df = leap_df.resample(f'{int(1000/fs)}ms', origin='start').ffill()
     
 
     valid_columns = build_leap_columns(positions=positions, rotations=rotations)
+    # distal = [i for i in leap_df.columns if "distal" in i.lower()]
     if len(valid_columns) != 0:
         leap_df = leap_df[valid_columns]
-        
-    #  remove distal columns
-    distal = [i for i in leap_df.columns if "distal" in i.lower()]
-    leap_df.drop(columns=distal, inplace=True)
+        # leap_df = leap_df[distal]
 
     if rotations and len(valid_columns) != 0 and not positions:
         leap_df = leap_df.apply(lambda x: np.rad2deg(x))
-
-    #     # add offset value of 50 degrees to all angles
-    #     leap_df = leap_df.apply(lambda x: x - 50)
-    #     #  proximal columns
-    #     proximal = [i for i in leap_df.columns if "proximal" in i.lower()]
-    #     leap_df[proximal] = leap_df[proximal].apply(lambda x: x-45)
-    #     # leap_df = leap_df.apply(lambda x: x - 180 if x > 180 else x)
-    #     # mcp = [i for i in leap_df.columns if "metacarpal" in i.lower() and "thumb" not in i.lower()]
-    #     # leap_df[mcp] = leap_df[mcp].apply(lambda x: 0)
-    # #  convert radians to degrees
-    # # leap_df = leap_df.apply(np.degrees)
+        # add offset value of 50 degrees to all angles
+        leap_df = leap_df.apply(lambda x: x - 50)
+        #  proximal columns
+        proximal = [i for i in leap_df.columns if "proximal" in i.lower()]
+        leap_df[proximal] = leap_df[proximal].apply(lambda x: x-45)
+        # leap_df = leap_df.apply(lambda x: x - 180 if x > 180 else x)
+        # mcp = [i for i in leap_df.columns if "metacarpal" in i.lower() and "thumb" not in i.lower()]
+        # leap_df[mcp] = leap_df[mcp].apply(lambda x: 0)
+    #  convert radians to degrees
+    # leap_df = leap_df.apply(np.degrees)
 
     return leap_df, None, None
 

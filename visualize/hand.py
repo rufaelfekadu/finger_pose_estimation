@@ -238,7 +238,7 @@ if __name__ == "__main__":
 
     cfg.SOLVER.LOG_DIR = os.path.join(cfg.SOLVER.LOG_DIR, cfg.MODEL.NAME)
     cfg.DATA.EXP_SETUP = 'exp0'
-    cfg.DATA.PATH = './dataset/FPE/S1/p3'
+    cfg.DATA.PATH = './dataset/FPE/S1/p4'
     cfg.DEBUG = False
     dataloaders = make_dataloader(cfg, save=False)
 

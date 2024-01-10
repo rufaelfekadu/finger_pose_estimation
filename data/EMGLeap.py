@@ -118,7 +118,7 @@ class EMGLeap(BaseDataset):
     def prepare_data(self, data_path, label_path, results={}, index=0):
 
         data, annotations, header =  DATA_SOURCES['emg'](data_path)
-        label, _, _ = DATA_SOURCES['leap'](label_path, rotations=True, positions=False)
+        label, _, _ = DATA_SOURCES['leap'](label_path, rotations=False, positions=True)
 
         if index == 0:
             #save the column names for the label
@@ -140,6 +140,8 @@ class EMGLeap(BaseDataset):
         # normalize the data
         data = self.normalize_and_filter(data)
 
+        #  remove all rest gestures
+
         results['data'][index] = data
         results['label'][index] = label
         results['gestures'][index] = gestures
@@ -148,7 +150,6 @@ class EMGLeap(BaseDataset):
         # self.data = torch.tensor(self.data, dtype=torch.float32)
         # self.label = torch.tensor(self.label, dtype=torch.float32)
         return data, label, gestures
-    
     def normalize_and_filter(self, data=None):
 
         N, C, L = data.shape
