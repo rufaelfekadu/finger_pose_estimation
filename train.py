@@ -173,7 +173,7 @@ def main(cfg, logger):
     # Define the loss function and optimizer
     criterion = make_loss(cfg)
     optimizer = optim.Adam(model.parameters(), lr=cfg.SOLVER.LR, weight_decay=cfg.SOLVER.WEIGHT_DECAY,)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=cfg.SOLVER.PATIENCE, verbose=True)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=cfg.SOLVER.SCHEDULER_PATIENCE, verbose=True)
     
     # Train the model
     best_result = train(model, dataloaders, criterion, optimizer, scheduler, epochs=cfg.SOLVER.NUM_EPOCHS, logger=logger, device=device)

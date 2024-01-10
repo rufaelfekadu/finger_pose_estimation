@@ -118,7 +118,7 @@ class EMGLeap(BaseDataset):
     def prepare_data(self, data_path, label_path, results={}, index=0):
 
         data, annotations, header =  DATA_SOURCES['emg'](data_path)
-        label, _, _ = DATA_SOURCES['leap'](label_path, rotations=True, positions=True)
+        label, _, _ = DATA_SOURCES['leap'](label_path, rotations=True, positions=False)
 
         if index == 0:
             #save the column names for the label
