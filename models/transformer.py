@@ -40,7 +40,7 @@ class TransformerModel(nn.Module):
         self.d_model = 128
         self.nhead = 4
         self.num_layers = 4
-        self.dropout = 0.1
+        self.dropout = 0.5
 
         self.embedding = nn.Linear(input_size, self.d_model)
         self.pos_encoder = PositionalEncoding(self.d_model, max_len=seq_length)
