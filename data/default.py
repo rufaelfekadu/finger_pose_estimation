@@ -37,6 +37,8 @@ def make_args(cfg):
                 'high_freq':cfg.DATA.EMG.HIGH_FREQ,
                 'notch_freq':cfg.DATA.EMG.NOTCH_FREQ,
                 'ica': cfg.DATA.ICA,
+                'transform': None,
+                'target_transform': None,
             }
     return data_args
 
@@ -106,10 +108,11 @@ def train_test_gesture_split(dataset, test_gestures):
             test_idx.append(idx)
         else:
             train_idx.append(idx)
-    train_idx, val_idx = train_test_split(train_idx, test_size=0.25, shuffle=False)
+    val_idx, test_idx = train_test_split(test_idx, test_size=0.5, shuffle=False)
     datasets['train'] = Subset(dataset, train_idx)
     datasets['val'] = Subset(dataset, val_idx)
     datasets['test'] = Subset(dataset, test_idx)
+
     return datasets
 
 def train_val_test(dataset, val_split=0.3, test_split=None):
@@ -130,7 +133,7 @@ def make_dataset(cfg):
 
     save_path = os.path.join(cfg.DATA.PATH, f'dataset_segment_{cfg.DATA.SEGMENT_LENGTH}_stride_{cfg.DATA.STRIDE}.pth')
     if os.path.isfile(save_path):
-        print("Loading saved dataset from {}".format(os.path.join(cfg.DATA.PATH, 'dataset.pth')))
+        print("Loading saved dataset from {}".format(save_path))
         dataset = torch.load(save_path)
         cfg.DATA.LABEL_COLUMNS = dataset.label_columns
         

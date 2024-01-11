@@ -211,9 +211,9 @@ def create_windowed_dataset(df, label, annotations, w, s, unit='sequence'):
         gestures.append(get_gesture(window.index[-1], annotations))
 
     #  remove all rest gestures from data and label
-    data = [i for i, j in zip(data, gestures) if 'rest' not in j]
-    leap_indexs = [i for i, j in zip(leap_indexs, gestures) if 'rest' not in j]
-    gestures = [i for i in gestures if 'rest' not in i]
+    # data = [i for i, j in zip(data, gestures) if 'rest' not in j]
+    # leap_indexs = [i for i, j in zip(leap_indexs, gestures) if 'rest' not in j]
+    # gestures = [i for i in gestures if 'rest' not in i]
 
     data = np.array(data)
     # times = np.array(times)
@@ -313,35 +313,3 @@ def read_leap(path, fs=250, positions=True, rotations=False):
     # leap_df = leap_df.apply(np.degrees)
 
     return leap_df, None, None
-
-# def read_leap(path, fs=125):
-
-#     leap_df = pd.read_csv(path)
-#     leap_df['time'] = pd.to_datetime(leap_df['time'], unit='s', origin=ExpTimes.video_Start_time)
-#     leap_df = leap_df.set_index('time')
-
-#     # drop null and duplicates
-#     leap_df.dropna(inplace=True)
-#     leap_df.drop_duplicates(inplace=True, subset=['time'])
-
-#     # convert to datetime
-#     leap_df['time'] = pd.to_datetime(leap_df['time'], utc=True)
-#     leap_df.set_index('time', inplace=True)
-
-#     # calculate relative position
-#     for i in leap_df.columns:
-#         if 'position_x' in i:
-#             leap_df[i] = leap_df[i] - leap_df['palm_x']
-#         elif 'position_y' in i:
-#             leap_df[i] = leap_df[i] - leap_df['palm_y']
-#         elif 'position_z' in i:
-#             leap_df[i] = leap_df[i] - leap_df['palm_z']
-#         else:
-#             continue
-    
-#     leap_df = leap_df.resample(f'{int(1000/fs)}ms', origin='start').ffill()
-
-#     valid_columns = build_leap_columns()
-#     leap_df = leap_df[valid_columns]
-
-#     return leap_df, None, None

@@ -55,22 +55,12 @@ class EMGLeap(BaseDataset):
             print(f'Reading data from {edf_files[i]} and {csv_files[i]}')
             thread = Thread(target=self.prepare_data, args=(edf_files[i], csv_files[i], results, i))
             threads[i] = thread
-            
-            
-            # data, label, gestures = self.prepare_data(edf_files[i], csv_files[i], results, i)
-            # self.data.append(data)
-            # self.label.append(label)
-            # self.gestures.append(gestures)
 
         for i in range(len(edf_files)):
             threads[i].start()
 
         for i in range(len(edf_files)):
             threads[i].join()
-
-        # self.data = np.concatenate(self.data, axis=0)
-        # self.label = np.concatenate(self.label, axis=0)
-        # self.gestures = np.concatenate(self.gestures, axis=0)
         
         self.data = np.concatenate(results['data'], axis=0)
         self.label = np.concatenate(results['label'], axis=0)
@@ -90,6 +80,12 @@ class EMGLeap(BaseDataset):
         self.data = torch.tensor(self.data, dtype=torch.float32)
         self.label = torch.tensor(self.label, dtype=torch.float32)
 
+        if self.transform:
+            self.data = self.transform(self.data)
+
+        if self.target_transform:
+            self.label = self.target_transform(self.label)
+            
     def read_dirs(self):
 
         if isinstance(self.data_path, str):
@@ -118,7 +114,7 @@ class EMGLeap(BaseDataset):
     def prepare_data(self, data_path, label_path, results={}, index=0):
 
         data, annotations, header =  DATA_SOURCES['emg'](data_path)
-        label, _, _ = DATA_SOURCES['leap'](label_path, rotations=False, positions=True)
+        label, _, _ = DATA_SOURCES['leap'](label_path, rotations=True, positions=True)
 
         if index == 0:
             #save the column names for the label
@@ -219,6 +215,8 @@ class EMGLeap(BaseDataset):
         return self.data.shape[0]
 
     def __getitem__(self, idx):
+        data = self.data[idx]
+        data_ica = self.data_ica[idx]
         if self.ica:
             if self.transform:
                 return self.transform(self.data[idx]), self.data_ica[idx], self.label[idx], self.gestures[idx]

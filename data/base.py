@@ -8,7 +8,7 @@ from sklearn.decomposition import FastICA
 import os
 
 class BaseDataset(Dataset):
-    def __init__(self, transform=None, **kwargs):
+    def __init__(self, **kwargs):
         self.fingers = ['Thumb', 'Index', 'Middle', 'Ring', 'Pinky']
         self.joints = ['CMC', 'MCP', 'PIP', 'DIP']
         self.movements = ['Flex', 'Spread']
@@ -29,7 +29,8 @@ class BaseDataset(Dataset):
         self.high_freq = kwargs['high_freq']
         self.ica = kwargs['ica']
         
-        self.transform = transform
+        self.transform = kwargs['transform']
+        self.target_transform = kwargs['target_transform']
 
     def apply_ica_to_emg(self):
         pass
