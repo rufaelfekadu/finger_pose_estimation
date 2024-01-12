@@ -9,6 +9,7 @@ from datetime import datetime
 
 from concurrent.futures import ThreadPoolExecutor
 import time
+from memory_profiler import profile
 
 class ExpTimes:
     refernce_time = datetime.strptime('2023-10-02 14:59:55.627000', '%Y-%m-%d %H:%M:%S.%f')

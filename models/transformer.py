@@ -50,16 +50,17 @@ class TransformerModel(nn.Module):
         )
         self.decoder = MLP(self.d_model * seq_length, output_size)
 
-    def forward(self, x):
+    def forward(self, x, return_attn=False):
     
         x = self.embedding(x)
         x = (x + self.pos_encoder(x)).permute(1, 0, 2)
         x = self.transformer_encoder(x)
         x = x.permute(1, 0, 2)
-        x = x.flatten(start_dim=1)
-        x = self.decoder(x)
+        if return_attn:
+            attn = x.flatten(start_dim=1)
+        x = self.decoder(attn)
         x.unsqueeze(1)
-        return x
+        return x, attn
     
     def load_pretrained(self, path):
 

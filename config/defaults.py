@@ -8,6 +8,8 @@ _C.DEBUG = True
 # ------------------------------------
 
 _C.DATA = CN()
+_C.SEED = 42
+
 _C.DATA.PATH = "finger_pose_estimation/dataset/data_2023-10-02 14-59-55-627.edf"
 _C.DATA.LABEL_PATH = "finger_pose_estimation/dataset/label_2023-10-02_15-24-12_YH_lab_R.csv"
 _C.DATA.LABEL_COLUMNS = []
