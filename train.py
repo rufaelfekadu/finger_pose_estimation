@@ -42,18 +42,17 @@ def train_epoch(cfg, epoch, model, train_loader, criterion, optimizer, scheduler
 
         # forward pass
         output = model(data)
-        if cfg.MODEL.NAME.lower() == 'transformer':
+        if 'transformer' in cfg.MODEL.NAME.lower():
             loss_per_keypoint = criterion(output, target)
             loss = loss_per_keypoint.mean()
         else:
             # loss_per_keypoint = criterion(output.squeeze()[:,-1,:], target.squeeze()[:, -1, :])
-
             loss = nn.functional.mse_loss(output, target)
 
         avg_loss.update(loss.item(), data.size(0))
 
         # shift the prediction by one time step and calculate the loss
-        if cfg.MODEL.NAME.lower() == 'transformer':
+        if 'transformer' in cfg.MODEL.NAME.lower():
             smoothness_loss = 0
         else:
             smoothness_loss = nn.functional.smooth_l1_loss(output.squeeze()[:,:-1,:], output.squeeze()[:, 1:, :])
