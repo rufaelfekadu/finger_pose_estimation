@@ -89,7 +89,7 @@ def test(cfg, model, test_loader, criterion, device):
 
             output = model(data)
 
-            if cfg.MODEL.NAME.lower() == 'transformer':
+            if 'transformer' in cfg.MODEL.NAME.lower():
                 target = target
                 loss_per_keypoint = criterion(output, target)
             else:
