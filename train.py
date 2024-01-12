@@ -6,6 +6,7 @@ from torch.utils.data import DataLoader
 
 import argparse
 import os
+import numpy as np
 from tqdm import tqdm
 #setup logger
 import logging
@@ -16,6 +17,13 @@ from loss import make_loss
 from data import make_dataset, make_dataloader
 from config import cfg
 from models import make_model
+
+#  set random seed
+torch.manual_seed(cfg.SEED)
+torch.cuda.manual_seed(cfg.SEED)
+torch.backends.cudnn.deterministic = True
+np.random.seed(cfg.SEED)
+
 
 
 def weights_init(m):
