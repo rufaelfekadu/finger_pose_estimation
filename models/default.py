@@ -1,9 +1,11 @@
 from .neuropose import NeuroPose, make_neuropose_model
 from .transformer import TransformerModel, make_transformer_model
+from .TS_transformer import ViT, make_TS_transformer
 
 MODEL_DICT = {
     'neuropose': make_neuropose_model,
-    'transformer': make_transformer_model
+    'transformer': make_transformer_model,
+    'ts_transformer': make_TS_transformer,
 }
 def make_model(cfg):
     print(f"Building {cfg.MODEL.NAME.lower()} model ")
