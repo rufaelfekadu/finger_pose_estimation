@@ -97,10 +97,10 @@ def test(cfg, model, test_loader, criterion, device):
             average_loss_per_keypoint.update(loss_per_keypoint, data.size(0))
             loss = loss_per_keypoint.mean()
             avg_loss.update(loss.item(), data.size(0))
-            if i  == len(test_loader) - 1:
-                # print sample output values to 3 decimal places
-                print(f"Sample Output: {output[0].cpu().numpy().round(3)}")
-                print(f"Sample Target: {target[0].cpu().numpy().round(3)}")
+            # if i  == len(test_loader) - 1:
+            #     # print sample output values to 3 decimal places
+            #     print(f"Sample Output: {output[0].cpu().numpy().round(3)}")
+            #     print(f"Sample Target: {target[0].cpu().numpy().round(3)}")
 
     return avg_loss, average_loss_per_keypoint
 
