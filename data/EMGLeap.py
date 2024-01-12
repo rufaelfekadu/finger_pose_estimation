@@ -16,6 +16,7 @@ sys.path.append('/Users/rufaelmarew/Documents/tau/finger_pose_estimation')
 from util.data import *
 from config import cfg
 from .base import BaseDataset
+from memory_profiler import profile
 
 # Add data sources here
 # TODO: 
@@ -111,10 +112,11 @@ class EMGLeap(BaseDataset):
     def print_dataset_specs(self):
         print("data shape: ", self.data.shape)
 
+    
     def prepare_data(self, data_path, label_path, results={}, index=0):
 
         data, annotations, header =  DATA_SOURCES['emg'](data_path)
-        label, _, _ = DATA_SOURCES['leap'](label_path, rotations=True, positions=True)
+        label, _, _ = DATA_SOURCES['leap'](label_path, rotations=True, positions=False)
 
         if index == 0:
             #save the column names for the label
@@ -167,7 +169,8 @@ class EMGLeap(BaseDataset):
         # Reshape data to 2D
         N, L, C = self.data.shape
         #  copy data
-        data = self.data.clone()
+        import copy
+        data = copy.deepcopy(self.data)
         data = data.reshape(-1, C)
 
         # Apply ICA
@@ -181,7 +184,7 @@ class EMGLeap(BaseDataset):
         self.data_ica = data.reshape(N, L, C)
 
         # save the mixing matrix
-        torch.save(self.mixing_matrix, os.path.join(self.data_path, 'mixing_matrix.pth'))
+        # torch.save(self.mixing_matrix, os.path.join(self.data_path, 'mixing_matrix.pth'))
     
     def plot_data(self, save_dir=None):
 
@@ -215,8 +218,6 @@ class EMGLeap(BaseDataset):
         return self.data.shape[0]
 
     def __getitem__(self, idx):
-        data = self.data[idx]
-        data_ica = self.data_ica[idx]
         if self.ica:
             if self.transform:
                 return self.transform(self.data[idx]), self.data_ica[idx], self.label[idx], self.gestures[idx]
@@ -242,7 +243,7 @@ class ICATransform(object):
 if __name__ == '__main__':
 
     kwargs = {
-        'data_path': './dataset/FPE/S1/p3',
+        'data_path': '../dataset/FPE/S1/p3',
         'seq_len': 150,
         'num_channels': 16,
         # filter info
@@ -252,9 +253,11 @@ if __name__ == '__main__':
         'Q': 30,
         'low_freq': 20,
         'high_freq': 55,
-        'stride': 50,
+        'stride': 1,
         'data_source': 'emg',
         'ica': False,
+        'transform': None,
+        'target_transform': None,
     }
 
     dataset = EMGLeap(kwargs=kwargs)
