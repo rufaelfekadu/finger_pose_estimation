@@ -138,6 +138,7 @@ class ViT(nn.Module):
     
     def load_pretrained(self, path):
 
+        print(f'Loading pretrained model from {path}')
         pretrained_dict = torch.load(path, map_location=torch.device('cpu'))['model_state_dict']
         model_dict = self.state_dict()
 
@@ -153,11 +154,11 @@ def make_TS_transformer(cfg):
         image_size = 4,
         image_patch_size = 2,
         frames = cfg.DATA.SEGMENT_LENGTH,
-        frame_patch_size = 2,
+        frame_patch_size = 50,
         num_classes = len(cfg.DATA.LABEL_COLUMNS),
         dim = 512,
-        depth = 4,
-        heads = 4,
+        depth = 7,
+        heads = 5,
         mlp_dim = 512,
         dropout = 0.,
         emb_dropout = 0.,
