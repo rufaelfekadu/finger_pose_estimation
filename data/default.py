@@ -13,6 +13,11 @@ exp_setups = {
 
     'exp0': None,
 
+    'pretrain':{
+        'train': ['S1/p1', 'S1/p2', 'S1/p3'],
+        'test': ['S1/p4']
+    },
+
     'exp1': {
         'train': ['S1/p4', 'S1/p2'],
         'test': ['S1/p1']
@@ -92,12 +97,6 @@ def make_exp_dataset(cfg,):
     return dataset
 
 def train_test_gesture_split(dataset, test_gestures):
-    # use stratifiedsampler to sample from the dataset
-    # stratifiedsampler ensures that the train and val set have the same distribution of gestures
-    # this is important because the gestures are not uniformly distributed
-    # gestures = [x.split('_')[1] for x in dataset.gestures]
-    # gestures = np.array(gestures)
-    # gestures = gestures.astype(np.int)
 
     datasets = {}
     train_idx = []
@@ -106,6 +105,8 @@ def train_test_gesture_split(dataset, test_gestures):
     for idx, gesture in enumerate(dataset.gestures):
         if gesture in test_gestures:
             test_idx.append(idx)
+        elif 'rest' in gesture:
+            continue
         else:
             train_idx.append(idx)
     val_idx, test_idx = train_test_split(test_idx, test_size=0.5, shuffle=False)
