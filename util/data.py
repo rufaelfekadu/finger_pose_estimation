@@ -268,7 +268,7 @@ def read_manus(path, start_time=None, end_time=None):
     manus_df = manus_df.set_index('time')
     return manus_df, None, None
 
-def read_leap(path, fs=250, positions=True, rotations=False):
+def read_leap(path, fs=250, positions=False, rotations=True):
 
     leap_df = pd.read_csv(path, index_col=False)
 
@@ -291,7 +291,7 @@ def read_leap(path, fs=250, positions=True, rotations=False):
         else:
             continue
     
-    leap_df = leap_df.resample(f'{int(1000/fs)}ms', origin='start').ffill()
+    # leap_df = leap_df.resample(f'{int(1000/fs)}ms', origin='start').ffill()
     
 
     valid_columns = build_leap_columns(positions=positions, rotations=rotations)
@@ -307,6 +307,10 @@ def read_leap(path, fs=250, positions=True, rotations=False):
         #  proximal columns
         proximal = [i for i in leap_df.columns if "proximal" in i.lower()]
         leap_df[proximal] = leap_df[proximal].apply(lambda x: x-45)
+        #  remove distal columns
+        distal = [i for i in leap_df.columns if "distal" in i.lower()]
+        leap_df.drop(columns=distal, inplace=True)
+
         # leap_df = leap_df.apply(lambda x: x - 180 if x > 180 else x)
         # mcp = [i for i in leap_df.columns if "metacarpal" in i.lower() and "thumb" not in i.lower()]
         # leap_df[mcp] = leap_df[mcp].apply(lambda x: 0)
