@@ -308,13 +308,15 @@ def read_leap(path, fs=250, positions=False, rotations=True):
         proximal = [i for i in leap_df.columns if "proximal" in i.lower()]
         leap_df[proximal] = leap_df[proximal].apply(lambda x: x-45)
         #  remove distal columns
-        distal = [i for i in leap_df.columns if "distal" in i.lower()]
-        leap_df.drop(columns=distal, inplace=True)
+        # distal = [i for i in leap_df.columns if "distal" in i.lower()]
+        # leap_df.drop(columns=distal, inplace=True)
 
         # leap_df = leap_df.apply(lambda x: x - 180 if x > 180 else x)
         # mcp = [i for i in leap_df.columns if "metacarpal" in i.lower() and "thumb" not in i.lower()]
         # leap_df[mcp] = leap_df[mcp].apply(lambda x: 0)
     #  convert radians to degrees
     # leap_df = leap_df.apply(np.degrees)
+    
+    #  normalise the data
 
     return leap_df, None, None
