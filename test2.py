@@ -320,6 +320,7 @@ for epoch in range(epochs):
     with torch.no_grad():
         for input_seq, target_seq in val_loader:
             # Forward pass
+            input_seq, target_seq = input_seq.to(device), target_seq.to(device)
             output = model(input_seq, target_seq[:, :-1, :])
 
             # Compute the loss
