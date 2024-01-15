@@ -255,6 +255,7 @@ num_heads = 8
 lr = 0.001
 batch_size = 32
 epochs = 10
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 kwargs = {
         'data_path': 'dataset/FPE/S1/p3',
@@ -282,7 +283,7 @@ val_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
 # Instantiate the model
 model = Transformer(input_dim, output_dim, hidden_dim, num_layers, num_heads)
-
+model = model.to(device)
 # Loss and optimizer (using Mean Absolute Error for regression)
 criterion = nn.L1Loss()
 optimizer = optim.Adam(model.parameters(), lr=lr)
@@ -294,7 +295,7 @@ for epoch in range(epochs):
 
     for batch_idx, (input_seq, target_seq) in enumerate(train_loader):
         optimizer.zero_grad()
-
+        input_seq, target_seq = input_seq.to(device), target_seq.to(device)
         # Forward pass
         output = model(input_seq, target_seq[:, :-1, :])  # Exclude the last pose from the target
 
