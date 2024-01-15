@@ -36,10 +36,13 @@ class PositionalEncoding(nn.Module):
         seq_length = x.size(1)
         return self.encoding[:, :seq_length].to(x.device)
 
+import torch
+import torch.nn as nn
+
 class TransformerEncoder(nn.Module):
     def __init__(self, input_dim, hidden_dim, num_layers, num_heads):
         super(TransformerEncoder, self).__init__()
-        self.embedding = nn.Embedding(input_dim, hidden_dim)
+        self.embedding = nn.Linear(input_dim, hidden_dim)
         self.pos_encoder = PositionalEncoding(hidden_dim)
         self.encoder_layers = nn.TransformerEncoderLayer(hidden_dim, num_heads)
         self.encoder = nn.TransformerEncoder(self.encoder_layers, num_layers)
@@ -54,17 +57,27 @@ class TransformerEncoder(nn.Module):
 class TransformerDecoder(nn.Module):
     def __init__(self, output_dim, hidden_dim, num_layers, num_heads):
         super(TransformerDecoder, self).__init__()
-        self.embedding = nn.Embedding(output_dim, hidden_dim)
+        self.embedding = nn.Linear(output_dim, hidden_dim)
         self.pos_decoder = PositionalEncoding(hidden_dim)
         self.decoder_layers = nn.TransformerDecoderLayer(hidden_dim, num_heads)
         self.decoder = nn.TransformerDecoder(self.decoder_layers, num_layers)
+
+    def generate_mask(self, sz):
+        mask = (torch.triu(torch.ones(sz, sz)) == 1).transpose(0, 1)
+        mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
+        return mask
 
     def forward(self, x, encoder_output):
         x = self.embedding(x)
         x = x + self.pos_decoder(x)
         x = x.permute(1, 0, 2)  # (seq_len, batch_size, hidden_dim)
-        output = self.decoder(x, encoder_output)
+
+        # Generate causal mask
+        tgt_mask = self.generate_mask(x.size(0)).to(x.device)
+
+        output = self.decoder(x, encoder_output, tgt_mask=tgt_mask)
         return output
+
 
 class Transformer(nn.Module):
     def __init__(self, input_dim, output_dim, hidden_dim, num_layers, num_heads):
@@ -78,6 +91,8 @@ class Transformer(nn.Module):
         encoder_output = self.encoder(x)
         decoder_output = self.decoder(y, encoder_output)
         output = self.fc(decoder_output)
+        # reshape back to batch_size x seq_len x num_channels
+        output = output.permute(1, 0, 2)
         return output
 
 class EMGLeap(BaseDataset):
@@ -232,10 +247,10 @@ class EMGLeap(BaseDataset):
 # val_loader = DataLoader(TensorDataset(val_data), batch_size=batch_size, shuffle=False)
 
 # Hyperparameters
-input_dim = 100    # Replace with the actual size of your input vocabulary
-output_dim = 3     # Assuming 3 for x, y, z coordinates in pose estimation
+input_dim = 16    # Replace with the actual size of your input vocabulary
+output_dim = 20     # Assuming 3 for x, y, z coordinates in pose estimation
 hidden_dim = 256
-num_layers = 3
+num_layers = 4
 num_heads = 8
 lr = 0.001
 batch_size = 32

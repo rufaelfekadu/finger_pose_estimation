@@ -243,7 +243,7 @@ class ICATransform(object):
 if __name__ == '__main__':
 
     kwargs = {
-        'data_path': '../dataset/FPE/S1/p3',
+        'data_path': './dataset/FPE/S2/p3',
         'seq_len': 150,
         'num_channels': 16,
         # filter info

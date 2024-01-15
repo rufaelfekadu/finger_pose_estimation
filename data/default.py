@@ -147,7 +147,8 @@ def make_dataset(cfg):
             dataset.save_dataset(save_path=save_path)
             cfg.DATA.LABEL_COLUMNS = dataset.label_columns
 
-    rep = np.random.randint(1,5)
+    # rep = np.random.randint(1,5)
+    rep = 1
     unique_gestures = np.unique([x.split('_')[1] for x in dataset.gestures])
     # select the rep-th repetition of the gestures in the test set
     
@@ -161,7 +162,7 @@ def make_dataset(cfg):
     print("Number of test examples: {}".format(len(dataset['test'])))
     return dataset
 
-def make_dataloader(cfg, save=False):
+def make_dataloader(cfg, save=False, shuffle=True):
 
     dataset = make_exp_dataset(cfg)
 
@@ -172,7 +173,7 @@ def make_dataloader(cfg, save=False):
         torch.save(dataset['test'], os.path.join(cfg.SOLVER.LOG_DIR, 'test_dataset.pth'))
 
     dataloader = {}
-    dataloader['train'] = DataLoader(dataset['train'], batch_size=cfg.SOLVER.BATCH_SIZE, shuffle=False)
+    dataloader['train'] = DataLoader(dataset['train'], batch_size=cfg.SOLVER.BATCH_SIZE, shuffle=shuffle)
     dataloader['val'] = DataLoader(dataset['val'], batch_size=cfg.SOLVER.BATCH_SIZE, shuffle=False)
     dataloader['test'] = DataLoader(dataset['test'], batch_size=cfg.SOLVER.BATCH_SIZE, shuffle=False)
 
