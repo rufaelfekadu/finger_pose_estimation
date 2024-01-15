@@ -379,7 +379,7 @@ class ICATransform(object):
     
 def get_data():
     kwargs = {
-        'data_path': '../finger_pose_estimation/dataset/FPE/S2/p3',
+        'data_path': './dataset/FPE/S2/p3',
         'seq_len': 250,
         'num_channels': 16,
         # filter info
@@ -397,25 +397,6 @@ def get_data():
     }
     return EMGLeap(kwargs=kwargs)
 if __name__ == '__main__':
-
-    kwargs = {
-        'data_path': '../finger_pose_estimation/dataset/FPE/S2/p3',
-        'seq_len': 150,
-        'num_channels': 16,
-        # filter info
-        'filter_data': True,
-        'fs': 150,
-        'notch_freq': 50,
-        'Q': 30,
-        'low_freq': 20,
-        'high_freq': 55,
-        'stride': 1,
-        'data_source': 'emg',
-        'ica': False,
-        'transform': None,
-        'target_transform': None,
-    }
-
-    dataset = EMGLeap(kwargs=kwargs)
+    dataset = get_data()
     print(dataset.data.shape)
 
