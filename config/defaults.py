@@ -59,7 +59,7 @@ _C.MODEL.NAME = "transformer"
 _C.SOLVER = CN()
 
 _C.SOLVER.METRIC = "mse"
-_C.SOLVER.PATIENCE = 5
+_C.SOLVER.PATIENCE = 1000
 
 # Optimizer
 _C.SOLVER.OPTIMIZER = "Adam"

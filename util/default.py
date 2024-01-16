@@ -47,9 +47,10 @@ class AverageMeterList(object):
         # rotate axis labels
         plt.setp(plt.gca().get_xticklabels(), rotation=90, horizontalalignment='right')
         bar = plt.bar(np.arange(len(self.label_names)), [meter.avg for meter in self.meters], align='center', )
-        for i in range(0, len(self.label_names), 3):
+        for i in range(0, len(self.label_names), 4):
             bar[i].set_color('coral')
             bar[i+1].set_color('olivedrab')
+            bar[i+1].set_color('r')
         # set plot size
         plt.savefig(path, bbox_inches='tight', pad_inches=0.1)
         plt.close()

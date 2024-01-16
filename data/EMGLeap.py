@@ -12,7 +12,7 @@ import os
 import glob
 
 import sys
-sys.path.append('/Users/rufaelmarew/Documents/tau/finger_pose_estimation')
+sys.path.append('/home/rufael.marew/Documents/projects/tau/finger_pose_estimation/')
 from util.data import *
 from config import cfg
 from .base import BaseDataset
@@ -136,7 +136,7 @@ class EMGLeap(BaseDataset):
         # label, gestures = find_closest(label, label_index, annotations)
 
         # normalize the data
-        data = self.normalize_and_filter(data)
+        data, label = self.normalize_and_filter(data, label)
 
         #  remove all rest gestures
 
@@ -148,21 +148,24 @@ class EMGLeap(BaseDataset):
         # self.data = torch.tensor(self.data, dtype=torch.float32)
         # self.label = torch.tensor(self.label, dtype=torch.float32)
         return data, label, gestures
-    def normalize_and_filter(self, data=None):
+    def normalize_and_filter(self, data=None, label=None):
 
         N, C, L = data.shape
         data_sliced = data.reshape(-1, L)
 
         # normalize the data
-        scaler = StandardScaler()
-        data_sliced = scaler.fit_transform(data_sliced)
+        self.data_scaler = StandardScaler()
+        data_sliced = self.data_scaler.fit_transform(data_sliced)
+
+        # self.label_scaler = StandardScaler()
+        # label = self.label_scaler.fit_transform(label)
 
         print("Filtering data...")
         # filter the data
         if self.filter_data:
             data_sliced = self._filter_data(data_sliced)
 
-        return data_sliced.reshape(N, C, L)
+        return data_sliced.reshape(N, C, L), label
     
     def apply_ica_to_emg(self):
         # TODO: apply ICA to the EMG data
@@ -244,7 +247,7 @@ if __name__ == '__main__':
 
     kwargs = {
         'data_path': './dataset/FPE/S2/p3',
-        'seq_len': 150,
+        'seq_len': 50,
         'num_channels': 16,
         # filter info
         'filter_data': True,
@@ -253,7 +256,7 @@ if __name__ == '__main__':
         'Q': 30,
         'low_freq': 20,
         'high_freq': 55,
-        'stride': 1,
+        'stride': 25,
         'data_source': 'emg',
         'ica': False,
         'transform': None,

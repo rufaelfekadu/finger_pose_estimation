@@ -1,12 +1,16 @@
-from .data import get_data
-from .model import get_model
+from data import get_data
+from model import get_model
+from transformer import make_transformer_model
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, Subset
 import time
 import argparse
 from sklearn.model_selection import train_test_split
-def train_epoch(epoch, model, train_loader, criterion, optimizer, device):
+import os
+
+def train_epoch(epoch, model, train_loader, criterion, optimizer, scheduler, device):
+
     model.train()
     total_loss = 0.
     start_time = time.time()
@@ -14,14 +18,15 @@ def train_epoch(epoch, model, train_loader, criterion, optimizer, device):
         optimizer.zero_grad()
         input_seq, target_seq = input_seq.to(device), target_seq.to(device)
         # Forward pass
-        output = model(input_seq, target_seq[:, :-1, :])  # Exclude the last pose from the target
+        output = model(input_seq)  # Exclude the last pose from the target
         # Compute the loss
-        loss = criterion(output, target_seq[:, 1:, :])  # Exclude the first pose from the target
+        loss = criterion(output, target_seq[:,-1,:])  # Exclude the first pose from the target
         total_loss += loss.item()
 
         # Backward pass and optimization
         loss.backward()
         optimizer.step()
+        scheduler.step()
 
         if (batch_idx + 1) % 10 == 0:
             print(f"Epoch {epoch + 1}, Batch {batch_idx + 1}/{len(train_loader)}, Loss: {loss.item():.4f}")
@@ -31,22 +36,22 @@ def train_epoch(epoch, model, train_loader, criterion, optimizer, device):
 
 def evaluate(epoch, model, val_loader, criterion, device):
     model.eval()
-    total_loss = 0.
+    val_loss = 0.
     with torch.no_grad():
         for input_seq, target_seq in val_loader:
             # Forward pass
             input_seq, target_seq = input_seq.to(device), target_seq.to(device)
-            output = model(input_seq, target_seq[:, :-1, :])
+            output = model(input_seq)
 
             # Compute the loss
-            loss = criterion(output, target_seq[:, 1:, :])
+            loss = criterion(output, target_seq[:, -1, :])
             val_loss += loss.item()
 
     average_val_loss = val_loss / len(val_loader)
     print(f"Epoch {epoch + 1}, Validation Loss: {average_val_loss:.4f}")
 
 
-    return total_loss / len(val_loader)
+    return average_val_loss
 
 def train(args):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -66,7 +71,7 @@ def train(args):
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
     val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
 
-    model = get_model()
+    model = make_transformer_model()
     model = model.to(device)
 
     criterion = nn.MSELoss()
@@ -88,9 +93,50 @@ def train(args):
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             best_model = model
+            #  print some predictions
+            plot_sample(model, val_loader, device, save_path=os.path.join(args.save, f'./sample_{epoch}.gif'))
 
     # Save the best model
     torch.save(best_model.state_dict(), args.save)
+
+def plot_sample(model, val_loader, device, save_path):
+    import numpy as np
+    import matplotlib.pyplot as plt
+    import matplotlib.animation as animation
+    from IPython.display import HTML
+
+    # Assuming data is your 4x4x150 numpy array
+    data_iter = iter(val_loader)
+    data, label = next(data_iter)
+    B, S, C = data.shape
+    # prediction
+    model.eval()
+    with torch.no_grad():
+        data = data.to(device)
+        pred = model(data).cpu().numpy()
+    #  copy data to cpu
+    fig, ax = plt.subplots(1,2, figsize=(10, 7))
+    plt.subplots_adjust(left=0.1, right=0.9, bottom=0.1, top=0.9)
+    data = data.cpu().numpy()
+    # Initial frame
+    im = ax[0].imshow(data[0, :50, :], animated=True, cmap='hot')
+    im_label, = ax[1].plot(label[0, -1, :], animated=True, )
+    im_pred, = ax[1].plot(pred[0, :], animated=True,)
+    ax[1].legend(['Prediction', 'Ground truth'])
+
+    def updatefig(i):
+        # Update the image for frame i
+        im.set_array(data[i, :50, :].T)
+        im_pred.set_ydata(pred[i, :])
+        im_label.set_ydata(label[i, -1,:])
+        ax[0].set_title('Original EMG data')
+        ax[1].set_title('Angle Values')
+        return im, im_pred, im_label
+
+    ani = animation.FuncAnimation(fig, updatefig, frames=range(B), blit=True, interval=200, repeat=False)
+    ani.save(save_path, writer='imagemagick', fps=5)
+    # Display the animation
+    HTML(ani.to_jshtml())
 
 def main():
     parser = argparse.ArgumentParser(description='PyTorch Transformer for Motion Prediction')
@@ -108,34 +154,11 @@ def main():
                         help='batch size')
     parser.add_argument('--num_workers', type=int, default=4,
                         help='number of workers')
-    parser.add_argument('--num_layers', type=int, default=2,
-                        help='number of layers')
-    parser.add_argument('--num_heads', type=int, default=8,
-                        help='number of heads')
-    parser.add_argument('--dropout', type=float, default=0.1,
-                        help='dropout applied to layers (0 = no dropout)')
-    parser.add_argument('--max_len', type=int, default=100,
-                        help='max sequence length')
-    parser.add_argument('--input_dim', type=int, default=16,
-                        help='input dimension')
-    parser.add_argument('--output_dim', type=int, default=20,
-                        help='output dimension')
-    parser.add_argument('--hidden_dim', type=int, default=512,
-                        help='hidden dimension')
-    parser.add_argument('--n_classes', type=int, default=20,
-                        help='number of classes')
-    parser.add_argument('--n_epochs', type=int, default=100,
-                        help='number of epochs')
-    parser.add_argument('--n_layers', type=int, default=2,
-                        help='number of layers')
-    parser.add_argument('--n_heads', type=int, default=8,
-                        help='number of heads')
-    parser.add_argument('--dropout', type=float, default=0.1,
-                        help='dropout applied to layers (0 = no dropout)')
-    parser.add_argument('--max_len', type=int, default=100,
-                        help='max sequence length')
-    parser.add_argument('--input_dim', type=int, default=16,
-                        help='input dimension')
+
     
     args = parser.parse_args()
+    os.makedirs(os.path.dirname(args.save), exist_ok=True)
     train(args)
+
+if __name__ == '__main__':
+    main()

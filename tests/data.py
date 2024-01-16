@@ -363,7 +363,7 @@ class EMGLeap(BaseDataset):
         return self.data.shape[0]
 
     def __getitem__(self, idx):
-        return self.data[idx], self.label[idx], self.gestures[idx]
+        return self.data[idx], self.label[idx]
 
 
 class ICATransform(object):
@@ -379,7 +379,7 @@ class ICATransform(object):
     
 def get_data():
     kwargs = {
-        'data_path': './dataset/FPE/S2/p3',
+        'data_path': '../dataset/FPE/S2/p3',
         'seq_len': 250,
         'num_channels': 16,
         # filter info

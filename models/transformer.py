@@ -56,11 +56,10 @@ class TransformerModel(nn.Module):
         x = (x + self.pos_encoder(x)).permute(1, 0, 2)
         x = self.transformer_encoder(x)
         x = x.permute(1, 0, 2)
-        if return_attn:
-            attn = x.flatten(start_dim=1)
-        x = self.decoder(attn)
+        x = x.flatten(start_dim=1)
+        x = self.decoder(x)
         x.unsqueeze(1)
-        return x, attn
+        return x
     
     def load_pretrained(self, path):
 

@@ -35,6 +35,45 @@ def weights_init(m):
             nn.init.constant_(param.data, 0.1)
     
 
+def plot_sample(model, val_loader, device, save_path):
+    import numpy as np
+    import matplotlib.pyplot as plt
+    import matplotlib.animation as animation
+    from IPython.display import HTML
+
+    # Assuming data is your 4x4x150 numpy array
+    data_iter = iter(val_loader)
+    (data,_), label, _ = next(data_iter)
+    B, S, C = data.shape
+    # prediction
+    model.eval()
+    with torch.no_grad():
+        data = data.to(device)
+        pred = model(data).cpu().numpy()
+    #  copy data to cpu
+    fig, ax = plt.subplots(1,3, figsize=(10, 10))
+    plt.subplots_adjust(left=0.1, right=0.9, bottom=0.1, top=0.9)
+    data = data.cpu().numpy()
+    # Initial frame
+    im = ax[0].imshow(data[0, :50, :], animated=True, cmap='hot')
+    im2 = ax[1].imshow(data[0, 50:100, :], animated=True, cmap='hot')
+    im_label, = ax[2].plot(label[0, :], animated=True, )
+    im_pred, = ax[2].plot(pred[0, :], animated=True,)
+    ax[2].legend(['Prediction', 'Ground truth'])
+
+    def updatefig(i):
+        # Update the image for frame i
+        im.set_array(data[i, :50, :].T)
+        im2.set_array(data[i, 50:100, :].T)
+        im_pred.set_ydata(pred[i, :])
+        im_label.set_ydata(label[i, :])
+        ax[0].set_title('Original EMG data')
+        ax[1].set_title('original EMG')
+        ax[2].set_title('Angles')
+        return im, im_pred, im_label
+
+    ani = animation.FuncAnimation(fig, updatefig, frames=range(B), blit=True, interval=200, repeat=False)
+    ani.save(save_path, writer='imagemagick', fps=2)
 
 def train_epoch(cfg, epoch, model, train_loader, criterion, optimizer, scheduler, logger=None, device='cpu'):
 
@@ -142,6 +181,8 @@ def train(model, dataloaders, criterion, optimizer, scheduler, epochs, logger, d
                 'epoch': epoch,
                 'best_validation_loss': best_validation_loss
             }
+            save_path = os.path.join(cfg.SOLVER.LOG_DIR, f'sample_epoch_{epoch}.gif')
+            plot_sample(model, dataloaders['val'], device, save_path)
             torch.save(dict_to_save, os.path.join(cfg.SOLVER.LOG_DIR, f'model_best.pth'))
         else:
             counter += 1

@@ -15,7 +15,7 @@ exp_setups = {
 
     'pretrain':{
         'train': ['S1/p1', 'S1/p2', 'S1/p3'],
-        'test': ['S1/p4']
+        'test': ['S1/p3']
     },
 
     'exp1': {
@@ -109,7 +109,7 @@ def train_test_gesture_split(dataset, test_gestures):
             continue
         else:
             train_idx.append(idx)
-    val_idx, test_idx = train_test_split(test_idx, test_size=0.5, shuffle=False)
+    val_idx, test_idx = train_test_split(test_idx, test_size=0.5, shuffle=True)
     datasets['train'] = Subset(dataset, train_idx)
     datasets['val'] = Subset(dataset, val_idx)
     datasets['test'] = Subset(dataset, test_idx)
@@ -174,8 +174,8 @@ def make_dataloader(cfg, save=False, shuffle=True):
 
     dataloader = {}
     dataloader['train'] = DataLoader(dataset['train'], batch_size=cfg.SOLVER.BATCH_SIZE, shuffle=shuffle)
-    dataloader['val'] = DataLoader(dataset['val'], batch_size=cfg.SOLVER.BATCH_SIZE, shuffle=False)
-    dataloader['test'] = DataLoader(dataset['test'], batch_size=cfg.SOLVER.BATCH_SIZE, shuffle=False)
+    dataloader['val'] = DataLoader(dataset['val'], batch_size=cfg.SOLVER.BATCH_SIZE, shuffle=True)
+    dataloader['test'] = DataLoader(dataset['test'], batch_size=cfg.SOLVER.BATCH_SIZE, shuffle=True)
 
     return dataloader
 
