@@ -11,6 +11,8 @@ from multiprocessing import Process
 import json
 try:
     from Leap import LeapRecorder, LeapVisuzalizer
+    from Leap import NeuroLeap as nl
+    from Leap.resources.Windows import Leap as LeapController
 except:
     print("Leap Motion SDK not found. Leap Motion data will not be recorded.")
 
@@ -405,11 +407,13 @@ class Experiment:
             # start recording
             self.emg_data.data_dir = self.data_dir
             self.emg_data.save_as = str(Path(self.data_dir, f"fpe_pos{self.exp_info['position']}_{self.exp_info['Participant'].rjust(3, '0')}_S{self.exp_info['session']}_rep{self.exp_num}_BT.edf"))
-            self.leap_data.save_as = str(Path(self.data_dir, f"fpe_pos{self.exp_info['position']}_{self.exp_info['Participant'].rjust(3, '0')}_S{self.exp_info['session']}_rep{self.exp_num}_BT.csv"))
+            self.emg_data.leap_path = str(Path(self.data_dir, f"fpe_pos{self.exp_info['position']}_{self.exp_info['Participant'].rjust(3, '0')}_S{self.exp_info['session']}_rep{self.exp_num}_BT.csv"))
+            # self.leap_data.save_as = str(Path(self.data_dir, f"fpe_pos{self.exp_info['position']}_{self.exp_info['Participant'].rjust(3, '0')}_S{self.exp_info['session']}_rep{self.exp_num}_BT.csv"))
+            
             print(f"Saving data to: {self.emg_data.save_as}")
             
             self.emg_data.start()
-            self.leap_data.start()
+            # self.leap_data.start()
 
         while self.running:
 
@@ -430,14 +434,14 @@ class Experiment:
         if self.record:
             self.trigger('end_experiment')
             self.emg_data.stop()
-            self.leap_data.stop()
+            # self.leap_data.stop()
 
             self.emg_data.join()
-            self.leap_data.join()
+            # self.leap_data.join()
 
         self.exp_end_text.draw()
         self.window.flip()
-        core.wait(3)
+        core.wait(2)
 
         self.window.close()
         
@@ -476,7 +480,9 @@ def main(args):
     verbose = False
 
     if record:
-        emg_data = EMG(host_name=host, port=port, timeout_secs=timeout, verbose=verbose, save_as="test.edf")
+        controller = LeapController.Controller()
+        # controller.set_policy_flags(LeapController.POLICY_OPTIMIZE_DESKTOP)
+        emg_data = EMG(host_name=host, port=port, LeapClient=controller, timeout_secs=timeout, verbose=verbose, save_as="test.edf")
         leap_data = LeapRecorder(save_dir)
     else:
         emg_data = None

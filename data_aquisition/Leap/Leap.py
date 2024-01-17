@@ -12,7 +12,7 @@ import sys
 sys.path.append('../')
 from lock import lock
 # Your Recording class import here
-
+from NeuroLeap import get_bone_core_angles
 _TRACKING_MODES = {
     leap.TrackingMode.Desktop: "Desktop",
     leap.TrackingMode.HMD: "HMD",
@@ -30,7 +30,6 @@ class LeapRecorder(Thread):
         self.exp_start_time = None
 
     def _init_client(self):
-
         self._listener = LeapListener()
         self._client = leap.Connection()
         self._client.add_listener(self._listener)
