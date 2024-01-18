@@ -680,6 +680,7 @@ class LeapRecorderBasis(Thread):
 	def stop(self):
 		self.is_connected = False
 		self.controller.remove_listener(self.listener)
+		self.save_data()
 		print('Leap listener removed')
 	
 	def save_data(self):
