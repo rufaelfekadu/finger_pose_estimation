@@ -98,13 +98,12 @@ class EMG(Data):
     #     ]
     
     def _get_leap_data(self):
-        # row = [datetime.utcnow()]
-        row = []
+        row = [datetime.utcnow()]
         data = get_bone_core_angles(self._LeapClient)
         if data is not None:
             row.extend(data)
-        else:
-            row.extend([np.nan]*60)
+        # else:
+        #     row.extend([np.nan]*60)
         return data
     
     def make_leap_columns(self):
