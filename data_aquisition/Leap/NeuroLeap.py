@@ -423,7 +423,7 @@ def get_bone_core_angles(controller):
 			# Generate euler angles from rotation matrix
 			bone_angles = get_angles_from_rot(rot_mat)
 			print(f"finger type: {finger.type}, bone: {b}, angles: {bone_angles}")
-			if finger.type == Leap.Finger_TYPE_THUMB:
+			if finger.type == 0:
 				if b == 0 or b == 1: # tmc or mcp
 					angles.append(bone_angles[0]) # fe
 					angles.append(bone_angles[1]) # aa
