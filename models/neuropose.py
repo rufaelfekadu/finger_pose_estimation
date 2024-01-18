@@ -55,7 +55,16 @@ class DecoderLayer(nn.Module):
     def forward(self, x):
         x = self.decoder(x)
         return x
-    
+
+class BoundedActivation(nn.Module):
+    def __init__(self, a, b):
+        super(BoundedActivation, self).__init__()
+        self.a = a
+        self.b = b
+        self.act = nn.ReLU()
+    def forward(self, x):
+        return self.act(x)*(self.b-self.a) + self.a
+      
 # Construct a model with 3 conv layers 3 residual blocks and 3 deconv layers using the ResNet architecture
 class NeuroPose(nn.Module):
     def __init__(self, in_channels=1, num_residual_blocks=3, output_shape=(1000,20)):
@@ -71,6 +80,10 @@ class NeuroPose(nn.Module):
         self.resnet = self.make_resnet_layers(channel=resnet_channels, num_layers=num_residual_blocks)
         
         self.decoder = self.make_decoder_layers(channels=encoder_channels[::-1], scale_factors=scale_factors[::-1], output_shape=output_shape)
+
+        #  bounded relu activation for output
+        output = torch.sigmoid(previous_layer_output) # in range [0,1]
+        output_normalized = output*(b-a) + a
 
     def make_encoder_layers(self, channels = [1, 32, 128, 256], scale_factors = [(5,2), (4,2), (2,2)]):
         # sequence of encoder layers

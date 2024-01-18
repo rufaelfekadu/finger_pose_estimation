@@ -33,6 +33,29 @@ def build_manus_columns():
                 manus_columns.append(f'{finger}_{joint}_{flex}')
     return manus_columns
 
+def build_leap(full=False):
+    #  if full build R21 else build R16
+    fingers = ['Thumb', 'Index', 'Middle', 'Ring', 'Pinky']
+    joints = ['TMC', 'MCP', 'PIP', 'DIP']
+    movments = ['Flex', 'Adb']
+    leap_columns = []
+    if not full:
+        #  remove DIP
+        joints.remove('DIP')
+    for finger in fingers:
+            for joint in joints:
+                for flex in movments:
+                    if finger != 'Thumb' and joint == 'TMC':
+                        continue
+                    if finger != 'Thumb' and joint not in ['TMC', 'MCP'] and flex == 'Adb':
+                        continue
+                    if finger == 'Thumb' and joint not in ['TMC', 'MCP', 'DIP']:
+                        continue
+                    if finger == 'Thumb' and joint == 'DIP' and flex == 'Adb':
+                        continue
+                    leap_columns.append(f'{finger}_{joint}_{flex}')
+    return leap_columns
+
 def build_leap_columns(positions=False, rotations=False):
     
     fingers = ['Thumb', 'Index', 'Middle', 'Ring', 'Pinky']
@@ -49,9 +72,9 @@ def build_leap_columns(positions=False, rotations=False):
     if rotations:
         for finger in fingers:
             for joint in joints:
-                # leap_columns.append(f'{finger}_{joint}_rotation_z')
-                # leap_columns.append(f'{finger}_{joint}_rotation_x')
-                # leap_columns.append(f'{finger}_{joint}_rotation_y')
+                leap_columns.append(f'{finger}_{joint}_rotation_z')
+                leap_columns.append(f'{finger}_{joint}_rotation_x')
+                leap_columns.append(f'{finger}_{joint}_rotation_y')
                 leap_columns.append(f'{finger}_{joint}_rotation_w')
 
     return leap_columns
@@ -77,103 +100,50 @@ def read_emg(path, start_time=None, end_time=None, fs: int=250):
     annotations.onset = start_time + pd.to_timedelta(annotations.onset, unit='s')
     
     # get annotations as df
-    to_append = []
-    gestures_rep ={i:0 for i in set(annotations.description) if 'start' in i}
-    for ind, (i,j) in enumerate(zip(annotations.onset, annotations.description)):
-        if 'start_' in j:
-            if 'end_' in annotations.description[ind+1] and j.replace('start_', '') == annotations.description[ind+1].replace('end_', ''):
-                gestures_rep[j] += 1
-                new_j = j.replace('start', f'{gestures_rep[j]}').strip('_')
-                #  add 1 sec ofset to onset and append
-                offset = pd.to_timedelta(1, unit='s')
-                to_append.append([annotations.onset[ind]+offset, annotations.onset[ind+1]+offset, new_j])
-    
-    #  append rest periods
-    for i in range(len(to_append)-1):
-        if to_append[i][1] != to_append[i+1][0]:
-            to_append.append([to_append[i][1], to_append[i+1][0], f'{i}_rest'])
+    offset = pd.to_timedelta(1, unit='s')
+    to_append = [[annotations.onset[ind]+offset, annotations.onset[ind+1]+offset, j.replace('start_', '')]
+                for ind, j in enumerate(annotations.description)
+                if 'start_' in j and 'end_' in annotations.description[ind+1] and j.replace('start_', '') == annotations.description[ind+1].replace('end_', '')]
 
     ann_df = pd.DataFrame(to_append, columns=['start_time', 'end_time', 'gesture'])
-    # sort by start time
-    ann_df.sort_values(by='start_time', inplace=True)
-    #  if duration is greater than 10 sec, drop
+
+    #  add rest gesture
+
     ann_df = ann_df[ann_df['end_time'] - ann_df['start_time'] < pd.to_timedelta(10, unit='s')]
 
 
     emg_df = raw.to_data_frame()
     emg_df['time'] = pd.to_datetime(emg_df['time'], unit='s', origin=start_time)
+    
+    # sort by time
+    emg_df.sort_values(by='time', inplace=True)
+    ann_df.sort_values(by='start_time', inplace=True)
+
+
+    emg_df = pd.merge_asof(emg_df, ann_df, left_on='time', right_on='start_time', direction='backward')
+    emg_df['gesture'] = emg_df['gesture'].where(emg_df['time'].between(emg_df['start_time'], emg_df['end_time']), 'rest')
+    emg_df.drop(columns=['start_time', 'end_time'], inplace=True)
     emg_df.set_index('time', inplace=True)
 
-    # start data from first annotation
     start_time = ann_df['start_time'].iloc[0]
     emg_df = emg_df[start_time:]
-    
+
+    # emg_df['gesture'] = emg_df.index.map(lambda x: get_gesture(x, ann_df))
+    # start data from first annotation
+
+    del raw, annotations, to_append, ann_df
+
     #  resample emg data to fs Hz
-    emg_df = emg_df.resample(f'{int(1000/fs)}ms', origin='start').mean()
+    # emg_df = emg_df.resample(f'{int(1000/fs)}ms', origin='start').mean()
 
-    return emg_df, ann_df, header
-# def read_emg(path, start_time: datetime =None, end_time: datetime =None, fs: int=250):
+    return emg_df
 
-
-#     if start_time is None:
-#         start_time = header['meas_date']
-#         # convert to datetime from string
-#         start_time = datetime.strptime(start_time, '%Y-%m-%d %H:%M:%S.%f')
-
-#     raw = mne.io.read_raw_edf(path, preload=True)
-
-#     #  get annotations
-#     annotaions = raw.annotations
-#     #  convert annotations time to datetime
-#     annotaions.onset = pd.to_datetime(annotaions.onset, unit='s', utc=True, origin=start_time)
-
-
-#     # to dataframe
-#     emg_df = raw.to_data_frame()
-
-#     # get header
-#     header = raw.info
-
-#     emg_df['time'] = pd.to_datetime(emg_df['time'], unit='s', utc=True, origin=start_time)
-#     emg_df.set_index('time', inplace=True)
-
-#     #  resample emg data to fs Hz
-#     emg_df = emg_df.resample(f'{int(1000/fs)}ms', origin='start').mean()
-#     return emg_df, annotaions, header
-
-# def process_window(df, i, w_rows):
-#     window = df.iloc[i:i+w_rows]
-#     return window.values, window.index[-1]
-
-# def create_windowed_dataset(df, w, s, unit='sequence'):
-#     # Convert window size and stride from seconds to number of rows
-#     if unit == 'second':
-#         w_rows = int(w * df.index.freq.delta.total_seconds())
-#         s_rows = int(s * df.index.freq.delta.total_seconds())
-#     elif unit == 'sequence':
-#         w_rows = w
-#         s_rows = s
-#     else:
-#         raise ValueError(f'unit must be second or sequence, got {unit}')
-    
-#     start_time = time.time()
-#     with ThreadPoolExecutor(max_workers=2) as executor:
-#         results = list(executor.map(process_window, [df]*len(range(0, len(df) - w_rows, s_rows)), range(0, len(df) - w_rows, s_rows), [w_rows]*len(range(0, len(df) - w_rows, s_rows))))
-
-#     data = np.array([result[0] for result in results])
-#     times = np.array([result[1] for result in results])
-
-#     # Reshape data to (N-w)/(S)*W*C
-#     data = data.reshape((-1, w_rows, df.shape[1]))
-#     print(f'Time taken: {time.time() - start_time}')
-
-#     return data, times
 
 def get_gesture(time, ann_df):
     gesture_df = ann_df[(ann_df['start_time'] <= time) & (ann_df['end_time'] >= time)]
     if not gesture_df.empty:
         return gesture_df['gesture'].iloc[0]
-    return '50_rest'
+    return 'rest'
 
 def find_closest(leap_data, times, annotations):
     start_time = time.time()
@@ -268,6 +238,7 @@ def read_manus(path, start_time=None, end_time=None):
     manus_df = manus_df.set_index('time')
     return manus_df, None, None
 
+
 def read_leap(path, fs=250, positions=False, rotations=True):
 
     leap_df = pd.read_csv(path, index_col=False)
@@ -299,24 +270,77 @@ def read_leap(path, fs=250, positions=False, rotations=True):
     if len(valid_columns) != 0:
         leap_df = leap_df[valid_columns]
         # leap_df = leap_df[distal]
-
-    if rotations and len(valid_columns) != 0 and not positions:
-        leap_df = leap_df.apply(lambda x: np.rad2deg(x))
-        # add offset value of 50 degrees to all angles
-        leap_df = leap_df.apply(lambda x: x - 50)
-        #  proximal columns
-        proximal = [i for i in leap_df.columns if "proximal" in i.lower()]
-        leap_df[proximal] = leap_df[proximal].apply(lambda x: x-45)
-        #  remove distal columns
-        # distal = [i for i in leap_df.columns if "distal" in i.lower()]
-        # leap_df.drop(columns=distal, inplace=True)
-
-        # leap_df = leap_df.apply(lambda x: x - 180 if x > 180 else x)
-        # mcp = [i for i in leap_df.columns if "metacarpal" in i.lower() and "thumb" not in i.lower()]
-        # leap_df[mcp] = leap_df[mcp].apply(lambda x: 0)
-    #  convert radians to degrees
-    # leap_df = leap_df.apply(np.degrees)
+    # compute flexion angles
+    leap_df = compute_flexion_and_adduction_angles(leap_df)
+    # if rotations and len(valid_columns) != 0 and not positions:
+    #     leap_df = leap_df.apply(lambda x: np.rad2deg(x))
+    #     # add offset value of 50 degrees to all angles
+    #     leap_df = leap_df.apply(lambda x: x - 50)
+    #     #  proximal columns
+    #     proximal = [i for i in leap_df.columns if "proximal" in i.lower()]
+    #     leap_df[proximal] = leap_df[proximal].apply(lambda x: x-45)
     
-    #  normalise the data
+    # leap_df = leap_df.resample(f'{int(1000/fs)}ms', origin='start').ffill()
+    
 
-    return leap_df, None, None
+    return leap_df
+
+def compute_flexion_and_adduction_angles(bones_df):
+    """
+    Compute flexion and adduction angles from quaternion components in a DataFrame.
+
+    Parameters:
+    - bones_df (pd.DataFrame): DataFrame containing quaternion components for each bone,
+      following the specified column naming convention.
+
+    Returns:
+    - pd.DataFrame: DataFrame containing flexion and adduction angles in degrees for each bone.
+    """
+
+    # Initialize an empty DataFrame to store flexion and adduction angles
+    angles_df = pd.DataFrame()
+
+    # Define the original axes vectors
+    original_x_axis = np.array([1, 0, 0])
+    original_y_axis = np.array([0, 1, 0])
+
+    # Iterate over fingers (Thumb, Index, Middle, Ring, Pinky)
+    for finger in ['Thumb', 'Index', 'Middle', 'Ring', 'Pinky']:
+        # Iterate over bone types (Metacarpal, Proximal, Intermediate, Distal)
+        for bone_type in ['Metacarpal', 'Proximal', 'Intermediate', 'Distal']:
+            # Extract quaternion columns for the current bone
+            quaternion_columns = [f"{finger}_{bone_type}_rotation_{coord}" for coord in ['z', 'x', 'y', 'w']]
+            quaternion_values = bones_df[quaternion_columns]
+
+            # Reshape the quaternion values to a 2D array and convert to a rotation matrix
+            quaternion_matrix = np.array(quaternion_values).reshape(4, -1)
+            rotation_matrix = np.array([
+                [1 - 2 * quaternion_matrix[2, :] ** 2 - 2 * quaternion_matrix[3, :] ** 2,
+                 2 * quaternion_matrix[1, :] * quaternion_matrix[2, :] - 2 * quaternion_matrix[3, :] * quaternion_matrix[0, :],
+                 2 * quaternion_matrix[1, :] * quaternion_matrix[3, :] + 2 * quaternion_matrix[2, :] * quaternion_matrix[0, :]],
+                [2 * quaternion_matrix[1, :] * quaternion_matrix[2, :] + 2 * quaternion_matrix[3, :] * quaternion_matrix[0, :],
+                 1 - 2 * quaternion_matrix[1, :] ** 2 - 2 * quaternion_matrix[3, :] ** 2,
+                 2 * quaternion_matrix[2, :] * quaternion_matrix[3, :] - 2 * quaternion_matrix[1, :] * quaternion_matrix[0, :]],
+                [2 * quaternion_matrix[1, :] * quaternion_matrix[3, :] - 2 * quaternion_matrix[2, :] * quaternion_matrix[0, :],
+                 2 * quaternion_matrix[2, :] * quaternion_matrix[3, :] + 2 * quaternion_matrix[1, :] * quaternion_matrix[0, :],
+                 1 - 2 * quaternion_matrix[1, :] ** 2 - 2 * quaternion_matrix[2, :] ** 2]
+            ])
+
+            # Extract the rotated X-axis and Y-axis vectors
+            rotated_x_axis = rotation_matrix[:, 0]
+            rotated_y_axis = rotation_matrix[:, 1]
+
+            # Compute the dot products, clip to ensure they're within [-1, 1], and then compute the angles
+            dot_product_x = np.clip(np.dot(original_x_axis, rotated_x_axis), -1, 1)
+            dot_product_y = np.clip(np.dot(original_y_axis, rotated_y_axis), -1, 1)
+
+            flexion_angle = np.arccos(dot_product_y)
+            adduction_angle = np.arccos(dot_product_x)
+
+            # Convert the angles to degrees and append to the angles DataFrame
+            angles_df[f"{finger}_{bone_type}_Flex"] = np.degrees(flexion_angle)
+            angles_df[f"{finger}_{bone_type}_Abd"] = np.degrees(adduction_angle)
+
+    angles_df.index = bones_df.index
+
+    return angles_df

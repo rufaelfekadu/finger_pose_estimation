@@ -33,6 +33,17 @@ class MLP(nn.Module):
         x = self.relu(self.fc2(x))
         return self.fc3(x)
 
+class BoundedActivation(nn.Module):
+    def __init__(self, a_values, b_values, label_dim):
+        super(BoundedActivation, self).__init__()
+        assert len(a_values) == len(b_values) == label_dim, "Length of a_values and b_values must be equal and equal to label_dim"
+        self.a_values = nn.Parameter(torch.Tensor(a_values).view(1, -1))
+        self.b_values = nn.Parameter(torch.Tensor(b_values).view(1, -1))
+        self.act = nn.Sigmoid()
+
+    def forward(self, x):
+        return self.act(x) * (self.b_values - self.a_values) + self.a_values
+    
 class TransformerModel(nn.Module):
     def __init__(self, input_size, seq_length, output_size):
         super(TransformerModel, self).__init__()
@@ -49,8 +60,12 @@ class TransformerModel(nn.Module):
             num_layers=self.num_layers
         )
         self.decoder = MLP(self.d_model * seq_length, output_size)
+        a = [0, -15, 0, -15, 0, -15, 0, 0, -15, 0, 0, -15, 0, 0, -15, 0]
+        b = [0, 15 , 90, 15, 90, 15, 110, 90, 15, 110, 90, 15, 110, 90, 15, 110]
+        self.bact = BoundedActivation(a_values=[0.5, 1.0, 1.5], b_values=[2.0, 2.5, 3.0], label_dim=output_size)
 
-    def forward(self, x, return_attn=False):
+
+    def forward(self, x):
     
         x = self.embedding(x)
         x = (x + self.pos_encoder(x)).permute(1, 0, 2)

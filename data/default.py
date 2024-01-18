@@ -8,6 +8,7 @@ import numpy as np
 from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.model_selection import train_test_split
 from .EMGLeap import EMGLeap
+from .transforms import make_transform
 
 exp_setups = {
 
@@ -42,7 +43,7 @@ def make_args(cfg):
                 'high_freq':cfg.DATA.EMG.HIGH_FREQ,
                 'notch_freq':cfg.DATA.EMG.NOTCH_FREQ,
                 'ica': cfg.DATA.ICA,
-                'transform': None,
+                'transform': make_transform(cfg),
                 'target_transform': None,
             }
     return data_args
@@ -162,7 +163,7 @@ def make_dataset(cfg):
     print("Number of test examples: {}".format(len(dataset['test'])))
     return dataset
 
-def make_dataloader(cfg, save=False, shuffle=True):
+def make_dataloader(cfg, save=False, shuffle=False):
 
     dataset = make_exp_dataset(cfg)
 
@@ -174,8 +175,8 @@ def make_dataloader(cfg, save=False, shuffle=True):
 
     dataloader = {}
     dataloader['train'] = DataLoader(dataset['train'], batch_size=cfg.SOLVER.BATCH_SIZE, shuffle=shuffle)
-    dataloader['val'] = DataLoader(dataset['val'], batch_size=cfg.SOLVER.BATCH_SIZE, shuffle=True)
-    dataloader['test'] = DataLoader(dataset['test'], batch_size=cfg.SOLVER.BATCH_SIZE, shuffle=True)
+    dataloader['val'] = DataLoader(dataset['val'], batch_size=cfg.SOLVER.BATCH_SIZE, shuffle=False)
+    dataloader['test'] = DataLoader(dataset['test'], batch_size=cfg.SOLVER.BATCH_SIZE, shuffle=False)
 
     return dataloader
 

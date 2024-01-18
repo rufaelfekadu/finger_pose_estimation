@@ -1,6 +1,6 @@
 from .neuropose import NeuroPose, make_neuropose_model
 from .transformer import TransformerModel, make_transformer_model
-from .TS_transformer import ViT, make_TS_transformer
+from .vit import ViT, make_TS_transformer
 
 MODEL_DICT = {
     'neuropose': make_neuropose_model,

@@ -4,18 +4,23 @@ import torch
 from scipy.signal import butter, filtfilt, iirnotch, sosfiltfilt, stft
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.decomposition import FastICA
+from sklearn.preprocessing import LabelEncoder
 import numpy as np
 import matplotlib.pyplot as plt
 from threading import Thread
+import json
+from torchvision import transforms
 
 import os
 import glob
 
 import sys
 sys.path.append('/home/rufael.marew/Documents/projects/tau/finger_pose_estimation/')
+sys.path.append('../finger_pose_estimation/')
 from util.data import *
 from config import cfg
-from .base import BaseDataset
+from base import BaseDataset
+from transforms import FilterTransform, StandardScalerTransform, FastICATransform
 from memory_profiler import profile
 
 # Add data sources here
@@ -71,22 +76,33 @@ class EMGLeap(BaseDataset):
         #  print dataset specs
         self.print_dataset_specs()
 
-        if self.ica:
-            self.apply_ica_to_emg()
-        else:
-            self.data_ica = None
-            self.mixing_matrix = None
-
-        # to tensor
-        self.data = torch.tensor(self.data, dtype=torch.float32)
-        self.label = torch.tensor(self.label, dtype=torch.float32)
+        # if self.ica:
+        #     self.apply_ica_to_emg()
+        # else:
+        #     self.data_ica = None
+        #     self.mixing_matrix = None
 
         if self.transform:
             self.data = self.transform(self.data)
 
         if self.target_transform:
             self.label = self.target_transform(self.label)
+        
+        # label encode gestures
+        self.label_encoder = LabelEncoder()
+        self.gestures = self.label_encoder.fit_transform(self.gestures)
+        self.gesture_names_mapping = {i: gesture for i, gesture in enumerate(self.label_encoder.classes_)}
+
+        # to tensor
+        self.data = torch.tensor(self.data, dtype=torch.float32)
+        self.label = torch.tensor(self.label, dtype=torch.float32)
+        self.gestures = torch.tensor(self.gestures, dtype=torch.long)
             
+        # unfold data and label
+        self.data = self.data.unfold(0, self.seq_len, self.stride).permute(0, 2, 1)
+        self.label = self.label.unfold(0, self.seq_len, self.stride).permute(0, 2, 1)
+        self.gestures = self.gestures.unfold(0, self.seq_len, self.stride)[:,-1,:] # get the last label in the sequence
+
     def read_dirs(self):
 
         if isinstance(self.data_path, str):
@@ -115,13 +131,20 @@ class EMGLeap(BaseDataset):
     
     def prepare_data(self, data_path, label_path, results={}, index=0):
 
-        data, annotations, header =  DATA_SOURCES['emg'](data_path)
-        label, _, _ = DATA_SOURCES['leap'](label_path, rotations=True, positions=False)
+        #  read json file and get start and end time
+        
+        # stat = json.load(open(os.path.join(data_path, 'log.json'), 'r'))
+
+
+        data =  DATA_SOURCES['emg'](data_path)
+        label = DATA_SOURCES['leap'](label_path, rotations=True, positions=False)
 
         if index == 0:
             #save the column names for the label
             self.label_columns = list(label.columns)
             self.data_columns = list(data.columns)
+            #  remove gesture column
+            self.data_columns.remove('gesture')
         
         # set the start and end of experiment
         start_time = max(min(data.index), min(label.index))
@@ -131,23 +154,28 @@ class EMGLeap(BaseDataset):
         data = data.loc[start_time:end_time]
         label = label.loc[start_time:end_time]
 
-        data, label, gestures = create_windowed_dataset(data, label, annotations, self.seq_len, self.stride)
+        # merge dataframes
+        merged_df = pd.merge_asof(data, label, left_index=True, right_index=True, direction='forward')
 
+        #  remove rest positions
+        merged_df = merged_df[merged_df['gesture'] != 'rest']
+
+        # data, label, gestures = create_windowed_dataset(data, label, annotations, self.seq_len, self.stride)
         # label, gestures = find_closest(label, label_index, annotations)
 
-        # normalize the data
-        data, label = self.normalize_and_filter(data, label)
+        gestures = merged_df['gesture'].values
+        data = merged_df[self.data_columns].values
+        label = merged_df[self.label_columns].values
 
-        #  remove all rest gestures
+        # normalize the data
+        # data, label = self.normalize_and_filter(data, label)
 
         results['data'][index] = data
         results['label'][index] = label
         results['gestures'][index] = gestures
 
-        # convert to tensor
-        # self.data = torch.tensor(self.data, dtype=torch.float32)
-        # self.label = torch.tensor(self.label, dtype=torch.float32)
         return data, label, gestures
+    
     def normalize_and_filter(self, data=None, label=None):
 
         N, C, L = data.shape
@@ -206,8 +234,7 @@ class EMGLeap(BaseDataset):
         axs[0].imshow(data.T, aspect='auto')
         axs[0].set_title('EMG data')
 
-        axs[1].imshow(data_ica.T, aspect='auto')
-        axs[1].set_title('ICA transformed data')
+        axs[1].plot(label)
 
         if save_dir is not None:
             plt.savefig(os.path.join(save_dir, f'plot_{idx}.png'))
@@ -221,32 +248,22 @@ class EMGLeap(BaseDataset):
         return self.data.shape[0]
 
     def __getitem__(self, idx):
-        if self.ica:
-            if self.transform:
-                return self.transform(self.data[idx]), self.data_ica[idx], self.label[idx], self.gestures[idx]
-            return self.data[idx], self.data_ica[idx], self.label[idx], self.gestures[idx]
-        else:
-            return (self.data[idx], np.NAN),  self.label[idx], self.gestures[idx]
+        # if self.ica:
+        #     return (self.data[idx], self.data_ica[idx]), self.label[idx], self.gestures[idx]
+        # else:
+        return self.data[idx], self.label[idx], self.gestures[idx]
+        
 
-def get_ica_components(data, mixing_matrix):
-    #  return the ICA components
-    return np.matmul(data, mixing_matrix)
-
-class ICATransform(object):
-    def __init__(self, mixing_matrix):
-        self.mixing_matrix = mixing_matrix
-        pass
-
-    def __call__(self, sample):
-        #  return the sample as well as the ICA transformed sample
-        sample = torch.tensor(sample, dtype=torch.float32)
-        sample_ica = torch.matmul(sample, self.mixing_matrix)
-        return sample, sample_ica
-    
 if __name__ == '__main__':
 
+    train_transform = transforms.Compose([
+        StandardScalerTransform(),
+        FilterTransform(fs=250, notch_freq=50, Q=30, lowcut=20, highcut=55),
+        transforms.ToTensor(),
+    ])
+
     kwargs = {
-        'data_path': './dataset/FPE/S2/p3',
+        'data_path': './dataset/FPE/S1/p3',
         'seq_len': 50,
         'num_channels': 16,
         # filter info
