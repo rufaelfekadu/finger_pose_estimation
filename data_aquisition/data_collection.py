@@ -408,12 +408,12 @@ class Experiment:
             self.emg_data.data_dir = self.data_dir
             self.emg_data.save_as = str(Path(self.data_dir, f"fpe_pos{self.exp_info['position']}_{self.exp_info['Participant'].rjust(3, '0')}_S{self.exp_info['session']}_rep{self.exp_num}_BT.edf"))
             self.emg_data.leap_path = str(Path(self.data_dir, f"fpe_pos{self.exp_info['position']}_{self.exp_info['Participant'].rjust(3, '0')}_S{self.exp_info['session']}_rep{self.exp_num}_BT.csv"))
-            # self.leap_data.save_as = str(Path(self.data_dir, f"fpe_pos{self.exp_info['position']}_{self.exp_info['Participant'].rjust(3, '0')}_S{self.exp_info['session']}_rep{self.exp_num}_BT.csv"))
+            self.leap_data.save_as = str(Path(self.data_dir, f"fpe_pos{self.exp_info['position']}_{self.exp_info['Participant'].rjust(3, '0')}_S{self.exp_info['session']}_rep{self.exp_num}_BT_full.csv"))
             
             print(f"Saving data to: {self.emg_data.save_as}")
             
             self.emg_data.start()
-            # self.leap_data.start()
+            self.leap_data.start()
 
         while self.running:
 
@@ -434,10 +434,10 @@ class Experiment:
         if self.record:
             self.trigger('end_experiment')
             self.emg_data.stop()
-            # self.leap_data.stop()
+            self.leap_data.stop()
 
             self.emg_data.join()
-            # self.leap_data.join()
+            self.leap_data.join()
 
         self.exp_end_text.draw()
         self.window.flip()
@@ -473,6 +473,9 @@ def main(args):
     gesture_duration = 5
     rest_duration = 5
     record = True
+
+    # Leap
+    desktop = True
     
     host = '127.0.0.1'
     port = 20001
@@ -481,9 +484,11 @@ def main(args):
 
     if record:
         controller = LeapController.Controller()
-        # controller.set_policy_flags(LeapController.POLICY_OPTIMIZE_DESKTOP)
+        if not desktop:
+            controller.set_policy_flags(LeapController.POLICY_OPTIMIZE_HMD)
         emg_data = EMG(host_name=host, port=port, LeapClient=controller, timeout_secs=timeout, verbose=verbose, save_as="test.edf")
-        leap_data = LeapRecorder(save_dir)
+        # leap_data = LeapRecorder(save_dir)
+        leap_data = nl.LeapRecorderBasis(save_dir)
     else:
         emg_data = None
         leap_data = None
@@ -499,7 +504,7 @@ def main(args):
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
     argparser.add_argument('--vis', action='store_true', help='Visualize data stream')
-
+    argparser.add_argument('--desktop', action='store_true', help='Use desktop mode for leap motion')
     args = argparser.parse_args()
     main(args)
     

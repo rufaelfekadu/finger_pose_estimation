@@ -43,11 +43,11 @@ class EMG(Data):
             records = self._parse_incoming_records()
             self._add_to_data(records)
             # get the frame from leap_client    
-            data_ = self._get_leap_data()
-            # append to the leap_data
+            # data_ = self._get_leap_data()
+            # # append to the leap_data
             
-            print(f'{datetime.utcnow()} {data_} ')
-            self.leap_data.append(data_)
+            # print(f'{datetime.utcnow()} {data_} ')
+            # self.leap_data.append(data_)
             # Add newly received data to main data matrix
         print('Connection terminated.')
         self.save_data()
@@ -118,7 +118,8 @@ class EMG(Data):
         return columns
     
     def stop(self):
-
+        
+        self.is_connected = False
         filename = os.path.join(self.data_dir, 'log.json')
         with open(filename, 'r') as f:
             try:
@@ -133,11 +134,9 @@ class EMG(Data):
             with open(filename, 'w') as f:
                 json.dump(existing_data, f)
 
-        self.is_connected = False
         # 
-        if self.leap_path is not None:
-            print(self.leap_data)
-            leap_data = pd.DataFrame(self.leap_data, columns=build_leap(full=False))
-            leap_data.to_csv(self.leap_path)
-            print(f'Leap data saved to {self.leap_path}')
+        # if self.leap_path is not None:
+        #     leap_data = pd.DataFrame(self.leap_data, columns=build_leap(full=False))
+        #     leap_data.to_csv(self.leap_path)
+        #     print(f'Leap data saved to {self.leap_path}')
         super().stop()

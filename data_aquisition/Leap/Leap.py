@@ -5,6 +5,7 @@ import numpy as np
 import argparse
 import sys
 from threading import Thread
+from multiprocessing import Process
 from datetime import datetime
 import os
 import json
@@ -12,7 +13,7 @@ import sys
 sys.path.append('../')
 from lock import lock
 # Your Recording class import here
-from .NeuroLeap import get_bone_core_angles
+from .NeuroLeap import get_bone_core_angles, get_basis_bone_points
 _TRACKING_MODES = {
     leap.TrackingMode.Desktop: "Desktop",
     leap.TrackingMode.HMD: "HMD",
@@ -40,7 +41,7 @@ class LeapRecorder(Thread):
         with self._client.open():
             self._client.set_tracking_mode(leap.TrackingMode.Desktop)
             while self.is_connected:
-                time.sleep(1)
+                time.sleep(0.1)
     
     def pause(self):
         self.is_connected = False
@@ -51,6 +52,9 @@ class LeapRecorder(Thread):
         
 
     def stop(self):
+
+        self.is_connected = False
+
         # append the start time to the log.json file
         filename = os.path.join(self.data_dir, 'log.json')
         with open(filename, 'r') as f:
@@ -67,7 +71,6 @@ class LeapRecorder(Thread):
             with open(filename, 'w') as f:
                 json.dump(existing_data, f)
 
-        self.is_connected = False
         self._client.remove_listener(self._listener)
         self.save_data()
 
@@ -86,7 +89,7 @@ class LeapListener(leap.Listener):
         self.data = []
 
     def make_columns(self):
-        self.columns = ["time","timestamp", "hand_id", "hand_type", "palm_x", "palm_y", "palm_z", "arm_x", "arm_y", "arm_z"]
+        self.columns = ["time","timestamp", "frame_id", "hand_type", "palm_x", "palm_y", "palm_z", "arm_x", "arm_y", "arm_z"]
         for finger in self.FINGER_NAMES:
             for joint in self.JOINT_NAMES:
                 for pos in self.POSITIONS:
@@ -119,12 +122,14 @@ class LeapListener(leap.Listener):
             
         for hand in event.hands:
             hand_type = "left" if str(hand.type) == "HandType.Left" else "right"
-            
-            if hand_type == "right":
+            if hand_type=="left":
+                # self.data.append([datetime.utcnow(), event.timestamp, hand.id, hand_type] + [np.nan for i in range(len(self.columns)-3)])
+                continue
+            elif hand_type == "right":
                 row = [
                     datetime.utcnow(),
                     event.timestamp,
-                    hand.id,
+                    event.id,
                     hand_type,
                     hand.palm.position.x,
                     hand.palm.position.y,
@@ -134,26 +139,42 @@ class LeapListener(leap.Listener):
                     hand.arm.prev_joint.z,
                 ]
                 
-                fingers_data = [
-                    [
-                        bone.prev_joint.__getattribute__(pos)
-                        for pos in self.POSITIONS
-                    ] + [
-                        bone.rotation.__getattribute__(rot)
-                        for rot in self.ROTATIONS
-                    ]
-                    for finger in hand.digits
-                    for bone in finger.bones
-                ]
-                
+                # fingers_data = [
+                #     [
+                #         bone.prev_joint.__getattribute__(pos)
+                #         for pos in self.POSITIONS
+                #     ] + [
+                #         bone.rotation.__getattribute__(rot)
+                #         for rot in self.ROTATIONS
+                #     ]
+                #     for finger in hand.digits
+                #     for bone in finger.bones
+                # ]
+                fingers_data = self.get_data(hand)
+
                 for finger_data in fingers_data:
                     row.extend(finger_data)
 
                 self.data.append(row)
+                        
+    def get_data(self, hand):
 
-            # elif hand_type=="left":
-            #     self.data.append([datetime.utcnow(), event.timestamp, hand.id, hand_type] + [np.nan for i in range(len(self.columns)-3)])
+        fingers_data = [
+                [
+                    bone.prev_joint.__getattribute__(pos)
+                    for pos in self.POSITIONS
+                ] + [
+                    bone.rotation.__getattribute__(rot)
+                    for rot in self.ROTATIONS
+                ]
+                for finger in hand.digits
+                for bone in finger.bones
+            ]
+            
+        return fingers_data
+            
 
+           
 def main(args):
 
     save_dir = args.save_dir

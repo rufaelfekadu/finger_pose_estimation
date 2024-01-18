@@ -1,4 +1,6 @@
+from collections.abc import Callable, Iterable, Mapping
 import math
+from typing import Any
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -8,6 +10,7 @@ import mpl_toolkits.mplot3d as plt3d
 
 from .resources.Windows import Leap
 
+from datetime import datetime
 # Leap Motion Hand Animation
 finger_bones = ['metacarpals', 'proximal', 'intermediate', 'distal']
 
@@ -599,3 +602,85 @@ def data_to_angles_df(myo_data, leap_data):
 
 	df = myo_df.join(leap_df)
 	return df
+
+from threading import Thread
+import time
+import os
+class LeapListenerBasis(Leap.Listener):
+
+	def __init__(self):
+		super().__init__()
+		self.data = []
+		self.columns = [
+				"time",
+				"timestamp",
+				"frame_id",
+				]
+		self.make_cols()
+	
+	def make_cols(self):
+		finger_names = ['Thumb', 'Index', 'Middle', 'Ring', 'Pinky']
+		#  positions
+		for dim in ["x","y","z"]:
+			for finger in finger_names:
+				for joint in ["MCP", "PIP", "DIP", "TIP"]:
+					self.columns.append(f"{finger}_{joint}_{dim}")
+		
+		# rotations
+		for finger in finger_names:
+				for joint in ['TMC', 'MCP', 'PIP', 'DIP']:
+					for flex in ['Flex', 'Adb']:
+						if finger != 'Thumb' and joint == 'TMC':
+							continue
+						if finger != 'Thumb' and joint not in ['TMC', 'MCP'] and flex == 'Adb':
+							continue
+						if finger == 'Thumb' and joint not in ['TMC', 'MCP', 'DIP']:
+							continue
+						if finger == 'Thumb' and joint == 'DIP' and flex == 'Adb':
+							continue
+						self.columns.append(f'{finger}_{joint}_{flex}')
+	
+	def on_connect(event):
+		print("Connected")
+	
+	def on_frame(self, controller):
+		frame = controller.frame()
+		hand = frame.hands.rightmost
+		if not hand.is_valid: return None
+		row = [
+				datetime.utcnow(),
+				frame.timestamp,
+				frame.id,
+                ]
+		bone_pos = get_basis_bone_points(controller).flatten()
+		row.extend(bone_pos)
+		bone_angles = get_bone_core_angles(controller)
+		row.extend(bone_angles)
+		self.data.append(row)
+
+
+class LeapRecorderBasis(Thread):
+
+	def __init__(self, save_as):
+		self.controller = Leap.Controller()
+		self.listener = Leap.Listener()
+		self.controller.add_listener(self.listener)
+		self.save_as = save_as
+		self.is_connected = False
+	
+	def run(self):
+		self.is_connected = True
+		self.exp_start_time = datetime.utcnow()
+
+		while self.is_connected:
+			time.sleep(0.1)
+	
+	def stop(self):
+		self.is_connected = False
+		self.controller.remove_listener(self.listener)
+		print('Leap listener removed')
+	
+	def save_data(self):
+		df = pd.DataFrame(self.listener.data, columns=self.listener.columns)
+		df.to_csv(os.path.join(self.save_as))
+		print('Leap data saved')
