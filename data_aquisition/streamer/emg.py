@@ -133,7 +133,7 @@ class EMG(Data):
         self.is_connected = False
         # 
         if self.leap_path is not None:
-            print(self.leap_data.shape)
+            print(self.leap_data)
             leap_data = pd.DataFrame(self.leap_data, columns=build_leap(full=False))
             leap_data.to_csv(self.leap_path)
             print(f'Leap data saved to {self.leap_path}')
