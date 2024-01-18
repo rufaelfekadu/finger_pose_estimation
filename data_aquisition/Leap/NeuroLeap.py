@@ -640,8 +640,6 @@ class LeapListenerBasis(Leap.Listener):
 							continue
 						self.columns.append(f'{finger}_{joint}_{flex}')
 	
-	def on_connect(event):
-		print("Connected")
 	
 	def on_frame(self, controller):
 		frame = controller.frame()
