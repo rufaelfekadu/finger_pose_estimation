@@ -45,6 +45,7 @@ class EMG(Data):
             # get the frame from leap_client    
             data_ = self._get_leap_data()
             # append to the leap_data
+            print(data_)
             self.leap_data.append(data_)
             # Add newly received data to main data matrix
         print('Connection terminated.')
@@ -100,10 +101,11 @@ class EMG(Data):
     def _get_leap_data(self):
         row = [datetime.utcnow()]
         data = get_bone_core_angles(self._LeapClient)
+        
         if data is not None:
             row.extend(data)
-        # else:
-        #     row.extend([np.nan]*60)
+        else:
+            row.extend([np.nan]*16)
         return data
     
     def make_leap_columns(self):
