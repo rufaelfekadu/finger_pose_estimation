@@ -12,7 +12,7 @@ import sys
 sys.path.append('../')
 from lock import lock
 # Your Recording class import here
-from NeuroLeap import get_bone_core_angles
+from .NeuroLeap import get_bone_core_angles
 _TRACKING_MODES = {
     leap.TrackingMode.Desktop: "Desktop",
     leap.TrackingMode.HMD: "HMD",
