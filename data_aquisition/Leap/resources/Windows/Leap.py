@@ -1592,5 +1592,6 @@ Listener_swigregister = LeapPython.Listener_swigregister
 Listener_swigregister(Listener)
 
 # This file is compatible with both classic and new-style classes.
-
+if __name__ == "__main__":
+    print(f'finge type:{LeapPython.Finger_TYPE_THUMB}')
 

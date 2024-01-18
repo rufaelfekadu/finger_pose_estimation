@@ -411,7 +411,6 @@ def get_bone_core_angles(controller):
 
 	angles = []
 	print(fingers)
-	print(dir(Leap))
 	for finger in fingers:
 		for b in range(0,4):
 			last_bone = finger.bone(b-1) if b != 0 else hand
