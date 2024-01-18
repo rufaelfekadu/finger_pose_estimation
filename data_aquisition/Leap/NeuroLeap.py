@@ -644,16 +644,18 @@ class LeapListenerBasis(Leap.Listener):
 	def on_frame(self, controller):
 		frame = controller.frame()
 		hand = frame.hands.rightmost
-		if not hand.is_valid: return None
 		row = [
 				datetime.utcnow(),
 				frame.timestamp,
 				frame.id,
                 ]
-		# bone_pos = get_basis_bone_points(controller).flatten()
-		# row.extend(bone_pos)
-		bone_angles = get_bone_core_angles(controller)
-		row.extend(bone_angles)
+		if not hand.is_valid: 
+			row = row.extend([np.nan]*len(self.columns-3))
+		else:
+			# bone_pos = get_basis_bone_points(controller).flatten()
+			# row.extend(bone_pos)
+			bone_angles = get_bone_core_angles(controller)
+			row.extend(bone_angles)
 		self.data.append(row)
 
 
