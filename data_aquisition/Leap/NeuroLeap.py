@@ -650,12 +650,13 @@ class LeapListenerBasis(Leap.Listener):
 				frame.id,
                 ]
 		if not hand.is_valid: 
-			row = row.extend([np.nan]*(len(self.columns)-3))
+			row.extend([np.nan]*(len(self.columns)-3))
 		else:
 			# bone_pos = get_basis_bone_points(controller).flatten()
 			# row.extend(bone_pos)
 			bone_angles = get_bone_core_angles(controller)
 			row.extend(bone_angles)
+
 		self.data.append(row)
 
 
