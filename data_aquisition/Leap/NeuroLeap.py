@@ -620,11 +620,11 @@ class LeapListenerBasis(Leap.Listener):
 	
 	def make_cols(self):
 		finger_names = ['Thumb', 'Index', 'Middle', 'Ring', 'Pinky']
-		#  positions
-		for dim in ["x","y","z"]:
-			for finger in finger_names:
-				for joint in ["MCP", "PIP", "DIP", "TIP"]:
-					self.columns.append(f"{finger}_{joint}_{dim}")
+		# #  positions
+		# for dim in ["x","y","z"]:
+		# 	for finger in finger_names:
+		# 		for joint in ["MCP", "PIP", "DIP", "TIP"]:
+		# 			self.columns.append(f"{finger}_{joint}_{dim}")
 		
 		# rotations
 		for finger in finger_names:
@@ -650,8 +650,8 @@ class LeapListenerBasis(Leap.Listener):
 				frame.timestamp,
 				frame.id,
                 ]
-		bone_pos = get_basis_bone_points(controller).flatten()
-		row.extend(bone_pos)
+		# bone_pos = get_basis_bone_points(controller).flatten()
+		# row.extend(bone_pos)
 		bone_angles = get_bone_core_angles(controller)
 		row.extend(bone_angles)
 		self.data.append(row)
