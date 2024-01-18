@@ -628,7 +628,7 @@ class LeapListenerBasis(Leap.Listener):
 		
 		# rotations
 		for finger in finger_names:
-				for joint in ['TMC', 'MCP', 'PIP', 'DIP']:
+				for joint in ['TMC', 'MCP', 'PIP']:
 					for flex in ['Flex', 'Adb']:
 						if finger != 'Thumb' and joint == 'TMC':
 							continue
