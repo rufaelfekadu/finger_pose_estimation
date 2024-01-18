@@ -6,7 +6,7 @@ from matplotlib import animation
 from mpl_toolkits.mplot3d import Axes3D
 import mpl_toolkits.mplot3d as plt3d
 
-from resources.Windows import Leap
+from .resources.Windows import Leap
 
 # Leap Motion Hand Animation
 finger_bones = ['metacarpals', 'proximal', 'intermediate', 'distal']
