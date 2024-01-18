@@ -9,7 +9,7 @@ import sys
 sys.path.append('../')
 sys.path.append('../../')
 from lock import lock
-from Leap.NeuroLeap import get_bone_core_angles, get_all_bone_angles_from_core
+from Leap import get_bone_core_angles, get_all_bone_angles_from_core
 from util import build_leap
 
 class EMG(Data):
