@@ -45,7 +45,8 @@ class EMG(Data):
             # get the frame from leap_client    
             data_ = self._get_leap_data()
             # append to the leap_data
-            print(data_)
+            
+            print(f'{datetime.utcnow()} {data_} ')
             self.leap_data.append(data_)
             # Add newly received data to main data matrix
         print('Connection terminated.')
