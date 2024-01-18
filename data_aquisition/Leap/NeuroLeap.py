@@ -663,9 +663,9 @@ class LeapRecorderBasis(Thread):
 
 	def __init__(self, save_as):
 		super().__init__()
-		
+
 		self.controller = Leap.Controller()
-		self.listener = Leap.Listener()
+		self.listener = LeapListenerBasis()
 		self.controller.add_listener(self.listener)
 		self.save_as = save_as
 		self.is_connected = False
