@@ -56,7 +56,6 @@ def plot_sample(model, val_loader, device, save_path):
     data = data.cpu().numpy()
     # Initial frame
     im = ax[0].imshow(data[0, :50, :], animated=True, cmap='hot')
-    im2 = ax[1].imshow(data[0, 50:100, :], animated=True, cmap='hot')
     im_label, = ax[2].plot(label[0, :], animated=True, )
     im_pred, = ax[2].plot(pred[0, :], animated=True,)
     ax[2].legend(['Prediction', 'Ground truth'])
@@ -64,7 +63,6 @@ def plot_sample(model, val_loader, device, save_path):
     def updatefig(i):
         # Update the image for frame i
         im.set_array(data[i, :50, :].T)
-        im2.set_array(data[i, 50:100, :].T)
         im_pred.set_ydata(pred[i, :])
         im_label.set_ydata(label[i, :])
         ax[0].set_title('Original EMG data')
@@ -88,13 +86,14 @@ def train_epoch(cfg, epoch, model, train_loader, criterion, optimizer, scheduler
         optimizer.zero_grad()
 
         # forward pass
-        output = model(data)
-        if 'transformer' in cfg.MODEL.NAME.lower():
-            loss_per_keypoint = criterion(output, target)
-            loss = loss_per_keypoint.mean()
-        else:
-            # loss_per_keypoint = criterion(output.squeeze()[:,-1,:], target.squeeze()[:, -1, :])
-            loss = nn.functional.mse_loss(output, target)
+        output, loss = model(data, target)
+        loss = loss.mean()
+        # if 'transformer' in cfg.MODEL.NAME.lower():
+        #     loss_per_keypoint = criterion(output, target)
+        #     loss = loss_per_keypoint.mean()
+        # else:
+        #     # loss_per_keypoint = criterion(output.squeeze()[:,-1,:], target.squeeze()[:, -1, :])
+        #     loss = nn.functional.mse_loss(output, target)
 
         avg_loss.update(loss.item(), data.size(0))
 

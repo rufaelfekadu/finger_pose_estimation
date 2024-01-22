@@ -61,7 +61,7 @@ class FilterTransform:
         if len(X.shape) == 3:
             N, S, C = X.shape
             X = X.reshape(-1, C)
-            return self._filter_data(X)
+            return self._filter_data(X).reshape(N, S, C)
 
         # Calculate the normalized frequency and design the notch filter
         w0 = self.notch_freq / (self.fs / 2)
@@ -72,16 +72,16 @@ class FilterTransform:
         sos = butter(5, cutoff, btype='highpass', output='sos')
 
         # apply filters using 'filtfilt' to avoid phase shift
-        data = sosfiltfilt(sos, data, axis=0, padtype='even')
-        data = filtfilt(b_notch, a_notch, data)
+        X = sosfiltfilt(sos, X, axis=0, padtype='even')
+        X = filtfilt(b_notch, a_notch, X)
 
-        return data
+        return X
 
 def make_transform(cfg):
     transform = []
     if cfg.DATA.NORMALIZE:
         transform.append(StandardScalerTransform())
-    if cfg.DATA.FILTER_DATA:
+    if cfg.DATA.FILTER:
         transform.append(FilterTransform(fs=cfg.DATA.EMG.SAMPLING_RATE,
                                          notch_freq=cfg.DATA.EMG.NOTCH_FREQ,
                                          lowcut=cfg.DATA.EMG.LOW_FREQ,

@@ -36,7 +36,7 @@ def make_args(cfg):
                 'seq_len':cfg.DATA.SEGMENT_LENGTH,
                 'num_channels':cfg.DATA.EMG.NUM_CHANNELS,
                 'stride':cfg.DATA.STRIDE,
-                'filter_data':cfg.DATA.FILTER_DATA,
+                'filter_data':cfg.DATA.FILTER,
                 'fs':cfg.DATA.EMG.SAMPLING_RATE,
                 'Q':cfg.DATA.EMG.Q,
                 'low_freq':cfg.DATA.EMG.LOW_FREQ,
@@ -104,9 +104,9 @@ def train_test_gesture_split(dataset, test_gestures):
     test_idx = []
     val_idx = []
     for idx, gesture in enumerate(dataset.gestures):
-        if gesture in test_gestures:
+        if dataset.gesture_names_mapping[gesture.item()] in test_gestures:
             test_idx.append(idx)
-        elif 'rest' in gesture:
+        elif 'rest' in dataset.gesture_names_mapping[gesture.item()]:
             continue
         else:
             train_idx.append(idx)
@@ -150,10 +150,10 @@ def make_dataset(cfg):
 
     # rep = np.random.randint(1,5)
     rep = 1
-    unique_gestures = np.unique([x.split('_')[1] for x in dataset.gestures])
+    unique_gestures = np.unique([i.split('_')[0] for i in dataset.gesture_names_mapping.values()])
     # select the rep-th repetition of the gestures in the test set
     
-    test_gestures = [f'{rep}_'+i for i in unique_gestures if f'{rep}_'+i  in dataset.gestures]
+    test_gestures = [i+f'_{rep}' for i in unique_gestures]
     dataset = train_test_gesture_split(dataset, test_gestures=test_gestures)
 
     # dataset statistics
@@ -163,7 +163,7 @@ def make_dataset(cfg):
     print("Number of test examples: {}".format(len(dataset['test'])))
     return dataset
 
-def make_dataloader(cfg, save=False, shuffle=False):
+def build_dataloader(cfg, save=False, shuffle=False):
 
     dataset = make_exp_dataset(cfg)
 
@@ -174,9 +174,9 @@ def make_dataloader(cfg, save=False, shuffle=False):
         torch.save(dataset['test'], os.path.join(cfg.SOLVER.LOG_DIR, 'test_dataset.pth'))
 
     dataloader = {}
-    dataloader['train'] = DataLoader(dataset['train'], batch_size=cfg.SOLVER.BATCH_SIZE, shuffle=shuffle)
-    dataloader['val'] = DataLoader(dataset['val'], batch_size=cfg.SOLVER.BATCH_SIZE, shuffle=False)
-    dataloader['test'] = DataLoader(dataset['test'], batch_size=cfg.SOLVER.BATCH_SIZE, shuffle=False)
+    dataloader['train'] = DataLoader(dataset['train'], batch_size=cfg.SOLVER.BATCH_SIZE, shuffle=shuffle, num_workers=cfg.SOLVER.NUM_WORKERS, persistent_workers=True)
+    dataloader['val'] = DataLoader(dataset['val'], batch_size=cfg.SOLVER.BATCH_SIZE, shuffle=False, num_workers=cfg.SOLVER.NUM_WORKERS, persistent_workers=True)
+    dataloader['test'] = DataLoader(dataset['test'], batch_size=cfg.SOLVER.BATCH_SIZE, shuffle=False, num_workers=cfg.SOLVER.NUM_WORKERS, persistent_workers=True)
 
     return dataloader
 

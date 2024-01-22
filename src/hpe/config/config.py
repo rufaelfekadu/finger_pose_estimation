@@ -2,6 +2,8 @@ from yacs.config import CfgNode as CN
 
 _C = CN()
 _C.DEBUG = True
+_C.NAME = "FPE"
+_C.STAGE = "pretrain"
 
 # ------------------------------------
 # DATA
@@ -15,7 +17,7 @@ _C.DATA.LABEL_PATH = "finger_pose_estimation/dataset/label_2023-10-02_15-24-12_Y
 _C.DATA.LABEL_COLUMNS = []
 _C.DATA.SEGMENT_LENGTH = 150
 _C.DATA.STRIDE = 100
-_C.DATA.FILTER_DATA = True
+_C.DATA.FILTER = True
 _C.DATA.NORMALIZE = True
 _C.DATA.ICA = False
 _C.DATA.EXP_SETUP = 'exp0'
@@ -62,13 +64,17 @@ _C.SOLVER = CN()
 _C.SOLVER.METRIC = "mse"
 _C.SOLVER.PATIENCE = 1000
 
+# Dataloader
+_C.SOLVER.NUM_WORKERS = 7
+_C.SOLVER.BATCH_SIZE = 32
+_C.SOLVER.PIN_MEMORY = True
+
 # Optimizer
-_C.SOLVER.OPTIMIZER = "Adam"
+_C.SOLVER.OPTIMIZER = "adam"
 _C.SOLVER.LR = 0.001
 _C.SOLVER.WEIGHT_DECAY = 0.0001
 _C.SOLVER.MOMENTUM = 0.9
 
-_C.SOLVER.BATCH_SIZE = 32
 _C.SOLVER.NUM_EPOCHS = 100
 _C.SOLVER.PRINT_FREQ = 10
 _C.SOLVER.CHECKPOINT_PERIOD = 10
@@ -93,3 +99,4 @@ _C.SOLVER.PRETRAINED_PATH = "model.pth"
 _C.VISUALIZE = CN()
 _C.VISUALIZE.PORT = 9000
 _C.VISUALIZE.LABEL_PATH = "./dataset/FPE/S1/p3"
+

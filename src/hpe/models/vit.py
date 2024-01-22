@@ -5,9 +5,6 @@ from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
 import torch.nn.functional as F
 
-import sys
-sys.path.append('../finger_pose_estimation')
-from config import cfg
 
 attn_before_softmax = []
 attn_after_softmax = []
@@ -15,6 +12,8 @@ attn_after_softmax = []
 
 def pair(t):
     return t if isinstance(t, tuple) else (t, t)
+
+ 
 
 # classes
 class FeedForward(nn.Module):
@@ -81,6 +80,19 @@ class Transformer(nn.Module):
             x = ff_layer(x)
         return x
 
+class BoundedActivation(nn.Module):
+    def __init__(self, label_dim, 
+                 a_values = [0, -15, 0, -15, 0, -15, 0, 0, -15, 0, 0, -15, 0, 0, -15, 0], 
+                 b_values = [90, 15 , 90, 15, 90, 15, 110, 90, 15, 110, 90, 15, 110, 90, 15, 110]):
+        super(BoundedActivation, self).__init__()
+        assert len(a_values) == len(b_values) == label_dim, "Length of a_values and b_values must be equal and equal to label_dim"
+        self.a_values = nn.Parameter(torch.Tensor(a_values).view(1, -1))
+        self.b_values = nn.Parameter(torch.Tensor(b_values).view(1, -1))
+        self.act = nn.Sigmoid()
+
+    def forward(self, x):
+        return self.act(x) * (self.b_values - self.a_values) + self.a_values
+    
 class ViT(nn.Module):
     def __init__(self, *, image_size, image_patch_size, frames, frame_patch_size, num_classes, dim, depth, heads, mlp_dim, pool = 'cls', channels = 3, dim_head = 64, dropout = 0., emb_dropout = 0.):
         super().__init__()
@@ -113,7 +125,8 @@ class ViT(nn.Module):
 
         self.mlp_head = nn.Sequential(
             nn.LayerNorm(dim),
-            nn.Linear(dim, num_classes)
+            nn.Linear(dim, num_classes),
+            # BoundedActivation(num_classes)
         )
 
     def forward(self, x):

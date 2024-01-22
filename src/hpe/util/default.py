@@ -2,6 +2,8 @@ import logging
 import os
 from typing import Any
 import argparse
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 def parse_arg(disc="Train the model"):
@@ -28,6 +30,9 @@ class AverageMeterList(object):
     def __str__(self) -> str:
         return ''.join([f'{name}: {meter.avg:.3f}\n' for name, meter in zip(self.label_names, self.meters)])
     
+    def __call__(self) -> list:
+        return [meter.avg for meter in self.meters]
+    
     def save_to_json(self,dir):
         import json
         data = {}
@@ -37,8 +42,6 @@ class AverageMeterList(object):
             json.dump(data, f, indent=4)
     
     def plot(self,path):
-        import matplotlib.pyplot as plt
-        import numpy as np
         # update label names. replace 'position' by ''
         self.label_names = [name.replace('_position', '') for name in self.label_names]
         self.label_names = [name.replace('_rotation', '') for name in self.label_names]
@@ -50,11 +53,29 @@ class AverageMeterList(object):
         for i in range(0, len(self.label_names), 4):
             bar[i].set_color('coral')
             bar[i+1].set_color('olivedrab')
-            bar[i+1].set_color('r')
+            bar[i+2].set_color('r')
         # set plot size
         plt.savefig(path, bbox_inches='tight', pad_inches=0.1)
         plt.close()
-    
+
+    def plot_finger(self, path):
+
+        # update label names. replace 'position' by ''
+        self.label_names = [name.replace('_position', '') for name in self.label_names]
+        self.label_names = [name.replace('_rotation', '') for name in self.label_names]
+        plt.figure(figsize=(10, 8))
+        # group by finger and average
+        finger_ = {'Thumb': [], 'Index': [], 'Middle': [], 'Ring': [], 'Pinky': []}
+        for i,v in finger_.items():
+            for j in range(len(self.label_names)):
+                if i in self.label_names[j]:
+                    finger_[i].append(self.meters[j].avg)
+        plt.xticks(range(len(finger_)), finger_.keys())
+        plt.setp(plt.gca().get_xticklabels(), rotation=90, horizontalalignment='right')
+        bar = plt.bar(np.arange(len(finger_)), [np.mean(v) for v in finger_.values()], align='center', )
+        plt.savefig(path, bbox_inches='tight', pad_inches=0.1)
+        plt.close()
+        
 class AverageMeter(object):
 
     def __init__(self) -> None:
@@ -74,7 +95,10 @@ class AverageMeter(object):
     
     def __str__(self) -> str:
         return f"{self.avg:.3f}"
-
+    
+    def __call__(self) -> float:
+        return self.avg
+    
 def create_logger(log_path):
     """
     Create a logger object with basic configuration.

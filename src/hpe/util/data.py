@@ -72,9 +72,9 @@ def build_leap_columns(positions=False, rotations=False):
     if rotations:
         for finger in fingers:
             for joint in joints:
-                leap_columns.append(f'{finger}_{joint}_rotation_z')
-                leap_columns.append(f'{finger}_{joint}_rotation_x')
-                leap_columns.append(f'{finger}_{joint}_rotation_y')
+                # leap_columns.append(f'{finger}_{joint}_rotation_z')
+                # leap_columns.append(f'{finger}_{joint}_rotation_x')
+                # leap_columns.append(f'{finger}_{joint}_rotation_y')
                 leap_columns.append(f'{finger}_{joint}_rotation_w')
 
     return leap_columns
@@ -92,7 +92,7 @@ def read_emg(path, start_time=None, end_time=None, fs: int=250):
         # convert to pd.datetime from datetime.datetime
         start_time = pd.to_datetime(start_time).tz_localize(None)
         # remove 2 hours
-        start_time = start_time - pd.to_timedelta(2, unit='h')
+        # start_time = start_time - pd.to_timedelta(2, unit='h')
         print(start_time)
     
     #  get annotations
@@ -271,9 +271,9 @@ def read_leap(path, fs=250, positions=False, rotations=True):
         leap_df = leap_df[valid_columns]
         # leap_df = leap_df[distal]
     # compute flexion angles
-    leap_df = compute_flexion_and_adduction_angles(leap_df)
-    # if rotations and len(valid_columns) != 0 and not positions:
-    #     leap_df = leap_df.apply(lambda x: np.rad2deg(x))
+    # leap_df = compute_flexion_and_adduction_angles(leap_df)
+    if rotations and len(valid_columns) != 0 and not positions:
+        leap_df = leap_df.apply(lambda x: np.rad2deg(x))
     #     # add offset value of 50 degrees to all angles
     #     leap_df = leap_df.apply(lambda x: x - 50)
     #     #  proximal columns

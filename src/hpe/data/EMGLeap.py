@@ -15,12 +15,9 @@ import os
 import glob
 
 import sys
-sys.path.append('/home/rufael.marew/Documents/projects/tau/finger_pose_estimation/')
-sys.path.append('../finger_pose_estimation/')
-from util.data import *
-from config import cfg
-from base import BaseDataset
-from transforms import FilterTransform, StandardScalerTransform, FastICATransform
+from hpe.util.data import *
+from hpe.data.base import BaseDataset
+from hpe.data.transforms import FilterTransform, StandardScalerTransform, FastICATransform
 from memory_profiler import profile
 
 # Add data sources here
@@ -97,11 +94,11 @@ class EMGLeap(BaseDataset):
         self.data = torch.tensor(self.data, dtype=torch.float32)
         self.label = torch.tensor(self.label, dtype=torch.float32)
         self.gestures = torch.tensor(self.gestures, dtype=torch.long)
-            
+        
         # unfold data and label
         self.data = self.data.unfold(0, self.seq_len, self.stride).permute(0, 2, 1)
         self.label = self.label.unfold(0, self.seq_len, self.stride).permute(0, 2, 1)
-        self.gestures = self.gestures.unfold(0, self.seq_len, self.stride)[:,-1,:] # get the last label in the sequence
+        self.gestures = self.gestures.unfold(0, self.seq_len, self.stride)[:,-1] # get the last label in the sequence
 
     def read_dirs(self):
 

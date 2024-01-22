@@ -29,6 +29,7 @@ class MLP(nn.Module):
         self.relu = nn.ReLU()
     
     def forward(self, x):
+        x = x.flatten(start_dim=1)
         x = self.relu(self.fc1(x))
         x = self.relu(self.fc2(x))
         return self.fc3(x)
@@ -45,7 +46,8 @@ class BoundedActivation(nn.Module):
         return self.act(x) * (self.b_values - self.a_values) + self.a_values
     
 class TransformerModel(nn.Module):
-    def __init__(self, input_size, seq_length, output_size):
+
+    def __init__(self, input_size, seq_length, output_size, stage='pretrain'):
         super(TransformerModel, self).__init__()
 
         self.d_model = 128
@@ -59,21 +61,21 @@ class TransformerModel(nn.Module):
             nn.TransformerEncoderLayer(self.d_model, self.nhead, self.d_model, self.dropout),
             num_layers=self.num_layers
         )
+        
         self.decoder = MLP(self.d_model * seq_length, output_size)
         a = [0, -15, 0, -15, 0, -15, 0, 0, -15, 0, 0, -15, 0, 0, -15, 0]
-        b = [0, 15 , 90, 15, 90, 15, 110, 90, 15, 110, 90, 15, 110, 90, 15, 110]
-        self.bact = BoundedActivation(a_values=[0.5, 1.0, 1.5], b_values=[2.0, 2.5, 3.0], label_dim=output_size)
-
+        b = [90, 15 , 90, 15, 90, 15, 110, 90, 15, 110, 90, 15, 110, 90, 15, 110]
+        # self.bact = BoundedActivation(a_values=a, b_values=b, label_dim=output_size)
 
     def forward(self, x):
-    
+        # x: (batch_size, seq_length, input_size)
         x = self.embedding(x)
         x = (x + self.pos_encoder(x)).permute(1, 0, 2)
         x = self.transformer_encoder(x)
         x = x.permute(1, 0, 2)
-        x = x.flatten(start_dim=1)
         x = self.decoder(x)
         x.unsqueeze(1)
+        # x = self.bact(x)
         return x
     
     def load_pretrained(self, path):
@@ -90,9 +92,11 @@ class TransformerModel(nn.Module):
         del pretrained_dict
 
 def make_transformer_model(cfg):
+
     return TransformerModel(input_size=cfg.DATA.EMG.NUM_CHANNELS, 
                              seq_length=cfg.DATA.SEGMENT_LENGTH, 
-                             output_size=len(cfg.DATA.LABEL_COLUMNS))
+                             output_size=len(cfg.DATA.LABEL_COLUMNS),
+                             stage=cfg.STAGE)
 
 if __name__ == '__main__':
     # Example usage
@@ -105,7 +109,7 @@ if __name__ == '__main__':
     input_data = torch.randn(N,1, S, C)
 
     # Create the Transformer model
-    model = TransformerModel(input_size=C, seq_length=S, num_channels=C, output_size=output_dim)
+    model = TransformerModel(input_size=C, seq_length=S, output_size=output_dim)
 
     start = time.time()
     # Pass the input through the model

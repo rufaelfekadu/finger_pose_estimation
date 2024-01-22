@@ -57,13 +57,17 @@ class DecoderLayer(nn.Module):
         return x
 
 class BoundedActivation(nn.Module):
-    def __init__(self, a, b):
+    def __init__(self, label_dim, 
+                 a_values = [0, -15, 0, -15, 0, -15, 0, 0, -15, 0, 0, -15, 0, 0, -15, 0], 
+                 b_values = [90, 15 , 90, 15, 90, 15, 110, 90, 15, 110, 90, 15, 110, 90, 15, 110]):
         super(BoundedActivation, self).__init__()
-        self.a = a
-        self.b = b
-        self.act = nn.ReLU()
+        assert len(a_values) == len(b_values) == label_dim, "Length of a_values and b_values must be equal and equal to label_dim"
+        self.a_values = nn.Parameter(torch.Tensor(a_values).view(1, -1))
+        self.b_values = nn.Parameter(torch.Tensor(b_values).view(1, -1))
+        self.act = nn.Sigmoid()
+
     def forward(self, x):
-        return self.act(x)*(self.b-self.a) + self.a
+        return self.act(x) * (self.b_values - self.a_values) + self.a_values
       
 # Construct a model with 3 conv layers 3 residual blocks and 3 deconv layers using the ResNet architecture
 class NeuroPose(nn.Module):
@@ -82,8 +86,7 @@ class NeuroPose(nn.Module):
         self.decoder = self.make_decoder_layers(channels=encoder_channels[::-1], scale_factors=scale_factors[::-1], output_shape=output_shape)
 
         #  bounded relu activation for output
-        output = torch.sigmoid(previous_layer_output) # in range [0,1]
-        output_normalized = output*(b-a) + a
+        self.bact = BoundedActivation(label_dim=output_shape[1])
 
     def make_encoder_layers(self, channels = [1, 32, 128, 256], scale_factors = [(5,2), (4,2), (2,2)]):
         # sequence of encoder layers
@@ -111,6 +114,7 @@ class NeuroPose(nn.Module):
         return nn.Sequential(*layers)
     
     def forward(self, x):
+        # shape of x: (batch_size, in_channels, seq_length, num_joints)
         x = self.encoder(x)
         x = self.resnet(x)
         x = self.decoder(x)
@@ -128,7 +132,7 @@ class NeuroPose(nn.Module):
         del pretrained_dict
     
 def make_neuropose_model(cfg):
-    model = NeuroPose(output_shape=(cfg.DATA.SEGMENT_LENGTH, len(cfg.DATA.MANUS.KEY_POINTS)))
+    model = NeuroPose(output_shape=(cfg.DATA.SEGMENT_LENGTH, len(cfg.DATA.LABEL_COLUMNS)))
     return model
 
 if __name__ == '__main__':
