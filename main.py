@@ -49,6 +49,9 @@ def main(cfg):
     # Train
     trainer.fit(model)
 
+    # test
+    trainer.test()
+
     
 
 if __name__ == '__main__':

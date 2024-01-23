@@ -78,7 +78,7 @@ class EmgNet(pl.LightningModule):
         outputs, losses = self.forward(inputs, labels)
         # loss = self.criterion(outputs, labels[:,-1,:])
         loss_dict = {i: v for i, v in zip(self.cfg.DATA.LABEL_COLUMNS,losses[0])}
-        self.log_dict({'loss': losses[1], **loss_dict}, prefix='test')
+        self.log_dict({'test_loss': losses[1], **loss_dict})
         return losses[1]
 
     def configure_optimizers(self):
