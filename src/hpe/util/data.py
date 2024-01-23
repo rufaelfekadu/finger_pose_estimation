@@ -92,7 +92,7 @@ def read_emg(path, start_time=None, end_time=None, fs: int=250):
         # convert to pd.datetime from datetime.datetime
         start_time = pd.to_datetime(start_time).tz_localize(None)
         # remove 2 hours
-        start_time = start_time - pd.to_timedelta(2, unit='h')
+        # start_time = start_time - pd.to_timedelta(2, unit='h')
         print(start_time)
     
     #  get annotations

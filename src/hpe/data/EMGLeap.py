@@ -91,7 +91,7 @@ class EMGLeap(BaseDataset):
         self.gesture_names_mapping = {i: gesture for i, gesture in enumerate(self.label_encoder.classes_)}
 
         # to tensor
-        self.data = torch.tensor(self.data, dtype=torch.float32)
+        self.data = torch.tensor(self.data.copy(), dtype=torch.float32)
         self.label = torch.tensor(self.label, dtype=torch.float32)
         self.gestures = torch.tensor(self.gestures, dtype=torch.long)
         
