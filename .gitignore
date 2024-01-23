@@ -82,6 +82,9 @@ sysinfo.txt
 # Dataset
 dataset/
 
+# data aquistion
+data_aquistion/images/
+
 #configuration file
 config.yaml
 

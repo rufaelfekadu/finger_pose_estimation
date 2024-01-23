@@ -445,15 +445,15 @@ class Experiment:
         vis_process.join()
 
 def main(args):
+
     gesture_dir = './images'
     save_dir = './data'
-
 
     # experiment setup
     num_repetaions = 10
     gesture_duration = 5
     rest_duration = 5
-    record = False
+    record = True
 
     # Leap
     desktop = True
