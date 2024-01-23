@@ -131,12 +131,12 @@ class EMGLeap(BaseDataset):
         data =  DATA_SOURCES['emg'](data_path)
         label = DATA_SOURCES['leap'](label_path, rotations=True, positions=False)
 
-        if index == 0:
-            #save the column names for the label
-            self.label_columns = list(label.columns)
-            self.data_columns = list(data.columns)
-            #  remove gesture column
-            self.data_columns.remove('gesture')
+        #save the column names for the label
+        self.label_columns = list(label.columns)
+        self.data_columns = list(data.columns)
+        
+        #  remove gesture column
+        self.data_columns.remove('gesture')
         
         # set the start and end of experiment
         start_time = max(min(data.index), min(label.index))
