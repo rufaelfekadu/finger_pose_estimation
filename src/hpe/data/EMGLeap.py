@@ -134,7 +134,7 @@ class EMGLeap(BaseDataset):
         #save the column names for the label
         self.label_columns = list(label.columns)
         self.data_columns = list(data.columns)
-        
+
         #  remove gesture column
         self.data_columns.remove('gesture')
         
@@ -158,8 +158,8 @@ class EMGLeap(BaseDataset):
         gestures = merged_df['gesture'].values
         merged_df = merged_df.drop(columns=['gesture'])
 
-        data = merged_df[data.columns].values
-        label = merged_df[label.columns].values
+        data = merged_df[self.data_columns].values
+        label = merged_df[self.label_columns].values
 
         # normalize the data
         # data, label = self.normalize_and_filter(data, label)
