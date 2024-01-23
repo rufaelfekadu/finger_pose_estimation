@@ -26,13 +26,12 @@ def main(cfg):
 
     # Build logger
     csv_logger = pl_loggers.CSVLogger(cfg.SOLVER.LOG_DIR, name=cfg.NAME)
+    tb_logger = pl_loggers.TensorBoardLogger(cfg.SOLVER.LOG_DIR, name=cfg.NAME)
     early_stop_callback = pl.callbacks.EarlyStopping(monitor='val_loss', patience=cfg.SOLVER.PATIENCE)
     checkpoint_callback = pl.callbacks.ModelCheckpoint(dirpath=cfg.SOLVER.LOG_DIR, monitor='val_loss', save_top_k=3, mode='min')
     
     # Build trainer
-    model = EmgNet(
-        cfg=cfg,
-    )
+    model = EmgNet(cfg=cfg)
 
     trainer = pl.Trainer(
 
@@ -50,6 +49,7 @@ def main(cfg):
     # Train
     trainer.fit(model)
 
+    
 
 if __name__ == '__main__':
 

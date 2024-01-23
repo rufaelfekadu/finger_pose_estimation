@@ -128,11 +128,6 @@ class EMGLeap(BaseDataset):
     
     def prepare_data(self, data_path, label_path, results={}, index=0):
 
-        #  read json file and get start and end time
-        
-        # stat = json.load(open(os.path.join(data_path, 'log.json'), 'r'))
-
-
         data =  DATA_SOURCES['emg'](data_path)
         label = DATA_SOURCES['leap'](label_path, rotations=True, positions=False)
 
@@ -161,8 +156,10 @@ class EMGLeap(BaseDataset):
         # label, gestures = find_closest(label, label_index, annotations)
 
         gestures = merged_df['gesture'].values
-        data = merged_df[self.data_columns].values
-        label = merged_df[self.label_columns].values
+        merged_df = merged_df.drop(columns=['gesture'])
+
+        data = merged_df[data.columns].values
+        label = merged_df[label.columns].values
 
         # normalize the data
         # data, label = self.normalize_and_filter(data, label)

@@ -1,6 +1,7 @@
 from psychopy import visual, core, event, gui, data
 from psychopy.hardware import keyboard
 from psychopy.constants import (NOT_STARTED, STARTED, PLAYING, PAUSED, STOPPED, FINISHED)
+import psychopy as ps
 import os
 from PIL import Image
 import random
@@ -38,8 +39,6 @@ class Experiment:
         self.exp_info = {}
         self.exp_num = 0
         self.quit_key = 'q'
-
-
 
         self.data_dir = Path(__file__).parent.parent / 'dataset'
 
@@ -84,8 +83,6 @@ class Experiment:
         except Exception as e:
             print(f"Error during window initialization: {e}")
         
-        
-
         # Experiment setup
         self.gestures = self.load_gesture_images(self.gesture_directory)
         self.num_completed = {
@@ -182,17 +179,9 @@ class Experiment:
             self.window.flip()
             core.wait(1)
 
-    # def show_gesture(self):
-    #     gesture_image = self.gestures[self.current_image]
-    #     self.image_text.text = self.current_image
-    #     self.image_text.draw()
-    #     gesture_image.draw()
-    #     self.window.flip()
-    #     self.trigger(f'start_{self.current_image}_{self.num_repetaions-self.num_completed[self.current_image]}')
-    #     core.wait(5)  # Display the gesture for 5 seconds
-    #     self.trigger(f'end_{self.current_image}_{self.num_repetaions-self.num_completed[self.current_image]}')
-    
+
     def show_gesture(self):
+
         gesture_image = self.gestures[self.current_image]
         self.image_text.text = self.current_image.upper()
         # self.window.flip()
@@ -207,7 +196,6 @@ class Experiment:
             countdown_clock.reset()
             while countdown_clock.getTime() < 1:  # Display each number for 1 second
                 # Update the countdown text
-                
                 self.image_text.draw()
                 gesture_image.draw()
                 countdown_text = visual.TextStim(self.window, text=str(i), pos=(0, 0.4), color=self.color_palette['text'], height=0.05)
@@ -217,6 +205,7 @@ class Experiment:
         self.trigger(f'end_{self.current_image}_{self.num_repetaions-self.num_completed[self.current_image]}')
     
     def update_gesture(self):
+
         if len(self.images) == 0:
             return False
         else:
@@ -331,14 +320,7 @@ class Experiment:
         '''
         Pre experiment setup
         '''
-        # self.exp_info = self.collect_participant_info()
-        # self._init_window()
-        # print(f"running experiment with {len(self.gesture_images)} gestures")
-        # self.instructions_text.draw()
-        # self.window.flip()
-        # event.waitKeys(keyList=['space'])
-        # self.show_countdown(self.rest_duration)
-
+       
         # Visualize data stream in main thread:
         secs = 10             # Time window of plots (in seconds)
         ylim = (-1000, 1000)  # y-limits of plots
@@ -393,7 +375,7 @@ class Experiment:
         if (self.record):
             self.exp_info['date'] = data.getDateStr()  # add a simple timestamp
             self.exp_info['expName'] = 'fpe - real time'
-            self.exp_info['psychopyVersion'] = '2023.2.3'
+            self.exp_info['psychopyVersion'] = ps.__version__
 
             self.data_dir = Path(self.data_dir, self.exp_info['Participant'].rjust(3, '0'), f"S{self.exp_info['session']}", f"P{self.exp_info['position']}")
             self.data_dir.mkdir(parents=True, exist_ok=True)
