@@ -55,7 +55,7 @@ class Experiment:
         try:
         # Setup window
             self.window = visual.Window(
-                                size=(800, 600), 
+                                size=(1000, 800), 
                                 fullscr=False,
                                 screen=0,
                                 allowGUI=True,
@@ -114,19 +114,19 @@ class Experiment:
     
 
     def resize_and_crop(self, pil_image):
-        screen_width, screen_height = 400, 300
+        screen_width, screen_height = 800, 600
         image_width, image_height = pil_image.size
         image_aspect = image_width / image_height
         screen_aspect = screen_width / screen_height
-        
+        target_dim = ((screen_width//5)*4, (screen_height//5)*4)
 
-        if image_aspect > screen_aspect:
-            new_width = int(image_aspect * screen_height)
-            pil_image = pil_image.resize((new_width, screen_height))
-        else:
-            new_height = int(screen_width / image_aspect)
-            pil_image = pil_image.resize((screen_width, new_height))
-
+        # if image_aspect > screen_aspect:
+        #     new_width = int(image_aspect * screen_height)
+        #     pil_image = pil_image.resize((new_width, screen_height))
+        # else:
+        #     new_height = int(screen_width / image_aspect)
+        #     pil_image = pil_image.resize((screen_width, new_height))
+        pil_image = pil_image.resize(target_dim)
         crop_x = (pil_image.width - screen_width) / 2
         crop_y = (pil_image.height - screen_height) / 2
         # cropped_image = pil_image.crop((crop_x, crop_y, crop_x + screen_width, crop_y + screen_height))
@@ -450,7 +450,7 @@ def main(args):
 
 
     # experiment setup
-    num_repetaions = 5
+    num_repetaions = 10
     gesture_duration = 5
     rest_duration = 5
     record = False
