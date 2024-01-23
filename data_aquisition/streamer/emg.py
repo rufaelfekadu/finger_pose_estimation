@@ -9,7 +9,7 @@ import sys
 sys.path.append('../')
 sys.path.append('../../')
 from lock import lock
-from Leap import get_bone_core_angles, get_all_bone_angles_from_core
+# from Leap import get_bone_core_angles, get_all_bone_angles_from_core
 
 class EMG(Data):
 
@@ -98,15 +98,15 @@ class EMG(Data):
     #         (2/3)*little_pip, 0, 0,
     #     ]
     
-    def _get_leap_data(self):
-        row = [datetime.utcnow()]
-        data = get_bone_core_angles(self._LeapClient)
+    # def _get_leap_data(self):
+    #     row = [datetime.utcnow()]
+    #     data = get_bone_core_angles(self._LeapClient)
         
-        if data is not None:
-            row.extend(data)
-        else:
-            row.extend([np.nan]*16)
-        return data
+    #     if data is not None:
+    #         row.extend(data)
+    #     else:
+    #         row.extend([np.nan]*16)
+    #     return data
     
     def make_leap_columns(self):
         columns = ['timestamp']

@@ -55,7 +55,7 @@ class Experiment:
         try:
         # Setup window
             self.window = visual.Window(
-                                size=(1000, 800), 
+                                size=(800, 600), 
                                 fullscr=False,
                                 screen=0,
                                 allowGUI=True,
@@ -114,8 +114,7 @@ class Experiment:
     
 
     def resize_and_crop(self, pil_image):
-        screen_width, screen_height = 800, 600
-        print(screen_width, screen_height)
+        screen_width, screen_height = 400, 300
         image_width, image_height = pil_image.size
         image_aspect = image_width / image_height
         screen_aspect = screen_width / screen_height
@@ -130,8 +129,8 @@ class Experiment:
 
         crop_x = (pil_image.width - screen_width) / 2
         crop_y = (pil_image.height - screen_height) / 2
-        cropped_image = pil_image.crop((crop_x, crop_y, crop_x + screen_width, crop_y + screen_height))
-        return cropped_image
+        # cropped_image = pil_image.crop((crop_x, crop_y, crop_x + screen_width, crop_y + screen_height))
+        return pil_image
 
     def load_gesture_images(self, gesture_directory):
         gesture_images = []
@@ -454,7 +453,7 @@ def main(args):
     num_repetaions = 5
     gesture_duration = 5
     rest_duration = 5
-    record = True
+    record = False
 
     # Leap
     desktop = True
