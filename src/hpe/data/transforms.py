@@ -25,6 +25,27 @@ class FastICATransform:
             self.mixing_matrix = self.fast_ica.mixing_
             return np.stack([X, X_ICA], axis=0)
 
+class SlidingWindowTransform:
+    def __init__(self, window_size, stride):
+        self.window_size = window_size
+        self.stride = stride
+
+    def __call__(self, X):
+        if len(X.shape) == 3:
+            N, S, C = X.shape
+            X = X.reshape(-1, C)
+            X = self._sliding_window(X)
+            return X.reshape(N, -1, self.window_size, C)
+        else:
+            return self._sliding_window(X)
+
+    def _sliding_window(self, X):
+        N, C = X.shape
+        X = X.reshape(1, N, C)
+        X = X.unfold(1, self.window_size, self.stride)
+        X = X.permute(0, 2, 1, 3)
+        return X.reshape(-1, self.window_size, C)
+    
 class StandardScalerTransform:
     def __init__(self):
         self.scaler = StandardScaler()

@@ -76,8 +76,8 @@ class EMGLeap(BaseDataset):
         #  print dataset specs
         self.print_dataset_specs()
 
-        if self.transform:
-            self.data = self.transform(self.data)
+        # if self.transform:
+        #     self.data = self.transform(self.data)
 
         if self.target_transform:
             self.label = self.target_transform(self.label)
@@ -175,6 +175,10 @@ class EMGLeap(BaseDataset):
 
         #  interpolate missing values
         merged_df = self.interpolate_missing_values(merged_df)
+
+        # apply trandform to emg data
+        if self.transform:
+            merged_df[self.data_columns] = self.transform(merged_df[self.data_columns])
 
         #  discritise data
         merged_df = self.discritise_data(data=merged_df, seq_len=self.seq_len, stride=self.stride)
