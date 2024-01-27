@@ -166,6 +166,7 @@ def make_dataset(cfg):
     print("Testing on rep {}".format(rep))
     print("Number of validation examples: {}".format(len(dataset['val'])))
     print("Number of test examples: {}".format(len(dataset['test'])))
+    print(f"shape of label : {dataset['train'].dataset.label.shape}")
     return dataset
 
 def build_dataloader(cfg, save=False, shuffle=False):
