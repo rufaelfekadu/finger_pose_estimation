@@ -37,11 +37,12 @@ class EmgNet(pl.LightningModule):
         self.val_loader = dataloaders['val']
         self.test_loader = dataloaders['test']
 
-        self.backbone = build_backbone(cfg)
+        self.backbone = build_backbone(cfg).to(self.device)
         self.loss_fn = make_loss(cfg)
 
         self.criterion = torch.nn.MSELoss()
         self.save_hyperparameters()
+
 
     def forward(self, x, target=None):
         x = self.backbone(x)

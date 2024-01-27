@@ -130,7 +130,13 @@ class EMGLeap(BaseDataset):
         return data
 
     def print_dataset_specs(self):
-        print("data shape: ", self.data.shape)
+        print("-----------------Dataset specs-----------------")
+        print(f"Number of examples: {self.data.shape[0]}")
+        print(f"Sequence length: {self.seq_len}")
+        print(f"Number of channels: {self.data.shape[2]}")
+        print(f"Number of gestures: {self.gestures.max().item()+1}")
+        print(f"Number of classes: {len(self.label_columns)}")
+        print(f"Label columns: {self.label_columns}")
 
     @staticmethod
     def interpolate_missing_values(data):
@@ -176,9 +182,9 @@ class EMGLeap(BaseDataset):
         #  interpolate missing values
         merged_df = self.interpolate_missing_values(merged_df)
 
-        # apply trandform to emg data
+        # apply transform to emg data
         if self.transform:
-            merged_df[self.data_columns] = self.transform(merged_df[self.data_columns])
+            merged_df[self.data_columns] = self.transform(merged_df[self.data_columns].values)
 
         #  discritise data
         merged_df = self.discritise_data(data=merged_df, seq_len=self.seq_len, stride=self.stride)
