@@ -70,7 +70,6 @@ class TransformerModel(nn.Module):
     def forward(self, x):
         # x: (batch_size, seq_length, input_size)
         x = self.embedding(x)
-        breakpoint()
         x = (x + self.pos_encoder(x)).permute(1, 0, 2)
         x = self.transformer_encoder(x)
         x = x.permute(1, 0, 2)

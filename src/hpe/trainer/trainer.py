@@ -44,7 +44,6 @@ class EmgNet(pl.LightningModule):
 
 
     def forward(self, x, target=None):
-        breakpoint()
         x = self.backbone(x)
         if target is not None:
             loss = self.loss_fn(x, target)
