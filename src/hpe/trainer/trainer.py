@@ -39,13 +39,11 @@ class EmgNet(pl.LightningModule):
 
         self.backbone = build_backbone(cfg).to(self.device)
         self.loss_fn = make_loss(cfg)
-        print(self.backbone)
         self.criterion = torch.nn.MSELoss()
         self.save_hyperparameters()
 
 
     def forward(self, x, target=None):
-        breakpoint()
         x = self.backbone(x)
         if target is not None:
             loss = self.loss_fn(x, target)
