@@ -607,7 +607,6 @@ from threading import Thread
 import time
 import os
 class LeapListenerBasis(Leap.Listener):
-
 	def __init__(self):
 		super().__init__()
 		self.data = []
@@ -628,17 +627,17 @@ class LeapListenerBasis(Leap.Listener):
 		
 		# rotations
 		for finger in finger_names:
-				for joint in ['TMC', 'MCP', 'PIP']:
-					for flex in ['Flex', 'Adb']:
-						if finger != 'Thumb' and joint == 'TMC':
-							continue
-						if finger != 'Thumb' and joint not in ['TMC', 'MCP'] and flex == 'Adb':
-							continue
-						if finger == 'Thumb' and joint not in ['TMC', 'MCP', 'DIP']:
-							continue
-						if finger == 'Thumb' and joint == 'DIP' and flex == 'Adb':
-							continue
-						self.columns.append(f'{finger}_{joint}_{flex}')
+			for joint in ['TMC', 'MCP', 'PIP']:
+				for flex in ['Flex', 'Adb']:
+					if finger != 'Thumb' and joint == 'TMC':
+						continue
+					if finger != 'Thumb' and joint not in ['TMC', 'MCP'] and flex == 'Adb':
+						continue
+					if finger == 'Thumb' and joint not in ['TMC', 'MCP', 'DIP']:
+						continue
+					if finger == 'Thumb' and joint == 'DIP' and flex == 'Adb':
+						continue
+					self.columns.append(f'{finger}_{joint}_{flex}')
 	
 	
 	def on_frame(self, controller):

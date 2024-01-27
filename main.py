@@ -38,7 +38,7 @@ def main(cfg):
         max_epochs=cfg.SOLVER.NUM_EPOCHS,
         check_val_every_n_epoch=1,
         callbacks=[early_stop_callback, checkpoint_callback],
-        logger=csv_logger,
+        logger=tb_logger,
         # resume_from_checkpoint=cfg.SOLVER.PRETRAINED_PATH,
         # limit_train_batches=0.1,
         # limit_val_batches=0.1,

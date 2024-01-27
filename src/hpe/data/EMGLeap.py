@@ -7,7 +7,7 @@ from sklearn.decomposition import FastICA
 from sklearn.preprocessing import LabelEncoder
 import numpy as np
 import matplotlib.pyplot as plt
-from threading import Thread
+from threading import Thread, Lock
 import json
 from torchvision import transforms
 
@@ -28,11 +28,12 @@ from memory_profiler import profile
 
 DATA_SOURCES = {
     'manus': read_manus,
-    'emg': read_emg,
+    'emg': read_emg_v1,
     'leap': read_leap,
 }
 
 class EMGLeap(BaseDataset):
+
     def __init__(self,kwargs):
         super().__init__( **kwargs)
 
@@ -44,19 +45,20 @@ class EMGLeap(BaseDataset):
         if len(csv_files) == 0:
             raise ValueError(f'No csv files found in {self.data_path}')
         
+        self.data_columns = build_emg_columns()
+        self.label_columns = build_leap_columns()
 
         threads = [None]*len(edf_files)
         results = {
-            'data': [None]*len(edf_files),
-            'label': [None]*len(edf_files),
-            'gestures': [None]*len(edf_files)
+            'merged_data': [None]*len(edf_files),
         }
-
+        self.label_encoder = LabelEncoder()
+        lock = Lock()
         #  read the data
         self.data, self.label, self.gestures = [], [], []
         for i in range(len(edf_files)):
             print(f'Reading data from {edf_files[i]} and {csv_files[i]}')
-            thread = Thread(target=self.prepare_data, args=(edf_files[i], csv_files[i], results, i))
+            thread = Thread(target=self.prepare_data, args=(edf_files[i], csv_files[i], results, i, lock))
             threads[i] = thread
 
         for i in range(len(edf_files)):
@@ -65,30 +67,20 @@ class EMGLeap(BaseDataset):
         for i in range(len(edf_files)):
             threads[i].join()
         
-        self.data = np.concatenate(results['data'], axis=0)
-        self.label = np.concatenate(results['label'], axis=0)
-        self.gestures = np.concatenate(results['gestures'], axis=0)
+        merged_df = np.concatenate(results['merged_data'], axis=0)
 
+        self.data = merged_df[:,:,0:len(self.data_columns)]
+        self.label = merged_df[:,:,len(self.data_columns):-1]
+        self.gestures = merged_df[:,:,-1]
 
         #  print dataset specs
         self.print_dataset_specs()
-
-        # if self.ica:
-        #     self.apply_ica_to_emg()
-        # else:
-        #     self.data_ica = None
-        #     self.mixing_matrix = None
 
         if self.transform:
             self.data = self.transform(self.data)
 
         if self.target_transform:
             self.label = self.target_transform(self.label)
-        
-        # label encode gestures
-        self.label_encoder = LabelEncoder()
-        self.gestures = self.label_encoder.fit_transform(self.gestures)
-        self.gesture_names_mapping = {i: gesture for i, gesture in enumerate(self.label_encoder.classes_)}
 
         # to tensor
         self.data = torch.tensor(self.data.copy(), dtype=torch.float32)
@@ -96,9 +88,9 @@ class EMGLeap(BaseDataset):
         self.gestures = torch.tensor(self.gestures, dtype=torch.long)
         
         # unfold data and label
-        self.data = self.data.unfold(0, self.seq_len, self.stride).permute(0, 2, 1)
-        self.label = self.label.unfold(0, self.seq_len, self.stride).permute(0, 2, 1)
-        self.gestures = self.gestures.unfold(0, self.seq_len, self.stride)[:,-1] # get the last label in the sequence
+        # self.data = self.data.unfold(0, self.seq_len, self.stride).permute(0, 2, 1)
+        # self.label = self.label.unfold(0, self.seq_len, self.stride).permute(0, 2, 1)
+        # self.gestures = self.gestures.unfold(0, self.seq_len, self.stride)[:,-1] # get the last label in the sequence
 
     def read_dirs(self):
 
@@ -112,63 +104,84 @@ class EMGLeap(BaseDataset):
                 print(f'Reading data from {path}')
                 all_files += [f for f in glob.glob(os.path.join(path, '**/*'), recursive=True) if os.path.splitext(f)[1] in ['.edf', '.csv']]
         
-        # # Traverse through all the directories and read the data
-        # all_files = [f for f in glob.glob(os.path.join(self.data_path, '**/*'), recursive=True) if os.path.splitext(f)[1] in ['.edf', '.csv']]
-        # Separate .edf and .csv files
-                
         edf_files = sorted([file for file in all_files if file.endswith('.edf')])
         csv_files = sorted([file for file in all_files if file.endswith('.csv')])
 
         return edf_files, csv_files
     
+    @staticmethod
+    def merge_data(emg_data, leap_data):
+        #  ajust the time
+        start_time = max(min(emg_data.index), min(leap_data.index))
+        end_time = min(max(emg_data.index), max(leap_data.index))
+
+        emg_data = emg_data[start_time:end_time]
+        leap_data = leap_data[start_time:end_time]
+
+        data = pd.merge_asof(emg_data, leap_data, left_index=True, right_index=False, right_on='time', direction='backward', tolerance=pd.to_timedelta(10, unit='ms'))
+
+        # data['time_diff'] = (data.index - data['time_leap']).dt.total_seconds()
+        # data.drop(columns=['timestamp', 'frame_id', 'time_leap'], inplace=True)
+
+        #  reorder columns to have gesture at the end
+        if 'gesture' in data.columns:
+            data = data[[col for col in data.columns if col != 'gesture'] + ['gesture']]
+
+        return data
 
     def print_dataset_specs(self):
         print("data shape: ", self.data.shape)
 
+    @staticmethod
+    def interpolate_missing_values(data):
+        #  drop group if count of nulls > 30%
+        return data.groupby('gesture').filter(lambda x: x.isnull().sum()['Middle_MCP_Flex'] < 500).apply(lambda x: x.fillna(x.mean()))
+
+    @staticmethod
+    def discritise_data(data, seq_len=150, stride=5):
+        # assert gesture is in the last column
+        assert data.columns[-1] == 'gesture', 'gesture should be the last column'
+        grouped = data.groupby('gesture')
+
+        # Initialize an empty list to store the strided arrays
+        strided_arrays = []
+
+        # Iterate over the groups
+        for _, group in grouped:
+            # Convert the group to a numpy array
+            array = np.array(group)
+            # Generate the strided array and append it to the list
+            strided_arrays.append(strided_array(array, seq_len, stride))
+
+        # Concatenate the strided arrays into a single array and return it
+        return np.concatenate(strided_arrays, axis=0)
     
-    def prepare_data(self, data_path, label_path, results={}, index=0):
+    def prepare_data(self, data_path, label_path, results={}, index=0, lock=None):
 
         data =  DATA_SOURCES['emg'](data_path)
         label = DATA_SOURCES['leap'](label_path, rotations=True, positions=False)
 
-        #save the column names for the label
-        self.label_columns = list(label.columns)
-        self.data_columns = list(data.columns)
+        merged_df = self.merge_data(data, label)
 
-        #  remove gesture column
-        self.data_columns.remove('gesture')
-        
-        # set the start and end of experiment
-        start_time = max(min(data.index), min(label.index))
-        end_time = min(max(data.index), max(label.index))
+        # label encoder for gesture
+        lock.acquire()
+        try:
+            if index == 0:
+                self.label_encoder.fit(merged_df['gesture'].unique())
+                self.gesture_names_mapping = {i: gesture for i, gesture in enumerate(self.label_encoder.classes_)}
+        finally:
+            lock.release()
+        merged_df['gesture'] = self.label_encoder.transform(merged_df['gesture'])
 
-        # select only the data between start and end time
-        data = data.loc[start_time:end_time]
-        label = label.loc[start_time:end_time]
+        #  interpolate missing values
+        merged_df = self.interpolate_missing_values(merged_df)
 
-        # merge dataframes
-        merged_df = pd.merge_asof(data, label, left_index=True, right_index=True, direction='forward')
+        #  discritise data
+        merged_df = self.discritise_data(data=merged_df, seq_len=self.seq_len, stride=self.stride)
 
-        #  remove rest positions
-        merged_df = merged_df[merged_df['gesture'] != 'rest']
+        results['merged_data'][index] = merged_df
 
-        # data, label, gestures = create_windowed_dataset(data, label, annotations, self.seq_len, self.stride)
-        # label, gestures = find_closest(label, label_index, annotations)
-
-        gestures = merged_df['gesture'].values
-        merged_df = merged_df.drop(columns=['gesture'])
-
-        data = merged_df[self.data_columns].values
-        label = merged_df[self.label_columns].values
-
-        # normalize the data
-        # data, label = self.normalize_and_filter(data, label)
-
-        results['data'][index] = data
-        results['label'][index] = label
-        results['gestures'][index] = gestures
-
-        return data, label, gestures
+        return merged_df
     
     def normalize_and_filter(self, data=None, label=None):
 
@@ -257,8 +270,8 @@ if __name__ == '__main__':
     ])
 
     kwargs = {
-        'data_path': './dataset/FPE/S1/p3',
-        'seq_len': 50,
+        'data_path': './dataset/FPE/003/S1/P3',
+        'seq_len': 150,
         'num_channels': 16,
         # filter info
         'filter_data': True,
@@ -267,7 +280,7 @@ if __name__ == '__main__':
         'Q': 30,
         'low_freq': 20,
         'high_freq': 55,
-        'stride': 25,
+        'stride': 1,
         'data_source': 'emg',
         'ica': False,
         'transform': None,

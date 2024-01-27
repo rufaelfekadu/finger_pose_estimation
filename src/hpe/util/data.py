@@ -10,6 +10,7 @@ from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
 import time
 from memory_profiler import profile
+from sklearn.preprocessing import LabelEncoder
 
 class ExpTimes:
     refernce_time = datetime.strptime('2023-10-02 14:59:55.627000', '%Y-%m-%d %H:%M:%S.%f')
@@ -18,6 +19,12 @@ class ExpTimes:
     video_Start_time = datetime.strptime('2023-10-02 14:59:55.628000', '%Y-%m-%d %H:%M:%S.%f')
 
 
+
+def strided_array(arr, window_size, stride):
+    N, C = arr.shape    
+    shape = ((N - window_size)//stride + 1, window_size, C)
+    strides = (stride*arr.strides[0], arr.strides[0], arr.strides[1])
+    return np.lib.stride_tricks.as_strided(arr, shape=shape, strides=strides)
 
 def build_manus_columns():
     fingers = ['Thumb', 'Index', 'Middle', 'Ring', 'Pinky']
@@ -33,7 +40,10 @@ def build_manus_columns():
                 manus_columns.append(f'{finger}_{joint}_{flex}')
     return manus_columns
 
-def build_leap(full=False):
+def build_emg_columns(num_channels=16):
+    return [f'Channel {i}' for i in range(0,num_channels)]
+
+def build_leap_columns(full=False):
     #  if full build R21 else build R16
     fingers = ['Thumb', 'Index', 'Middle', 'Ring', 'Pinky']
     joints = ['TMC', 'MCP', 'PIP', 'DIP']
@@ -56,7 +66,7 @@ def build_leap(full=False):
                     leap_columns.append(f'{finger}_{joint}_{flex}')
     return leap_columns
 
-def build_leap_columns(positions=False, rotations=False):
+def build_leap_columns_old(positions=False, rotations=False):
     
     fingers = ['Thumb', 'Index', 'Middle', 'Ring', 'Pinky']
     joints = ['Metacarpal', 'Proximal', 'Intermediate', 'Distal']
@@ -79,6 +89,75 @@ def build_leap_columns(positions=False, rotations=False):
 
     return leap_columns
 
+
+def read_emg_v1(path, start_time=None, end_time=None, fs: int=250):
+
+    raw = mne.io.read_raw_edf(path, preload=True, verbose=False)
+
+    # get header
+    header = raw.info
+
+    if start_time is None:
+        start_time = header['meas_date']
+        # convert to pd.datetime from datetime.datetime
+        start_time = pd.to_datetime(start_time).tz_localize(None)
+        # remove 2 hours
+        # start_time = start_time - pd.to_timedelta(2, unit='h')
+        print(start_time)
+    
+    #  get annotations
+    annotations = raw.annotations
+    annotations.onset = start_time + pd.to_timedelta(annotations.onset, unit='s')
+    
+    # get annotations as df
+    offset_start = pd.to_timedelta(0.5, unit='s')
+    offset_end = pd.to_timedelta(1, unit='s')
+    to_append = [[annotations.onset[ind]+offset_start, annotations.onset[ind+1]+offset_end, j.replace('start_', '')]
+                for ind, j in enumerate(annotations.description)
+                if 'start_' in j and 'end_' in annotations.description[ind+1] and j.replace('start_', '') == annotations.description[ind+1].replace('end_', '')]
+
+    #  append rest in between the gestures
+    offset_rest = pd.to_timedelta(1, unit='ms')
+    count = 1
+    rest_gestures = []
+    for ind, i in enumerate(to_append[:-1]):
+        if i[1] != to_append[ind+1][0]:
+            rest_gestures.append([i[1], to_append[ind+1][0], f'rest_{count}'])
+            count += 1
+    to_append.extend(rest_gestures)
+
+
+    ann_df = pd.DataFrame(to_append, columns=['start_time', 'end_time', 'gesture'])
+    ann_df = ann_df[ann_df['end_time'] - ann_df['start_time'] < pd.to_timedelta(10, unit='s')]
+
+
+    emg_df = raw.to_data_frame()
+    emg_df['time'] = pd.to_datetime(emg_df['time'], unit='s', origin=start_time)
+    
+    # sort by time
+    emg_df.sort_values(by='time', inplace=True)
+    ann_df.sort_values(by='start_time', inplace=True)
+
+
+    emg_df = pd.merge_asof(emg_df, ann_df, left_on='time', right_on='start_time', direction='backward')
+    emg_df['gesture'] = emg_df['gesture'].where(emg_df['time'].between(emg_df['start_time'], emg_df['end_time']), 'rest_0')
+
+    emg_df.drop(columns=['start_time', 'end_time'], inplace=True)
+    emg_df.set_index('time', inplace=True)
+
+    start_time = ann_df['start_time'].iloc[0]
+    emg_df = emg_df[start_time:]
+
+    #  remove rest gestures
+    # emg_df = emg_df[emg_df['gesture'] != 'rest']
+
+
+    del raw, annotations, to_append, ann_df
+
+    #  resample emg data to fs Hz
+    # emg_df = emg_df.resample(f'{int(1000/fs)}ms', origin='start').mean()
+
+    return emg_df
 
 def read_emg(path, start_time=None, end_time=None, fs: int=250):
 
@@ -105,6 +184,13 @@ def read_emg(path, start_time=None, end_time=None, fs: int=250):
                 for ind, j in enumerate(annotations.description)
                 if 'start_' in j and 'end_' in annotations.description[ind+1] and j.replace('start_', '') == annotations.description[ind+1].replace('end_', '')]
 
+    #  append rest gestures in between the gestures
+    count = 0
+    for ind, i in enumerate(to_append[:-1]):
+        if i[1] != to_append[ind+1][0]:
+            to_append.insert(ind+1, [i[1], to_append[ind+1][0], f'rest_{count}'])
+            count += 1
+
     ann_df = pd.DataFrame(to_append, columns=['start_time', 'end_time', 'gesture'])
 
     #  add rest gesture
@@ -127,6 +213,9 @@ def read_emg(path, start_time=None, end_time=None, fs: int=250):
 
     start_time = ann_df['start_time'].iloc[0]
     emg_df = emg_df[start_time:]
+
+    #  remove rest gestures
+    emg_df = emg_df[emg_df['gesture'] != 'rest']
 
     # emg_df['gesture'] = emg_df.index.map(lambda x: get_gesture(x, ann_df))
     # start data from first annotation
@@ -239,13 +328,13 @@ def read_manus(path, start_time=None, end_time=None):
     return manus_df, None, None
 
 
-def read_leap(path, fs=250, positions=False, rotations=True):
+def read_leap(path, fs=250, positions=False, rotations=True, visualisation=False):
 
     leap_df = pd.read_csv(path, index_col=False)
 
     # drop null and duplicates
-    leap_df.dropna(inplace=True)
-    leap_df.drop_duplicates(inplace=True, subset=['time'])
+    # leap_df.dropna(inplace=True)
+    # leap_df.drop_duplicates(inplace=True, subset=['time'])
 
     leap_df['time'] = pd.to_datetime(leap_df['time'])
     leap_df['time'] = leap_df['time'].dt.tz_localize(None)
@@ -265,25 +354,44 @@ def read_leap(path, fs=250, positions=False, rotations=True):
     # leap_df = leap_df.resample(f'{int(1000/fs)}ms', origin='start').ffill()
     
 
-    valid_columns = build_leap_columns(positions=positions, rotations=rotations)
+    # valid_columns = build_leap_columns(positions=positions, rotations=rotations)
+    valid_columns = build_leap_columns(full=False)
     # distal = [i for i in leap_df.columns if "distal" in i.lower()]
+
     if len(valid_columns) != 0:
         leap_df = leap_df[valid_columns]
-        # leap_df = leap_df[distal]
-    # compute flexion angles
-    # leap_df = compute_flexion_and_adduction_angles(leap_df)
+
     if rotations and len(valid_columns) != 0 and not positions:
         leap_df = leap_df.apply(lambda x: np.rad2deg(x))
-    #     # add offset value of 50 degrees to all angles
-    #     leap_df = leap_df.apply(lambda x: x - 50)
-    #     #  proximal columns
-    #     proximal = [i for i in leap_df.columns if "proximal" in i.lower()]
-    #     leap_df[proximal] = leap_df[proximal].apply(lambda x: x-45)
     
     # leap_df = leap_df.resample(f'{int(1000/fs)}ms', origin='start').ffill()
     
 
+    if visualisation:
+        ###### For Visualization purposes only ######
+        leap_df = get_full_hand(leap_df)
+        
     return leap_df
+
+def get_full_hand(df):
+
+    for i in ['Index', 'Middle', 'Ring', 'Pinky']:
+        df[f'{i}_DIP_Flex'] = df[f'{i}_PIP_Flex']*(2/3)
+
+    df['Thumb_DIP_Flex'] = df['Thumb_MCP_Flex']*0.5
+    df['Thumb_TMC_Flex'] = df['Thumb_TMC_Flex']-40
+
+    noise = np.random.normal(0, 0.05, df.shape[0])
+
+    # append TMC columns
+    for i,v in zip(['Index', 'Middle', 'Ring', 'Pinky'], [-10, 0, 10, 20]):
+        # add a gausian noise with mean 0 and std 0.05
+        df[f'{i}_TMC_Flex'] = np.zeros(df.shape[0]) + noise
+        df[f'{i}_TMC_Adb'] = np.ones(df.shape[0])*v + noise
+        df[f'{i}_DIP_Adb'] = np.zeros(df.shape[0]) 
+        df[f'{i}_PIP_Adb'] = np.zeros(df.shape[0])
+    
+    return df
 
 def compute_flexion_and_adduction_angles(bones_df):
     """

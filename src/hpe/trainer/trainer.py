@@ -9,6 +9,9 @@ import torch.optim as optim
 from lightning.pytorch import callbacks
 from torch.optim.optimizer import Optimizer
 
+import matplotlib.pyplot as plt
+import numpy as np
+
 from hpe.models import build_model, build_backbone
 from hpe.data import build_dataloader
 from hpe.loss import make_loss  
@@ -53,11 +56,12 @@ class EmgNet(pl.LightningModule):
         inputs = inputs.to(self.device)
         labels = labels.to(self.device)
 
-        _, loss = self.forward(inputs, labels)
+        outputs, losses = self.forward(inputs, labels)
         # loss = self.criterion(outputs, labels)
 
-        self.log_dict({'train_loss': loss[1]})
-        return loss[1]
+        loss_dict = {i: v for i, v in zip(self.loss_fn.keypoints, losses[0])}
+        self.log_dict({'train_loss': losses[1], **loss_dict })
+        return losses[1]
 
     def validation_step(self, batch, batch_idx):
         inputs, labels, gestures = batch
@@ -80,6 +84,32 @@ class EmgNet(pl.LightningModule):
         loss_dict = {i: v for i, v in zip(self.cfg.DATA.LABEL_COLUMNS,losses[0])}
         self.log_dict({'test_loss': losses[1], **loss_dict})
         return losses[1]
+
+    def makegrid(output,numrows):
+        outer=(torch.Tensor.cpu(output).detach())
+        plt.figure(figsize=(20,5))
+        b=np.array([]).reshape(0,outer.shape[2])
+        c=np.array([]).reshape(numrows*outer.shape[2],0)
+        i=0
+        j=0
+        while(i < outer.shape[1]):
+            img=outer[0][i]
+            b=np.concatenate((img,b),axis=0)
+            j+=1
+            if(j==numrows):
+                c=np.concatenate((c,b),axis=1)
+                b=np.array([]).reshape(0,outer.shape[2])
+                j=0
+                 
+            i+=1
+        return c
+    
+    
+    def on_train_epoch_end(self) -> None:
+        if(self.current_epoch==1):
+            sampleImg=torch.rand((1,self.cfg.DATA.SEGMENT_LENGTH,16))
+            self.logger.experiment.add_graph(self.backbone,sampleImg)
+        return super().on_train_epoch_end()
 
     def configure_optimizers(self):
         opt = self.cfg.SOLVER.OPTIMIZER.lower()

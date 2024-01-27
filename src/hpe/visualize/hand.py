@@ -7,10 +7,10 @@ import torch
 import os
 import sys
 sys.path.append('/Users/rufaelmarew/Documents/tau/finger_pose_estimation')
-from config import cfg
-from util import read_manus, read_leap, build_leap_columns
-from data import make_exp_dataset, make_dataloader
-from models import make_model
+from hpe.config import cfg
+from hpe.util import read_manus, read_leap, build_leap_columns
+from hpe.data import make_exp_dataset, build_dataloader
+from hpe.models import build_backbone
 import numpy as np
 
 @dataclass
@@ -96,20 +96,19 @@ class HandLeap(HandBase):
         self.params.angles = keypoints
         unity_comms.UpdateLeapHands(angles=self.params)
     
-    def read_csv(self, cfg, sleep_time=0.001):
+    def run_from_csv(self, cfg, sleep_time=0.001):
 
         label_dir = cfg.VISUALIZE.LABEL_PATH
         file_name = [i for i in os.listdir(label_dir) if i.endswith(".csv")][0]
         label_path = os.path.join(label_dir, file_name)
 
-        dataset,_,_ = read_leap(label_path, positions=False, rotations=True)
+        dataset = read_leap(label_path, positions=False, rotations=True)
         self.joint_names = dataset.columns.tolist()
         self.params.jointNames = self.joint_names
         print("started visualisation with {} data points".format(len(dataset)))
         print("press enter to exit")
         for i in range(0, len(dataset)):
             angles = dataset.iloc[i].tolist()
-            print(len(angles), len(self.params.jointNames))
             # self.params.angles = angles
             self.update(angles, self.unity_comms)
             time.sleep(sleep_time)
@@ -194,10 +193,10 @@ class Hands:
 
     def run_from_dataloader(self, cfg, sleep_time=1):
         if self.data_loader is None:
-            self.data_loaders = make_dataloader(cfg, save=False)
+            self.data_loaders = build_dataloader(cfg, save=False)
 
         if self.model is None:
-            self.model = make_model(cfg)
+            self.model = build_backbone(cfg)
             self.model.load_pretrained(cfg.SOLVER.PRETRAINED_PATH)
 
         print("started visualisation with {} data points".format(len(self.dataloader)))
@@ -228,18 +227,19 @@ HAND_MODES = {
 def make_hands(mode):
     return HAND_MODES[mode]()
 
-def main(cfg, data_loader):
+def main(cfg, data_loader=None):
     hands = HandLeap(cfg)
     hands.reset()
-    hands.run_from_loader(cfg, sleep_time=0.01, dataloader=data_loader)
+    # hands.run_from_loader(cfg, sleep_time=0.01, dataloader=data_loader)
+    hands.run_from_csv(cfg)
     # hands.read_csv(cfg, sleep_time=0.01, data_loader=data_loader)
 
 if __name__ == "__main__":
 
     cfg.SOLVER.LOG_DIR = os.path.join(cfg.SOLVER.LOG_DIR, cfg.MODEL.NAME)
     cfg.DATA.EXP_SETUP = 'exp0'
-    cfg.DATA.PATH = './dataset/FPE/S1/p3'
+    cfg.DATA.PATH = './dataset/FPE/003/S2/P1'
     cfg.DEBUG = False
-    dataloaders = make_dataloader(cfg, save=False)
+    # dataloaders = build_dataloader(cfg, save=False)
 
-    main(cfg, dataloaders["train"])
+    main(cfg)

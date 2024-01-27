@@ -7,8 +7,8 @@ import numpy as np
 # import stratified sampler
 from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.model_selection import train_test_split
-from .EMGLeap import EMGLeap
-from .transforms import make_transform
+from hpe.data.EMGLeap import EMGLeap
+from hpe.data.transforms import make_transform
 
 exp_setups = {
 
@@ -103,7 +103,11 @@ def train_test_gesture_split(dataset, test_gestures):
     train_idx = []
     test_idx = []
     val_idx = []
-    for idx, gesture in enumerate(dataset.gestures):
+    if len(dataset.gestures.shape) == 2:
+        g = dataset.gestures[:,-1]
+    else:
+        g = dataset.gestures
+    for idx, gesture in enumerate(g):
         if dataset.gesture_names_mapping[gesture.item()] in test_gestures:
             test_idx.append(idx)
         elif 'rest' in dataset.gesture_names_mapping[gesture.item()]:
@@ -148,8 +152,9 @@ def make_dataset(cfg):
             dataset.save_dataset(save_path=save_path)
             cfg.DATA.LABEL_COLUMNS = dataset.label_columns
 
-    # rep = np.random.randint(1,5)
-    rep = 1
+
+    rep = np.random.randint(1,5)
+    # rep = 1
     unique_gestures = np.unique([i.split('_')[0] for i in dataset.gesture_names_mapping.values()])
     # select the rep-th repetition of the gestures in the test set
     
@@ -186,12 +191,10 @@ def read_saved_dataset(cfg, path):
     return dataset, data_loader
 
 if __name__ == "__main__":
-    import sys
-    sys.path.append('../')
-    from config import cfg
-    cfg.DATA.PATH = './dataset/FPE/S1/p3'
+    from hpe.config import cfg
+    cfg.DATA.PATH = './dataset/FPE/003/S1/P3'
     cfg.DATA.SEGMENT_LENGTH = 100
-    cfg.DATA.STRIDE = 10
+    cfg.DATA.STRIDE = 2
     cfg.DEBUG = False
     dataset = make_dataset(cfg)
     

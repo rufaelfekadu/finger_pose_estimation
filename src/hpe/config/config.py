@@ -12,8 +12,8 @@ _C.STAGE = "pretrain"
 _C.DATA = CN()
 _C.SEED = 42
 
-_C.DATA.PATH = "finger_pose_estimation/dataset/data_2023-10-02 14-59-55-627.edf"
-_C.DATA.LABEL_PATH = "finger_pose_estimation/dataset/label_2023-10-02_15-24-12_YH_lab_R.csv"
+_C.DATA.PATH = "./dataset/"
+_C.DATA.LABEL_PATH = "./dataset/FPE/003/S1/P1/fpe_pos1_028_S1_rep0_BT_full.csv"
 _C.DATA.LABEL_COLUMNS = []
 _C.DATA.SEGMENT_LENGTH = 150
 _C.DATA.STRIDE = 100
@@ -98,5 +98,5 @@ _C.SOLVER.PRETRAINED_PATH = "model.pth"
 
 _C.VISUALIZE = CN()
 _C.VISUALIZE.PORT = 9000
-_C.VISUALIZE.LABEL_PATH = "./dataset/FPE/S1/p3"
+_C.VISUALIZE.LABEL_PATH = "./dataset/FPE/003/S1/P1"
 
