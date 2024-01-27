@@ -105,11 +105,11 @@ class EmgNet(pl.LightningModule):
         return c
     
     
-    def on_train_epoch_end(self) -> None:
-        if(self.current_epoch==1):
-            sampleImg=torch.rand(1,self.cfg.DATA.SEGMENT_LENGTH,16, device=self.device)
-            self.logger.experiment.add_graph(self.backbone,sampleImg)
-        return super().on_train_epoch_end()
+    # def on_train_epoch_end(self) -> None:
+    #     if(self.current_epoch==1):
+    #         sampleImg=torch.rand(1,self.cfg.DATA.SEGMENT_LENGTH,16, device=self.device)
+    #         self.logger.experiment.add_graph(self.backbone,sampleImg)
+    #     return super().on_train_epoch_end()
 
     def configure_optimizers(self):
         opt = self.cfg.SOLVER.OPTIMIZER.lower()
