@@ -59,7 +59,7 @@ class TransformerModel(nn.Module):
         self.pos_encoder = PositionalEncoding(self.d_model, max_len=seq_length)
         self.transformer_encoder = nn.TransformerEncoder(
             nn.TransformerEncoderLayer(self.d_model, self.nhead, self.d_model, self.dropout),
-            num_layers=self.num_layers
+            num_layers=self.num_layers, batch_first=True,
         )
         
         self.decoder = MLP(self.d_model * seq_length, output_size)
