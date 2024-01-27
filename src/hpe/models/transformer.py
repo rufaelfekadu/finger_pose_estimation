@@ -55,7 +55,7 @@ class TransformerModel(nn.Module):
         self.num_layers = 4
         self.dropout = 0.5
 
-        self.embedding = nn.Linear(input_size, self.d_model)
+        self.embedding = nn.Linear(input_size, self.d_model, bias=False)
         self.pos_encoder = PositionalEncoding(self.d_model, max_len=seq_length)
         self.transformer_encoder = nn.TransformerEncoder(
             nn.TransformerEncoderLayer(self.d_model, self.nhead, self.d_model, self.dropout, batch_first=True),
