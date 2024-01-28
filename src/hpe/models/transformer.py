@@ -103,17 +103,21 @@ if __name__ == '__main__':
     N = 32  # Number of training examples
     S = 500   # Sequence length
     C = 16   # Number of channels
-    output_dim = 1
+    output_dim = 10
 
     # Generate random input data
     input_data = torch.randn(N, S, C)
+    label = torch.randint(0, 10, (N, output_dim))
 
     # Create the Transformer model
     model = TransformerModel(input_size=C, seq_length=S, output_size=output_dim)
+    soft_max = nn.Softmax(dim=1)
 
     start = time.time()
     # Pass the input through the model
     output = model(input_data)
+    # output = soft_max(output)
+    pred = output.argmax(dim=1)
     print(f"Time taken: {time.time() - start}")
 
     print(output.shape)  # Check the output shape

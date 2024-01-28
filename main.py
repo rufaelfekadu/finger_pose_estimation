@@ -2,7 +2,7 @@
 import torch
 from pytorch_lightning import loggers as pl_loggers
 import pytorch_lightning as pl
-from hpe.trainer import EmgNet
+from hpe.trainer import EmgNet, EmgNetClassifier
 from hpe.data import build_dataloader
 from hpe.models import build_model
 from hpe.config import cfg, to_dict
@@ -30,8 +30,13 @@ def main(cfg):
     early_stop_callback = pl.callbacks.EarlyStopping(monitor='val_loss', patience=cfg.SOLVER.PATIENCE)
     checkpoint_callback = pl.callbacks.ModelCheckpoint(dirpath=os.path.join(cfg.SOLVER.LOG_DIR, 'checkpoints'), monitor='val_loss', save_top_k=1, mode='min')
     
-    # Build trainer
-    model = EmgNet(cfg=cfg)
+    if cfg.STAGE == 'classifier':
+        print('here')
+        model = EmgNetClassifier(cfg=cfg)
+    else:
+        # Build trainer
+        model = EmgNet(cfg=cfg)
+    
 
     trainer = pl.Trainer(
 

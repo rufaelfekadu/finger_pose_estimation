@@ -1,1 +1,1 @@
-from .trainer import EmgNet
+from .trainer import EmgNet, EmgNetClassifier

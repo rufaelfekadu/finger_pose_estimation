@@ -155,7 +155,7 @@ def make_dataset(cfg):
 
     rep = np.random.randint(1,5)
     # rep = 1
-    unique_gestures = np.unique([i.split('_')[0] for i in dataset.gesture_names_mapping.values()])
+    unique_gestures = np.unique([i.split('_')[0] for i in dataset.gesture_names_mapping_class.values()])
     # select the rep-th repetition of the gestures in the test set
     
     test_gestures = [i+f'_{rep}' for i in unique_gestures]
@@ -195,7 +195,8 @@ if __name__ == "__main__":
     from hpe.config import cfg
     cfg.DATA.PATH = './dataset/FPE/003/S1/P3'
     cfg.DATA.SEGMENT_LENGTH = 100
-    cfg.DATA.STRIDE = 2
+    cfg.DATA.STRIDE = 50
     cfg.DEBUG = False
+    cfg.SETUP = 'classifier'
     dataset = make_dataset(cfg)
     

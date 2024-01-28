@@ -53,6 +53,7 @@ class EMGLeap(BaseDataset):
             'merged_data': [None]*len(edf_files),
         }
         self.label_encoder = LabelEncoder()
+        self.label_encoder_class = LabelEncoder()
         lock = Lock()
         #  read the data
         self.data, self.label, self.gestures = [], [], []
@@ -70,8 +71,9 @@ class EMGLeap(BaseDataset):
         merged_df = np.concatenate(results['merged_data'], axis=0)
 
         self.data = merged_df[:,:,0:len(self.data_columns)]
-        self.label = merged_df[:,:,len(self.data_columns):-1]
-        self.gestures = merged_df[:,:,-1]
+        self.label = merged_df[:,:,len(self.data_columns):-2]
+        self.gesture_label = merged_df[:,0,-2]
+        self.gestures = merged_df[:,0,-1]
 
         #  print dataset specs
         self.print_dataset_specs()
@@ -86,7 +88,7 @@ class EMGLeap(BaseDataset):
         self.data = torch.tensor(self.data.copy(), dtype=torch.float32)
         self.label = torch.tensor(self.label, dtype=torch.float32)
         self.gestures = torch.tensor(self.gestures, dtype=torch.long)
-        
+        self.gesture_label = torch.tensor(self.gesture_label, dtype=torch.long)
         # unfold data and label
         # self.data = self.data.unfold(0, self.seq_len, self.stride).permute(0, 2, 1)
         # self.label = self.label.unfold(0, self.seq_len, self.stride).permute(0, 2, 1)
@@ -119,7 +121,8 @@ class EMGLeap(BaseDataset):
         leap_data = leap_data[start_time:end_time]
 
         data = pd.merge_asof(emg_data, leap_data, left_index=True, right_index=False, right_on='time', direction='backward', tolerance=pd.to_timedelta(10, unit='ms'))
-
+        data['gesture_class'] = data['gesture'].apply(lambda x: x.split('_')[0])
+        
         # data['time_diff'] = (data.index - data['time_leap']).dt.total_seconds()
         # data.drop(columns=['timestamp', 'frame_id', 'time_leap'], inplace=True)
 
@@ -174,10 +177,13 @@ class EMGLeap(BaseDataset):
         try:
             if index == 0:
                 self.label_encoder.fit(merged_df['gesture'].unique())
+                self.label_encoder_class.fit(merged_df['gesture_class'].unique())
                 self.gesture_names_mapping = {i: gesture for i, gesture in enumerate(self.label_encoder.classes_)}
+                self.gesture_names_mapping_class = {i: gesture for i, gesture in enumerate(self.label_encoder_class.classes_)}
         finally:
             lock.release()
         merged_df['gesture'] = self.label_encoder.transform(merged_df['gesture'])
+        merged_df['gesture_class'] = self.label_encoder_class.transform(merged_df['gesture_class'])
 
         #  interpolate missing values
         merged_df = self.interpolate_missing_values(merged_df)
@@ -193,46 +199,6 @@ class EMGLeap(BaseDataset):
 
         return merged_df
     
-    def normalize_and_filter(self, data=None, label=None):
-
-        N, C, L = data.shape
-        data_sliced = data.reshape(-1, L)
-
-        # normalize the data
-        self.data_scaler = StandardScaler()
-        data_sliced = self.data_scaler.fit_transform(data_sliced)
-
-        # self.label_scaler = StandardScaler()
-        # label = self.label_scaler.fit_transform(label)
-
-        print("Filtering data...")
-        # filter the data
-        if self.filter_data:
-            data_sliced = self._filter_data(data_sliced)
-
-        return data_sliced.reshape(N, C, L), label
-    
-    def apply_ica_to_emg(self):
-        # TODO: apply ICA to the EMG data
-        # Reshape data to 2D
-        N, L, C = self.data.shape
-        #  copy data
-        import copy
-        data = copy.deepcopy(self.data)
-        data = data.reshape(-1, C)
-
-        # Apply ICA
-        ica = FastICA(n_components=C)
-        data = ica.fit_transform(data)
-
-        # Get the mixing matrix
-        self.mixing_matrix = ica.mixing_
-
-        # Reshape data back to 3D
-        self.data_ica = data.reshape(N, L, C)
-
-        # save the mixing matrix
-        # torch.save(self.mixing_matrix, os.path.join(self.data_path, 'mixing_matrix.pth'))
     
     def plot_data(self, save_dir=None):
 
@@ -268,7 +234,7 @@ class EMGLeap(BaseDataset):
         # if self.ica:
         #     return (self.data[idx], self.data_ica[idx]), self.label[idx], self.gestures[idx]
         # else:
-        return self.data[idx], self.label[idx], self.gestures[idx]
+        return self.data[idx], self.label[idx], (self.gesture_label[idx], self.gestures[idx])
         
 
 if __name__ == '__main__':
@@ -290,7 +256,7 @@ if __name__ == '__main__':
         'Q': 30,
         'low_freq': 20,
         'high_freq': 55,
-        'stride': 1,
+        'stride': 50,
         'data_source': 'emg',
         'ica': False,
         'transform': None,

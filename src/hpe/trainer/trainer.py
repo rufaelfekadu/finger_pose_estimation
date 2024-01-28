@@ -137,7 +137,68 @@ class EmgNet(pl.LightningModule):
 
     def test_dataloader(self):
         return self.test_loader
+    
+class EmgNetClassifier(EmgNet):
+    def __init__(self, cfg, *args, **kwargs):
+        super().__init__(cfg)
+        
+        self.cfg = cfg
+        dataloaders = build_dataloader(cfg)
+        cfg.DATA.LABEL_COLUMNS = list(dataloaders['train'].dataset.dataset.gesture_names_mapping_class.values())
+        
+        self.train_loader = dataloaders['train']
+        self.val_loader = dataloaders['val']
+        self.test_loader = dataloaders['test']
 
+        self.backbone = build_backbone(cfg).to(self.device)
+        self.loss_fn = torch.nn.CrossEntropyLoss()
+        self.save_hyperparameters()
+
+    def forward(self, x, target=None):
+        x = self.backbone(x)
+        #  compute the softmax
+        x = torch.nn.functional.softmax(x, dim=1)
+        pred = torch.argmax(x, dim=1)
+        if target is not None:
+            loss = self.loss_fn(x, target)
+            return pred, loss
+        return pred, x
+    
+    def training_step(self, batch, batch_idx):
+        inputs, labels, gestures = batch
+        inputs = inputs.to(self.device)
+        gestures = gestures[0].to(self.device)
+
+        pred, loss = self.forward(inputs, gestures)
+
+        acc = torch.sum(pred == gestures).item() / len(gestures)
+
+        self.log_dict({'train_loss': loss, 'train_acc': acc})
+
+        return loss
+    
+    def validation_step(self, batch, batch_idx):
+        inputs, labels, gestures = batch
+        inputs = inputs.to(self.device)
+        gestures = gestures[0].to(self.device)
+
+        pred, losses = self.forward(inputs, gestures)
+        acc = torch.sum(pred == gestures).item() / len(gestures) 
+
+        self.log_dict({'val_loss': losses, 'val_acc': acc})
+
+        return losses
+    
+    def test_step(self, batch, batch_idx):
+        inputs, labels, gestures = batch
+        inputs = inputs.to(self.device)
+        gestures = gestures[0].to(self.device)
+
+        _, losses = self.forward(inputs, gestures)
+        self.log_dict({'test_loss': losses})
+
+        return losses
+    
 class EmgNetPretrain(pl.LightningModule):
 
     def __init__(self, cfg, *args, **kwargs):
