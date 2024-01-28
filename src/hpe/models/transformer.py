@@ -70,9 +70,9 @@ class TransformerModel(nn.Module):
     def forward(self, x):
         # x: (batch_size, seq_length, input_size)
         x = self.embedding(x)
-        x = (x + self.pos_encoder(x)).permute(1, 0, 2)
+        x = (x + self.pos_encoder(x))
         x = self.transformer_encoder(x)
-        x = x.permute(1, 0, 2)
+        # x = x.permute(1, 0, 2)
         x = self.decoder(x)
         x.unsqueeze(1)
         # x = self.bact(x)
@@ -100,13 +100,13 @@ def make_transformer_model(cfg):
 
 if __name__ == '__main__':
     # Example usage
-    N = 100  # Number of training examples
+    N = 32  # Number of training examples
     S = 500   # Sequence length
     C = 16   # Number of channels
-    output_dim = 20
+    output_dim = 16
 
     # Generate random input data
-    input_data = torch.randn(N,1, S, C)
+    input_data = torch.randn(N, S, C)
 
     # Create the Transformer model
     model = TransformerModel(input_size=C, seq_length=S, output_size=output_dim)
