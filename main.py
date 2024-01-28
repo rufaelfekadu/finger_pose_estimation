@@ -25,10 +25,10 @@ def setup_seed(seed):
 def main(cfg):
 
     # Build logger
-    csv_logger = pl_loggers.CSVLogger(cfg.SOLVER.LOG_DIR, name=cfg.NAME)
-    tb_logger = pl_loggers.TensorBoardLogger(cfg.SOLVER.LOG_DIR, name=cfg.NAME)
+    csv_logger = pl_loggers.CSVLogger(cfg.SOLVER.LOG_DIR, name='csv_logs')
+    tb_logger = pl_loggers.TensorBoardLogger(cfg.SOLVER.LOG_DIR, name='tb_logs')
     early_stop_callback = pl.callbacks.EarlyStopping(monitor='val_loss', patience=cfg.SOLVER.PATIENCE)
-    checkpoint_callback = pl.callbacks.ModelCheckpoint(dirpath=cfg.SOLVER.LOG_DIR, monitor='val_loss', save_top_k=3, mode='min')
+    checkpoint_callback = pl.callbacks.ModelCheckpoint(dirpath=os.path.join(cfg.SOLVER.LOG_DIR, 'checkpoints'), monitor='val_loss', save_top_k=1, mode='min')
     
     # Build trainer
     model = EmgNet(cfg=cfg)
@@ -39,6 +39,7 @@ def main(cfg):
         check_val_every_n_epoch=1,
         callbacks=[early_stop_callback, checkpoint_callback],
         logger=tb_logger,
+        log_every_n_steps=len(model.train_loader),
         # resume_from_checkpoint=cfg.SOLVER.PRETRAINED_PATH,
         # limit_train_batches=0.1,
         # limit_val_batches=0.1,

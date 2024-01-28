@@ -6,6 +6,7 @@ metric_dict = {
     'MSE': nn.functional.mse_loss,
     'MAE': nn.functional.l1_loss,
     'SmoothL1': nn.functional.smooth_l1_loss,
+    'CrossEntropy': nn.functional.cross_entropy,
 }
 
 class NeuroLoss(_Loss):

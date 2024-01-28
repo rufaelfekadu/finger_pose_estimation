@@ -103,7 +103,7 @@ if __name__ == '__main__':
     N = 32  # Number of training examples
     S = 500   # Sequence length
     C = 16   # Number of channels
-    output_dim = 16
+    output_dim = 1
 
     # Generate random input data
     input_data = torch.randn(N, S, C)
