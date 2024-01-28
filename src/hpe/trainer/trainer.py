@@ -60,7 +60,7 @@ class EmgNet(pl.LightningModule):
         # loss = self.criterion(outputs, labels)
 
         loss_dict = {i: v for i, v in zip(self.loss_fn.keypoints, losses[0])}
-        self.log_dict({'train_loss': losses[1], **loss_dict })
+        self.log_dict({'train_loss': losses[1] })
         return losses[1]
 
     def validation_step(self, batch, batch_idx):

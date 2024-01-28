@@ -35,6 +35,7 @@ def main(cfg):
 
     trainer = pl.Trainer(
 
+        log_every_n_steps=cfg.SOLVER.LOG_EVERY_N_STEPS,
         max_epochs=cfg.SOLVER.NUM_EPOCHS,
         check_val_every_n_epoch=1,
         callbacks=[early_stop_callback, checkpoint_callback],
