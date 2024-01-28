@@ -185,7 +185,7 @@ class EmgNetClassifier(EmgNet):
         pred, losses = self.forward(inputs, gestures)
         acc = torch.sum(pred == gestures).item() / len(gestures) 
 
-        self.log_dict({'val_loss': losses, 'val_acc': acc})
+        self.log_dict({'val_loss': losses, 'val_acc': acc*100})
 
         return losses
     
@@ -194,10 +194,14 @@ class EmgNetClassifier(EmgNet):
         inputs = inputs.to(self.device)
         gestures = gestures[0].to(self.device)
 
-        _, losses = self.forward(inputs, gestures)
-        self.log_dict({'test_loss': losses})
+        pred, losses = self.forward(inputs, gestures)
+        acc = torch.sum(pred == gestures).item() / len(gestures)
+        self.log_dict({'test_loss': losses, 'test_acc': acc*100})
 
         return losses
+    
+    def configure_optimizers(self):
+        return super().configure_optimizers()
     
 class EmgNetPretrain(pl.LightningModule):
 
