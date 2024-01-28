@@ -169,7 +169,7 @@ def make_dataset(cfg):
     print(f"shape of label : {dataset['train'].dataset.label.shape}")
     return dataset
 
-def build_dataloader(cfg, save=False, shuffle=False):
+def build_dataloader(cfg, save=False, shuffle=True):
 
     dataset = make_exp_dataset(cfg)
 
