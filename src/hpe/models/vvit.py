@@ -5,8 +5,6 @@ from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
 import torch.nn.functional as F
 
-from hpe.config import cfg
-
 
 attn_before_softmax = []
 attn_after_softmax = []
@@ -95,21 +93,22 @@ class BoundedActivation(nn.Module):
     def forward(self, x):
         return self.act(x) * (self.b_values - self.a_values) + self.a_values
     
-class ViT(nn.Module):
-    def __init__(self, *, image_size, image_patch_size, frames, num_classes, dim, depth, heads, mlp_dim, pool = 'cls', channels = 3, dim_head = 64, dropout = 0., emb_dropout = 0.):
+class VViT(nn.Module):
+    def __init__(self, *, image_size, image_patch_size, frames, frame_patch_size, num_classes, dim, depth, heads, mlp_dim, pool = 'cls', channels = 3, dim_head = 64, dropout = 0., emb_dropout = 0.):
         super().__init__()
         image_height, image_width = pair(image_size)
         patch_height, patch_width = pair(image_patch_size)
 
         assert image_height % patch_height == 0 and image_width % patch_width == 0, 'Image dimensions must be divisible by the patch size.'
+        assert frames % frame_patch_size == 0, 'Frames must be divisible by frame patch size'
 
-        num_patches = (image_height // patch_height) * (image_width // patch_width) 
-        patch_dim = channels * patch_height * patch_width * frames
+        num_patches = (image_height // patch_height) * (image_width // patch_width) * (frames // frame_patch_size)
+        patch_dim = channels * patch_height * patch_width * frame_patch_size
 
         assert pool in {'cls', 'mean'}, 'pool type must be either cls (cls token) or mean (mean pooling)'
 
         self.to_patch_embedding = nn.Sequential(
-            Rearrange('b c f (h p1) (w p2) -> b (h w) (p1 p2 f c)', p1 = patch_height, p2 = patch_width),
+            Rearrange('b c (f pf) (h p1) (w p2) -> b (f h w) (p1 p2 pf c)', p1 = patch_height, p2 = patch_width, pf = frame_patch_size),
             nn.LayerNorm(patch_dim),
             nn.Linear(patch_dim, dim),
             nn.LayerNorm(dim),
@@ -127,12 +126,12 @@ class ViT(nn.Module):
         self.mlp_head = nn.Sequential(
             nn.LayerNorm(dim),
             nn.Linear(dim, num_classes),
-            BoundedActivation(num_classes)
+            # BoundedActivation(num_classes)
         )
 
     def forward(self, x):
         #  input x: (batch_size, frames, C)
-        x = x.reshape(x.shape[0], 1, x.shape[1], 4, 4) # (batch_size, 1, frames, height, width)
+        x = x.reshape(x.shape[0], 1, x.shape[1], 4, 4)
         #  shape of x: (batch_size, 1, frames, height, width)
         x = self.to_patch_embedding(x) # (batch_size, n, dim) where n = fram_path_size*patch_size**2
         b, n, _ = x.shape
@@ -163,11 +162,12 @@ class ViT(nn.Module):
         print('Pretrained model loaded')
 
 
-def make_vit(cfg):
-    return ViT(
+def make_vvit(cfg):
+    return VViT(
         image_size = 4,
         image_patch_size = 2,
         frames = cfg.DATA.SEGMENT_LENGTH,
+        frame_patch_size = 50,
         num_classes = len(cfg.DATA.LABEL_COLUMNS),
         dim = 512,
         depth = 12,
@@ -176,7 +176,6 @@ def make_vit(cfg):
         dropout = 0.,
         emb_dropout = 0.,
         channels=1,
-        pool='mean'
     )
 
 def vis_atten(module, input, output):
@@ -187,11 +186,60 @@ def vis_atten(module, input, output):
     
 
 if __name__ == "__main__":
-    cfg.DATA.SEGMENT_LENGTH =  100
-    cfg.DATA.LABEL_COLUMNS = [i for i in range(16)]
+    from hpe.config import cfg
+    model = make_vvit(cfg)
+    # register hook on attention module
+    model.transformer.layers[-1][0].attend.register_forward_hook(vis_atten)
+    print(model)
+    # Generate random input data
 
-    in_data = torch.rand(1,cfg.DATA.SEGMENT_LENGTH,4,4)
-    model = make_TS_transformer(cfg)
+    N = 2  # Number of training examples
+    S = 150   # Sequence length
+    C = 16   # Number of channels
+    input_data = torch.randn(N, S, C)
+    model.eval()
+    out = model(input_data)
     
-    out = model(in_data)
     print(out.shape)
+
+    #  plot attention
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    import numpy as np
+    sns.set()
+    attn_before_softmax = attn_before_softmax[0].squeeze(0)[0,:,0,1:].mean(axis=0)
+    attn_after_softmax = attn_after_softmax[0].squeeze(0)[0,:,0,1:].mean(axis=0)
+
+    # reshape to 4, 125
+    attn_before_softmax = attn_before_softmax.reshape(-1, 75)
+    # attn_after_softmax = attn_after_softmax.reshape(4, 125)
+
+    plt.figure(figsize=(10, 5))
+    # plt.grid(False)
+
+    plt.subplot(1, 2, 1)
+    plt.imshow(attn_before_softmax, aspect='auto', cmap='inferno')
+    plt.title('Attention before softmax')
+
+    # interpolate to shape 16,250 with nearest interpolation
+    # attn_before_softmax = np.repeat(attn_before_softmax, 2, axis=0)
+    # attn_before_softmax = np.repeat(attn_before_softmax, 2, axis=1)
+    # attn_before_softmax = np.repeat(attn_before_softmax, 2, axis=2)
+
+    #  interpolate using torch
+    attn_before_softmax_inter = F.interpolate(attn_before_softmax.unsqueeze(0).unsqueeze(0), scale_factor=(4, 2), mode='nearest').numpy()
+
+    plt.subplot(1, 2, 2)
+    plt.imshow(attn_before_softmax_inter.reshape(-1,150), aspect='auto', cmap='inferno')
+    plt.title('Attention before softmax')
+
+    # # plot input data
+    # plt.subplot(1, 2, 2)
+    # plt.imshow(input_data[0,:,:].reshape(16,150), aspect='auto', cmap='hot')
+    #  remove grid
+    # fig, axs = plt.subplots(1, attn_before_softmax.shape[0], figsize=(10, 10))
+    # for i in range(attn_before_softmax.shape[0]):
+    #     axs[i].imshow(attn_before_softmax[i,:].reshape(4, 125), aspect='auto')
+    #     axs[i].set_title(f'Attention before softmax for head {i}')
+    
+    plt.show()

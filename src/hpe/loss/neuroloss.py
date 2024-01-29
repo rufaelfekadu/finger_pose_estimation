@@ -41,8 +41,7 @@ class NeuroLoss(_Loss):
             return loss, loss.mean()
         
         
-def make_loss(cfg, weights=None):
-    return NeuroLoss(cfg.SOLVER.METRIC, weights=weights, keypoints=cfg.DATA.LABEL_COLUMNS)
+
 
 
 if __name__ == "__main__":

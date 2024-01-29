@@ -1,13 +1,15 @@
-from .neuropose import NeuroPose, make_neuropose_model
-from .transformer import TransformerModel, make_transformer_model
-from .vit import ViT, make_TS_transformer
+from .neuropose import NeuroPose, make_neuropose
+from .transformer import TransformerModel, make_transformer
+from .vit import ViT, make_vit
+from .vvit import VViT, make_vvit
 from .EmgNet import EmgNet
 from hpe.loss import make_loss
 
 MODEL_DICT = {
-    'neuropose': make_neuropose_model,
-    'transformer': make_transformer_model,
-    'ts_transformer': make_TS_transformer,
+    'neuropose': make_neuropose,
+    'transformer': make_transformer,
+    'vit': make_vit,
+    'vvit': make_vvit,
 }
 def build_backbone(cfg):
     print(f"Building {cfg.MODEL.NAME.lower()} model ")

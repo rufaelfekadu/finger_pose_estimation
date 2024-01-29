@@ -1,1 +1,3 @@
-from .neuroloss import NeuroLoss, make_loss
+from .default import make_loss
+from .neuroloss import NeuroLoss
+

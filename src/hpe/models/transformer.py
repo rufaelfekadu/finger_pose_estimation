@@ -91,7 +91,7 @@ class TransformerModel(nn.Module):
 
         del pretrained_dict
 
-def make_transformer_model(cfg):
+def make_transformer(cfg):
 
     return TransformerModel(input_size=cfg.DATA.EMG.NUM_CHANNELS, 
                              seq_length=cfg.DATA.SEGMENT_LENGTH, 

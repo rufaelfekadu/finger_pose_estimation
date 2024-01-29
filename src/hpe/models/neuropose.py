@@ -131,7 +131,7 @@ class NeuroPose(nn.Module):
 
         del pretrained_dict
     
-def make_neuropose_model(cfg):
+def make_neuropose(cfg):
     model = NeuroPose(output_shape=(cfg.DATA.SEGMENT_LENGTH, len(cfg.DATA.LABEL_COLUMNS)))
     return model
 
