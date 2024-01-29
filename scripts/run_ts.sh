@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define variables
-data_path="./dataset/FPE/003/S1/P3"
+data_path="./dataset/emgleap/003/S1/P3"
 model="transformer"
 stage="train"
 config="config.yaml"
