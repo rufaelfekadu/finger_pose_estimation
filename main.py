@@ -71,7 +71,7 @@ if __name__ == '__main__':
     # merge config file
     cfg.merge_from_file(args.config)
     cfg.merge_from_list(args.opts)
-    cfg.SOLVER.LOG_DIR = os.path.join(cfg.SOLVER.LOG_DIR, cfg.DATA.EXP_SETUP, cfg.MODEL.NAME)
+    cfg.SOLVER.LOG_DIR = os.path.join(cfg.SOLVER.LOG_DIR, cfg.DATA.EXP_SETUP)
 
     # create log dir
     os.makedirs(cfg.SOLVER.LOG_DIR, exist_ok=True)

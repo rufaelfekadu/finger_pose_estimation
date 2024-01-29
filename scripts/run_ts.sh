@@ -1,15 +1,21 @@
 #!/bin/bash
 
 # Define variables
+data_path="./dataset/FPE/003/S1/P3"
 model="transformer"
-setup="train"
-config="../config.yaml"
+stage="train"
+config="config.yaml"
+log_dir='outputs/transformer'
 
 
-python ../main.py --config $config \
-    SETUP $setup \
+python main.py --config $config \
+    --opts \
+    DATA.PATH $data_path \
+    STAGE $stage \
     MODEL.NAME $model \
     SOLVER.BATCH_SIZE 32 \
-    SOLVER.EPOCHS 100 \
+    SOLVER.NUM_EPOCHS 100 \
+    SOLVER.LOG_DIR $log_dir \
+
 
 
