@@ -37,6 +37,8 @@ class EMGLeap(BaseDataset):
     def __init__(self,kwargs):
         super().__init__( **kwargs)
 
+        self.discritise = True
+        
         # read the data
         edf_files, csv_files = self.read_dirs()
 
@@ -46,7 +48,8 @@ class EMGLeap(BaseDataset):
             raise ValueError(f'No csv files found in {self.data_path}')
         
         self.data_columns = build_emg_columns()
-        self.label_columns = build_leap_columns()
+        self.label_columns = build_leap_columns(full=self.visualize)
+        self.columns = self.data_columns + self.label_columns + ['gesture_class', 'gesture']
 
         threads = [None]*len(edf_files)
         results = {
@@ -56,7 +59,7 @@ class EMGLeap(BaseDataset):
         self.label_encoder_class = LabelEncoder()
         lock = Lock()
         #  read the data
-        self.data, self.label, self.gestures = [], [], []
+        self.data, self.label, self.gestures, self.gesture_label = [], [], [], []
         for i in range(len(edf_files)):
             print(f'Reading data from {edf_files[i]} and {csv_files[i]}')
             thread = Thread(target=self.prepare_data, args=(edf_files[i], csv_files[i], results, i, lock))
@@ -70,10 +73,16 @@ class EMGLeap(BaseDataset):
         
         merged_df = np.concatenate(results['merged_data'], axis=0)
 
-        self.data = merged_df[:,:,0:len(self.data_columns)]
-        self.label = merged_df[:,:,len(self.data_columns):-2]
-        self.gesture_label = merged_df[:,0,-2]
-        self.gestures = merged_df[:,0,-1]
+        if self.discritise:
+            self.data = merged_df[:,:,0:len(self.data_columns)]
+            self.label = merged_df[:,:,len(self.data_columns):-2]
+            self.gesture_label = merged_df[:,0,-2]
+            self.gestures = merged_df[:,0,-1]
+        else:
+            self.data = merged_df[:,0:len(self.data_columns)]
+            self.label = merged_df[:,len(self.data_columns):-2]
+            self.gesture_label = merged_df[:, -2]
+            self.gestures = merged_df[:, -1]
 
         #  print dataset specs
         self.print_dataset_specs()
@@ -126,6 +135,9 @@ class EMGLeap(BaseDataset):
         # data['time_diff'] = (data.index - data['time_leap']).dt.total_seconds()
         # data.drop(columns=['timestamp', 'frame_id', 'time_leap'], inplace=True)
 
+        #  drop null enries
+        data.dropna(inplace=True)
+
         #  reorder columns to have gesture at the end
         if 'gesture' in data.columns:
             data = data[[col for col in data.columns if col != 'gesture'] + ['gesture']]
@@ -134,17 +146,17 @@ class EMGLeap(BaseDataset):
 
     def print_dataset_specs(self):
         print("-----------------Dataset specs-----------------")
-        print(f"Number of examples: {self.data.shape[0]}")
-        print(f"Sequence length: {self.seq_len}")
-        print(f"Number of channels: {self.data.shape[2]}")
-        print(f"Number of gestures: {self.gestures.max().item()+1}")
-        print(f"Number of classes: {len(self.label_columns)}")
-        print(f"Label columns: {self.label_columns}")
+        # print(f"Number of examples: {self.data.shape[0]}")
+        # print(f"Sequence length: {self.seq_len}")
+        # print(f"Number of channels: {self.data.shape[2]}")
+        # print(f"Number of gestures: {self.gestures.max().item()+1}")
+        # print(f"Number of classes: {len(self.label_columns)}")
+        # print(f"Label columns: {self.label_columns}")
 
     @staticmethod
     def interpolate_missing_values(data):
         #  drop group if count of nulls > 30%
-        return data.groupby('gesture').filter(lambda x: x.isnull().sum()['Middle_MCP_Flex'] < 500).apply(lambda x: x.fillna(x.mean()))
+        return data.groupby('gesture').filter(lambda x: x.isnull().sum()['Middle_MCP_Flex'] < 300).apply(lambda x: x.fillna(x.mean()))
 
     @staticmethod
     def discritise_data(data, seq_len=150, stride=5):
@@ -160,7 +172,11 @@ class EMGLeap(BaseDataset):
             # Convert the group to a numpy array
             array = np.array(group)
             # Generate the strided array and append it to the list
-            strided_arrays.append(strided_array(array, seq_len, stride))
+            # assert the shape of the array is greater than the sequence length
+            if array.shape[0] > seq_len:
+                strided_arrays.append(strided_array(array, seq_len, stride))
+            else:
+                print(f'Skipping {group.iloc[0]["gesture"]}, not enough data')
 
         # Concatenate the strided arrays into a single array and return it
         return np.concatenate(strided_arrays, axis=0)
@@ -186,17 +202,22 @@ class EMGLeap(BaseDataset):
         merged_df['gesture_class'] = self.label_encoder_class.transform(merged_df['gesture_class'])
 
         #  interpolate missing values
-        merged_df = self.interpolate_missing_values(merged_df)
+        # merged_df = self.interpolate_missing_values(merged_df)
 
         # apply transform to emg data
         if self.transform:
             merged_df[self.data_columns] = self.transform(merged_df[self.data_columns].values)
 
+        merged_df = merged_df[self.columns]
+
         #  discritise data
-        merged_df = self.discritise_data(data=merged_df, seq_len=self.seq_len, stride=self.stride)
+        if self.discritise:
+            merged_data = self.discritise_data(data=merged_df, seq_len=self.seq_len, stride=self.stride)
+        else:
+            merged_data = merged_df.values
 
-        results['merged_data'][index] = merged_df
-
+        results['merged_data'][index] = merged_data
+        
         return merged_df
     
     
@@ -235,7 +256,8 @@ class EMGLeap(BaseDataset):
         #     return (self.data[idx], self.data_ica[idx]), self.label[idx], self.gestures[idx]
         # else:
         return self.data[idx], self.label[idx], (self.gesture_label[idx], self.gestures[idx])
-        
+    # def __getitem__(self, idx):
+    #     return None, self.label[idx], None
 
 if __name__ == '__main__':
 
@@ -246,7 +268,7 @@ if __name__ == '__main__':
     ])
 
     kwargs = {
-        'data_path': './dataset/FPE/003/S1/P3',
+        'data_path': './dataset/emgleap/003/S1/P1',
         'seq_len': 150,
         'num_channels': 16,
         # filter info

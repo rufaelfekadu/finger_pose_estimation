@@ -45,6 +45,7 @@ def make_args(cfg):
                 'ica': cfg.DATA.ICA,
                 'transform': make_transform(cfg),
                 'target_transform': None,
+                'visualize': False,
             }
     return data_args
 

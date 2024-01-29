@@ -31,6 +31,7 @@ class BaseDataset(Dataset):
         
         self.transform = kwargs['transform']
         self.target_transform = kwargs['target_transform']
+        self.visualize = kwargs['visualize']
 
     def apply_ica_to_emg(self):
         pass

@@ -111,7 +111,7 @@ def read_emg_v1(path, start_time=None, end_time=None, fs: int=250):
     
     # get annotations as df
     offset_start = pd.to_timedelta(0.5, unit='s')
-    offset_end = pd.to_timedelta(1, unit='s')
+    offset_end = pd.to_timedelta(0.2, unit='s')
     to_append = [[annotations.onset[ind]+offset_start, annotations.onset[ind+1]+offset_end, j.replace('start_', '')]
                 for ind, j in enumerate(annotations.description)
                 if 'start_' in j and 'end_' in annotations.description[ind+1] and j.replace('start_', '') == annotations.description[ind+1].replace('end_', '')]
@@ -331,10 +331,10 @@ def read_manus(path, start_time=None, end_time=None):
 def read_leap(path, fs=250, positions=False, rotations=True, visualisation=False):
 
     leap_df = pd.read_csv(path, index_col=False)
-
-    # drop null and duplicates
-    # leap_df.dropna(inplace=True)
-    # leap_df.drop_duplicates(inplace=True, subset=['time'])
+    if visualisation:
+        # drop null and duplicates
+        leap_df.dropna(inplace=True)
+        leap_df.drop_duplicates(inplace=True, subset=['time'])
 
     leap_df['time'] = pd.to_datetime(leap_df['time'])
     leap_df['time'] = leap_df['time'].dt.tz_localize(None)

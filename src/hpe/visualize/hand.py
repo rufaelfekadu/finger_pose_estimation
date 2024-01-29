@@ -8,7 +8,7 @@ import os
 import sys
 sys.path.append('/Users/rufaelmarew/Documents/tau/finger_pose_estimation')
 from hpe.config import cfg
-from hpe.util import read_manus, read_leap, build_leap_columns
+from hpe.util import read_manus, read_leap, build_leap_columns,read_emg_v1
 from hpe.data import make_exp_dataset, build_dataloader
 from hpe.models import build_backbone
 import numpy as np
@@ -102,11 +102,16 @@ class HandLeap(HandBase):
         file_name = [i for i in os.listdir(label_dir) if i.endswith(".csv")][0]
         label_path = os.path.join(label_dir, file_name)
 
-        dataset = read_leap(label_path, positions=False, rotations=True)
+        dataset = read_leap(label_path, positions=False, rotations=True, visualisation=True)
+        dataset.drop(columns=["time_leap","timestamp"], inplace=True, errors="ignore")
         self.joint_names = dataset.columns.tolist()
+
+        print(self.joint_names)
+        print(len(self.joint_names))
         self.params.jointNames = self.joint_names
         print("started visualisation with {} data points".format(len(dataset)))
         print("press enter to exit")
+
         for i in range(0, len(dataset)):
             angles = dataset.iloc[i].tolist()
             # self.params.angles = angles
@@ -115,23 +120,54 @@ class HandLeap(HandBase):
 
     def run_from_loader(self, cfg, sleep_time=0.001, dataloader=None):
         if dataloader is None:
-            dataloader = make_exp_dataset(cfg, save=False)
+            dataloader = build_dataloader(cfg, save=False)
+            dataloader = dataloader['train']
+            dc = dataloader.dataset.dataset
         print("started visualisation with {} data points".format(len(dataloader)))
-        self.joint_names = dataloader.dataset.dataset.label_columns
+        self.joint_names = list(dc.label_columns)
         self.params.jointNames = self.joint_names
         data_iter = iter(dataloader)
         for i in range(0, len(dataloader)):
             data, leap_data, gesture = next(data_iter)
             for j in range(0, len(leap_data)):
-                print(gesture[j])
-                angles = leap_data[j].tolist()
+                print(dc.gesture_names_mapping_class[gesture[0][j].item()])
+                # print(leap_data.shape)
+                angles = leap_data[j,0, :].tolist()
                 self.update(angles, self.unity_comms)
                 #  exit when enter is pressed
                 if input() == "q":
                     return
                 time.sleep(sleep_time)
 
+    def run_from_df(self, cfg, sleep_time=0.001, df=None):
+        from hpe.util import read_emg
+        import pandas as pd
+        emg_path = "/Users/rufaelmarew/Documents/tau/finger_pose_estimation/dataset/emgleap/003/S1/P3/fpe_pos3_028_S1_rep0_BT.edf"
+        leap_path = "/Users/rufaelmarew/Documents/tau/finger_pose_estimation/dataset/emgleap/003/S1/P3/fpe_pos3_028_S1_rep0_BT_full.csv"
+        emg_data = read_emg_v1(emg_path)
+        leap_data = read_leap(leap_path, visualisation=True, positions=False, rotations=True)
+        emg_columns = emg_data.columns.tolist()
+        leap_columns = build_leap_columns(full=True)
 
+        #  merge leap and emg data
+        merged = pd.merge_asof(emg_data, leap_data, left_index=True, right_index=False, right_on='time', direction='backward', tolerance=pd.to_timedelta(10, unit='ms'))
+        merged.drop(columns=["time_leap","timestamp"], inplace=True, errors="ignore")
+        merged.dropna(inplace=True)
+
+        # take the first gesture group
+        merged = merged.groupby('gesture')
+        for gesture, group in merged:
+            merged = group
+            break
+        # drop null values
+
+        self.joint_names = leap_columns
+        self.params.jointNames = self.joint_names
+        for i in range(0, len(merged)):
+            angles = merged.iloc[i][leap_columns].tolist()
+            print(merged.iloc[i]['gesture'])
+            self.update(angles, self.unity_comms)
+            time.sleep(sleep_time)
 class HandEMG(HandBase):
     def __init__(self):
         pass
@@ -227,19 +263,23 @@ HAND_MODES = {
 def make_hands(mode):
     return HAND_MODES[mode]()
 
-def main(cfg, data_loader=None):
+def main(cfg):
     hands = HandLeap(cfg)
     hands.reset()
-    # hands.run_from_loader(cfg, sleep_time=0.01, dataloader=data_loader)
-    hands.run_from_csv(cfg)
+    hands.run_from_loader(cfg, sleep_time=0.01)
+    # hands.run_from_df(cfg, sleep_time=0.01)
+    # hands.run_from_csv(cfg) 
     # hands.read_csv(cfg, sleep_time=0.01, data_loader=data_loader)
 
 if __name__ == "__main__":
 
     cfg.SOLVER.LOG_DIR = os.path.join(cfg.SOLVER.LOG_DIR, cfg.MODEL.NAME)
     cfg.DATA.EXP_SETUP = 'exp0'
-    cfg.DATA.PATH = './dataset/FPE/003/S2/P1'
+    cfg.DATA.PATH = './dataset/emgleap/003/S1/P1'
+    cfg.DATA.SEGMENT_LENGTH = 100
+    cfg.DATA.STRIDE = 20
     cfg.DEBUG = False
+    cfg.VISUALIZE.LABEL_PATH = './dataset/emgleap/003/S1/P1/'
     # dataloaders = build_dataloader(cfg, save=False)
 
     main(cfg)
