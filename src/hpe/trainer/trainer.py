@@ -40,6 +40,13 @@ class EmgNet(pl.LightningModule):
         self.backbone = build_backbone(cfg).to(self.device)
         self.loss_fn = make_loss(cfg)
         self.criterion = torch.nn.MSELoss()
+
+        self.plot_output = 10
+        self.train_step_output = []
+        self.validation_step_output = []
+        self.validation_step_taregt = []
+        self.test_step_output = []
+
         self.save_hyperparameters()
 
 
@@ -69,6 +76,9 @@ class EmgNet(pl.LightningModule):
         labels = labels.to(self.device)
 
         outputs, losses = self.forward(inputs, labels)
+        if self.current_epoch % self.plot_output == 0:
+            self.validation_step_output.append(outputs)
+            self.validation_step_taregt.append(labels)
         # loss = self.criterion(outputs, labels[:,-1,:])
         loss_dict = {i: v for i, v in zip(self.loss_fn.keypoints, losses[0])}
         self.log_dict({'val_loss': losses[1], **loss_dict})
@@ -82,9 +92,49 @@ class EmgNet(pl.LightningModule):
         outputs, losses = self.forward(inputs, labels)
         # loss = self.criterion(outputs, labels[:,-1,:])
         loss_dict = {i: v for i, v in zip(self.cfg.DATA.LABEL_COLUMNS,losses[0])}
+        self.test_step_output.append(losses[0])
         self.log_dict({'test_loss': losses[1], **loss_dict})
         return losses[1]
+    
+    def on_test_end(self) -> None:
+        #  plot the scalar values of the logger as bar chart
+        fig, ax = plt.subplots(1, 1, figsize=(20,5))
+        #  stack the values
+        out = torch.stack(self.test_step_output, dim=0).mean(dim=0)
+        #  bar plot the values
+        ax.bar(range(len(out)), out)
+        #  set xticks to be the cfg.label_columns
+        ax.set_xticks(range(len(out)))
+        ax.set_xticklabels(self.cfg.DATA.LABEL_COLUMNS, rotation=45)
 
+        self.logger.experiment.add_figure('final results', fig, self.current_epoch)
+
+
+    def on_validation_epoch_end(self) -> None:
+        # plot a sample output
+        from matplotlib import pyplot as plt 
+        
+        if len(self.validation_step_output)!=0 and len(self.validation_step_output[0].shape) < 3 and self.current_epoch % self.plot_output == 0:
+            pred = torch.concatenate(self.validation_step_output, dim=0).view(-1, self.validation_step_output[0].shape[-1])
+            target = torch.concatenate(self.validation_step_taregt, dim=0)[:,0,:].view(-1, self.validation_step_taregt[0].shape[-1])
+            fingers = ['thumb', 'index', 'middle', 'ring', 'pinky']
+
+            fig, ax = plt.subplots(fingers.__len__(), 1, figsize=(20,10))
+
+            #  compute average for each finger
+            for i, c in enumerate(fingers):
+                idx = [j for j in range(len(self.loss_fn.keypoints)) if c in self.loss_fn.keypoints[j].lower()]
+                ax[i].plot(pred[:,idx].mean(dim=1))
+                ax[i].plot(target[:,idx].mean(dim=1))
+                ax[i].set_title(c)
+                #  show legend only for the first plot
+                if i == 0:
+                    ax[i].legend(['pred', 'target'])
+            self.logger.experiment.add_figure('validation sample', fig, self.current_epoch)
+
+        self.validation_step_taregt = []
+        self.validation_step_output = []
+        
     def makegrid(output,numrows):
         outer=(torch.Tensor.cpu(output).detach())
         plt.figure(figsize=(20,5))

@@ -120,7 +120,7 @@ class HandLeap(HandBase):
 
     def run_from_loader(self, cfg, sleep_time=0.001, dataloader=None):
         if dataloader is None:
-            dataloader = build_dataloader(cfg, save=False)
+            dataloader = build_dataloader(cfg, save=False, shuffle=True)
             dataloader = dataloader['train']
             dc = dataloader.dataset.dataset
         print("started visualisation with {} data points".format(len(dataloader)))
