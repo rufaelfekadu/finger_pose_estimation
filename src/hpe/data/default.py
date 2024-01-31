@@ -12,6 +12,10 @@ from hpe.data.transforms import make_transform
 
 exp_setups = {
 
+    'exp_all':{
+        'train': ['S1/P1', 'S1/P2', 'S1/P3', 'S1/P4'],
+    },
+
     'exp0': None,
 
     'pretrain':{
@@ -20,7 +24,7 @@ exp_setups = {
     },
 
     'exp1': {
-        'train': ['S1/p4', 'S1/p2'],
+        'train': ['S1/P1', 'S1/P2', 'S1/P3'],
         'test': ['S1/p1']
     },
 

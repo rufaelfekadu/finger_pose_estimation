@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Define variables
+exp_setup="exp0"
 data_path="./dataset/emgleap/003/S1/P3"
 model="neuropose"
 stage="train"
@@ -10,8 +11,9 @@ log_dir='outputs/neuropose'
 
 python main.py --config $config \
     --opts \
-    DATA.PATH $data_path \
     STAGE $stage \
+    DATA.PATH $data_path \
+    DATA.EXP_SETUP $exp_setup \
     MODEL.NAME $model \
     SOLVER.BATCH_SIZE 32 \
     SOLVER.NUM_EPOCHS 300 \

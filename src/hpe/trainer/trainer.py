@@ -77,8 +77,8 @@ class EmgNet(pl.LightningModule):
 
         outputs, losses = self.forward(inputs, labels)
         if self.current_epoch % self.plot_output == 0:
-            self.validation_step_output.append(outputs)
-            self.validation_step_taregt.append(labels)
+            self.validation_step_output.append(outputs.detach().cpu())
+            self.validation_step_taregt.append(labels.detach().cpu())
         # loss = self.criterion(outputs, labels[:,-1,:])
         loss_dict = {i: v for i, v in zip(self.loss_fn.keypoints, losses[0])}
         self.log_dict({'val_loss': losses[1], **loss_dict})
@@ -92,7 +92,7 @@ class EmgNet(pl.LightningModule):
         outputs, losses = self.forward(inputs, labels)
         # loss = self.criterion(outputs, labels[:,-1,:])
         loss_dict = {i: v for i, v in zip(self.cfg.DATA.LABEL_COLUMNS,losses[0])}
-        self.test_step_output.append(losses[0])
+        self.test_step_output.append(losses[0].detach().cpu())
         self.log_dict({'test_loss': losses[1], **loss_dict})
         return losses[1]
     
