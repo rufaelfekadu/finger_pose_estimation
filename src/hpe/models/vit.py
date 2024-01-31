@@ -132,7 +132,7 @@ class ViT(nn.Module):
 
     def forward(self, x):
         #  input x: (batch_size, frames, C)
-        x = x.reshape(x.shape[0], 1, x.shape[1], 4, 4) # (batch_size, 1, frames, height, width)
+        x = x.view(x.shape[0], 1, x.shape[1], 4, 4) # (batch_size, 1, frames, height, width)
         #  shape of x: (batch_size, 1, frames, height, width)
         x = self.to_patch_embedding(x) # (batch_size, n, dim) where n = fram_path_size*patch_size**2
         b, n, _ = x.shape

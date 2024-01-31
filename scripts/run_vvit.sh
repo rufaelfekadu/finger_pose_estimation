@@ -5,7 +5,7 @@ data_path="./dataset/emgleap/003/S1/P3"
 model="vit"
 stage="train"
 config="config.yaml"
-log_dir='outputs/vit'
+log_dir='outputs/vvit'
 
 
 python main.py --config $config \
@@ -14,5 +14,5 @@ python main.py --config $config \
     STAGE $stage \
     MODEL.NAME $model \
     SOLVER.BATCH_SIZE 32 \
-    SOLVER.NUM_EPOCHS 100 \
+    SOLVER.NUM_EPOCHS 300 \
     SOLVER.LOG_DIR $log_dir \
