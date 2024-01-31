@@ -71,7 +71,7 @@ class BoundedActivation(nn.Module):
       
 # Construct a model with 3 conv layers 3 residual blocks and 3 deconv layers using the ResNet architecture
 class NeuroPose(nn.Module):
-    def __init__(self, in_channels=1, num_residual_blocks=3, output_shape=(1000,20)):
+    def __init__(self, in_channels=1, num_residual_blocks=3, output_shape=(1000,16)):
         super(NeuroPose, self).__init__()
         
         encoder_channels = [in_channels, 32, 128, 256]
@@ -115,9 +115,11 @@ class NeuroPose(nn.Module):
     
     def forward(self, x):
         # shape of x: (batch_size, in_channels, seq_length, num_joints)
+        x = x.unsqueeze(1)
         x = self.encoder(x)
         x = self.resnet(x)
         x = self.decoder(x)
+        x = x.squeeze(1)
         return x
     
     #load from pretrained weights
@@ -136,7 +138,7 @@ def make_neuropose(cfg):
     return model
 
 if __name__ == '__main__':
-    model = NeuroPose()
+    model = NeuroPose(output_shape=(1000, 16))
     print(model)
-    x = torch.randn(1, 1, 1000, 24)
+    x = torch.randn(1, 1000, 16)
     print(model(x).shape)
