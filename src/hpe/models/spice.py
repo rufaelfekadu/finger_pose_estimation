@@ -1,28 +1,242 @@
 import torch
-import torch.nn as nn
-import torchvision.models as models
+from torch import nn
 
-class ContrastiveModel(nn.Module):
-    def __init__(self, num_classes):
-        super(ContrastiveModel, self).__init__()
-        self.backbone = models.resnet50(pretrained=False)
-        self.backbone.fc = nn.Identity()  # Remove the last fully connected layer
+from einops import rearrange, repeat
+from einops.layers.torch import Rearrange
+import torch.nn.functional as F
+
+from hpe.config import cfg
+
+
+attn_before_softmax = []
+attn_after_softmax = []
+# helpers
+
+def pair(t):
+    return t if isinstance(t, tuple) else (t, t)
+
+ 
+
+# classes
+class FeedForward(nn.Module):
+    def __init__(self, dim, hidden_dim, dropout = 0.):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.LayerNorm(dim),
+            nn.Linear(dim, hidden_dim),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim, dim),
+            nn.Dropout(dropout)
+        )
+    def forward(self, x):
+        return self.net(x)
+
+class Attention(nn.Module):
+    def __init__(self, dim, heads = 8, dim_head = 64, dropout = 0.):
+        super().__init__()
+        inner_dim = dim_head *  heads
+        project_out = not (heads == 1 and dim_head == dim)
+
+        self.heads = heads
+        self.scale = dim_head ** -0.5
+
+        self.norm = nn.LayerNorm(dim)
+        self.attend = nn.Softmax(dim = -1)
+        self.dropout = nn.Dropout(dropout)
+
+        self.to_qkv = nn.Linear(dim, inner_dim * 3, bias = False)
+
+        self.to_out = nn.Sequential(
+            nn.Linear(inner_dim, dim),
+            nn.Dropout(dropout)
+        ) if project_out else nn.Identity()
 
     def forward(self, x):
-        # x.shape = (batch_size, 1, 4, 4)
-        features_1 = self.backbone(x[0])
-        features_2 = self.backbone(x[1])
-        embeddings_1 = self.projection_head(features_1)
-        embeddings_2 = self.projection_head(features_2)
+        x = self.norm(x)
+        qkv = self.to_qkv(x).chunk(3, dim = -1)
+        q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h = self.heads), qkv)
 
-        return features_1, features_2, embeddings_1, embeddings_2
+        dots = torch.matmul(q, k.transpose(-1, -2)) * self.scale
 
+        attn = self.attend(dots)
+        attn = self.dropout(attn)
+
+        out = torch.matmul(attn, v)
+        out = rearrange(out, 'b h n d -> b n (h d)')
+        return self.to_out(out)
+
+class Transformer(nn.Module):
+    def __init__(self, dim, depth, heads, dim_head, mlp_dim, dropout = 0.):
+        super().__init__()
+        self.layers = nn.ModuleList([])
+        for _ in range(depth):
+            self.layers.append(nn.ModuleList([
+                Attention(dim, heads = heads, dim_head = dim_head, dropout = dropout),
+                FeedForward(dim, mlp_dim, dropout = dropout)
+            ]))
+    def forward(self, x, return_attn=False):
+        
+        for attn_layer, ff_layer in self.layers:
+            x = attn_layer(x)
+            x = ff_layer(x)
+        return x
+
+class BoundedActivation(nn.Module):
+    def __init__(self, label_dim, 
+                 a_values = [0, -15, 0, -15, 0, -15, 0, 0, -15, 0, 0, -15, 0, 0, -15, 0], 
+                 b_values = [90, 15 , 90, 15, 90, 15, 110, 90, 15, 110, 90, 15, 110, 90, 15, 110]):
+        super(BoundedActivation, self).__init__()
+        assert len(a_values) == len(b_values) == label_dim, "Length of a_values and b_values must be equal and equal to label_dim"
+        self.a_values = nn.Parameter(torch.Tensor(a_values).view(1, -1))
+        self.b_values = nn.Parameter(torch.Tensor(b_values).view(1, -1))
+        self.act = nn.Sigmoid()
+
+    def forward(self, x):
+        return self.act(x) * (self.b_values - self.a_values) + self.a_values
+
+class PatchEmbedding(nn.Module):
+    def __init__(self, image_size, patch_size, embed_dim=768, patch_dim='space'):
+        super().__init__()
+        image_height, image_width = pair(image_size)
+        patch_height, patch_width = pair(patch_size)
+        num_patches = (image_height // patch_height) * (image_width // patch_width) 
+        patch_out_dim = patch_height * patch_width
+
+        self.patch_height = patch_height
+        self.patch_width = patch_width
+        self.num_patches = num_patches
+        self.patch_dim = patch_dim
+
+        if patch_dim == 'space':
+            self.reag = Rearrange('b c f (h p1) (w p2) -> b (h w) ( f p1 p2 c)', p1 = patch_height, p2 = patch_width)
+        elif patch_dim == 'time':
+            self.reag = Rearrange('b c (f pf) (h) (w) -> b f (c pf h w)', p1 = patch_height, p2 = patch_width)
+        elif patch_dim == 'space_time':
+            self.reag = Rearrange('b c f (h p1) (w p2) -> b (f h w) (p1 p2 c)', p1 = patch_height, p2 = patch_width)
+        else:
+            raise ValueError(f'Unknown patch_dim {patch_dim}')
+
+        self.projection = nn.Sequential(
+            Rearrange('b c (h p1) (w p2) -> b (h w) (p1 p2 c)', p1 = patch_height, p2 = patch_width),
+            nn.Linear(patch_out_dim, embed_dim),
+        )
+    def forward(self, x):
+        return self.projection(x)
+    
+class SpiceViT(nn.Module):
+    def __init__(self, *, image_size, image_patch_size, frames, num_classes, dim, depth, heads, mlp_dim, pool = 'cls', channels = 3, dim_head = 64, dropout = 0., emb_dropout = 0.):
+        super().__init__()
+        image_height, image_width = pair(image_size)
+        patch_height, patch_width = pair(image_patch_size)
+
+        assert image_height % patch_height == 0 and image_width % patch_width == 0, 'Image dimensions must be divisible by the patch size.'
+
+        num_patches = (image_height // patch_height) * (image_width // patch_width) 
+        patch_dim = channels * patch_height * patch_width * frames
+
+        assert pool in {'cls', 'mean'}, 'pool type must be either cls (cls token) or mean (mean pooling)'
+
+        self.to_patch_embedding = nn.Sequential(
+            Rearrange('b c f (h p1) (w p2) -> b (h w) (p1 p2 f c)', p1 = patch_height, p2 = patch_width),
+            nn.LayerNorm(patch_dim),
+            nn.Linear(patch_dim, dim),
+            nn.LayerNorm(dim),
+        )
+
+        self.pos_embedding = nn.Parameter(torch.randn(1, num_patches + 1, dim))
+        self.cls_token = nn.Parameter(torch.randn(1, 1, dim))
+        self.dropout = nn.Dropout(emb_dropout)
+
+        self.transformer = Transformer(dim, depth, heads, dim_head, mlp_dim, dropout)
+
+        self.pool = pool
+        self.to_latent = nn.Identity()
+
+        self.mlp_head = nn.Sequential(
+            nn.LayerNorm(dim),
+            nn.Linear(dim, num_classes),
+            # BoundedActivation(num_classes)
+        )
+    
+    def patch_time(self, x):
+
+        pass
+
+    def patch_space(self, x):
+        pass
+
+    def patch_space_time(self, x):
+        pass
+
+    def _forward_space(self, x):
+        pass
+    
+    def _forward_time(self, x):
+        pass
+
+    def forward(self, x):
+        #  input x: (batch_size, frames, C)
+        x = x.view(x.shape[0], 1, x.shape[1], 4, 4) # (batch_size, 1, frames, height, width)
+        #  shape of x: (batch_size, 1, frames, height, width)
+        x = self.to_patch_embedding(x) # (batch_size, n, dim) where n = fram_path_size*patch_size**2
+        b, n, _ = x.shape
+
+        cls_tokens = repeat(self.cls_token, '1 1 d -> b 1 d', b = b) # (batch_size, 1, dim)
+        x = torch.cat((cls_tokens, x), dim=1)
+        x += self.pos_embedding[:, :(n + 1)] # (batch_size, n+1, dim)
+        x = self.dropout(x)
+
+        x = self.transformer(x)
+        
+
+        x = x.mean(dim = 1) if self.pool == 'mean' else x[:, 0]
+
+        x = self.to_latent(x)
+        return self.mlp_head(x)
+    
+    def load_pretrained(self, path):
+
+        print(f'Loading pretrained model from {path}')
+        pretrained_dict = torch.load(path, map_location=torch.device('cpu'))['model_state_dict']
+        model_dict = self.state_dict()
+
+        pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
+        
+        model_dict.update(pretrained_dict) 
+        self.load_state_dict(model_dict)
+        print('Pretrained model loaded')
+
+
+def make_vit(cfg):
+    return ViT(
+        image_size = 4,
+        image_patch_size = 2,
+        frames = cfg.DATA.SEGMENT_LENGTH,
+        num_classes = len(cfg.DATA.LABEL_COLUMNS),
+        dim = 2048,
+        depth = 4,
+        heads = 4,
+        mlp_dim = 2048,
+        dropout = 0.,
+        emb_dropout = 0.,
+        channels=1,
+        pool='mean'
+    )
+
+def vis_atten(module, input, output):
+    global attn_before_softmax, attn_after_softmax
+    attn_before_softmax.append(input[0].detach().cpu())
+    attn_after_softmax.append(output.detach().cpu())
+    
+    
 
 if __name__ == "__main__":
-    model = ContrastiveModel(num_classes=128)
-    x = torch.randn(2, 1, 4, 4)
-    features_1, features_2, embeddings_1, embeddings_2 = model(x)
-    print(features_1.shape)
-    print(features_2.shape)
-    print(embeddings_1.shape)
-    print(embeddings_2.shape)
+    cfg.DATA.SEGMENT_LENGTH =  100
+    cfg.DATA.LABEL_COLUMNS = [i for i in range(16)]
+
+    in_data = torch.rand(1,cfg.DATA.SEGMENT_LENGTH,4,4)
+    model = make_vit(cfg)
+    
+    out = model(in_data)
+    print(out.shape)

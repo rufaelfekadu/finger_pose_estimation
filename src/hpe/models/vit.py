@@ -127,7 +127,7 @@ class ViT(nn.Module):
         self.mlp_head = nn.Sequential(
             nn.LayerNorm(dim),
             nn.Linear(dim, num_classes),
-            BoundedActivation(num_classes)
+            # BoundedActivation(num_classes)
         )
 
     def forward(self, x):
@@ -169,10 +169,10 @@ def make_vit(cfg):
         image_patch_size = 2,
         frames = cfg.DATA.SEGMENT_LENGTH,
         num_classes = len(cfg.DATA.LABEL_COLUMNS),
-        dim = 512,
-        depth = 12,
-        heads = 8,
-        mlp_dim = 128,
+        dim = 2048,
+        depth = 4,
+        heads = 4,
+        mlp_dim = 2048,
         dropout = 0.,
         emb_dropout = 0.,
         channels=1,
@@ -191,7 +191,7 @@ if __name__ == "__main__":
     cfg.DATA.LABEL_COLUMNS = [i for i in range(16)]
 
     in_data = torch.rand(1,cfg.DATA.SEGMENT_LENGTH,4,4)
-    model = make_TS_transformer(cfg)
+    model = make_vit(cfg)
     
     out = model(in_data)
     print(out.shape)
