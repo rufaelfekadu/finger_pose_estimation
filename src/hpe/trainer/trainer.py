@@ -92,8 +92,6 @@ class EmgNet(pl.LightningModule):
         outputs, losses = self.forward(inputs, labels)
         # compute the 90% percentile of the loss
         loss = self.criterion(outputs, labels[:,-1,:])
-        
-
 
         loss_dict = {i: v for i, v in zip(self.cfg.DATA.LABEL_COLUMNS,losses[0])}
         self.test_step_output.append(losses[0].detach().cpu())
@@ -105,6 +103,14 @@ class EmgNet(pl.LightningModule):
         fig, ax = plt.subplots(1, 1, figsize=(20,5))
         #  stack the values
         out = torch.stack(self.test_step_output, dim=0).mean(dim=0)
+        fingers = ['thumb', 'index', 'middle', 'ring', 'pinky']
+        for i, c in enumerate(fingers):
+            idx = [j for j in range(len(self.loss_fn.keypoints)) if c in self.loss_fn.keypoints[j].lower()]
+            ax.bar(idx, out[idx], label=c)
+            #  set xticks to be the cfg.label_columns
+        ax.set_xticks(range(len(out)))
+        ax.set_xticklabels(self.cfg.DATA.LABEL_COLUMNS, rotation=45)
+        ax.legend()
         #  bar plot the values
         ax.bar(range(len(out)), out)
         #  set xticks to be the cfg.label_columns

@@ -12,11 +12,10 @@ log_dir='outputs/transformer'
 python main.py --config $config \
     --opts \
     STAGE $stage \
-    DATA.PATH $data_path \
     DATA.EXP_SETUP $exp_setup \
     MODEL.NAME $model \
     SOLVER.BATCH_SIZE 32 \
-    SOLVER.NUM_EPOCHS 300 \
+    SOLVER.NUM_EPOCHS 500 \
     SOLVER.LOG_DIR $log_dir \
 
 
