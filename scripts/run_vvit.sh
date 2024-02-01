@@ -3,7 +3,7 @@
 # Define variables
 exp_setup="exp0"
 data_path="./dataset/emgleap/003/S1/P3"
-model="vit"
+model="vvit"
 stage="train"
 config="config.yaml"
 log_dir='outputs/vvit'

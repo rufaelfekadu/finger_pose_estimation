@@ -11,6 +11,7 @@ from hpe.config import cfg
 from hpe.util import read_manus, read_leap, build_leap_columns,read_emg_v1
 from hpe.data import make_exp_dataset, build_dataloader
 from hpe.models import build_backbone
+from hpe.trainer import EmgNet
 import numpy as np
 
 @dataclass
@@ -179,15 +180,15 @@ class HandEMG(HandBase):
         pass   
 
 class Hands:
-    def __init__(self, cfg, model=None, data_loader=None):
+    def __init__(self, cfg):
         
         self.unity_comms = UnityComms(cfg.VISUALIZE.PORT)
 
         self.handPrediction = HandLeap(hand_name="Prediction")
         self.handLabel = HandLeap(hand_name="Label")
-        self.mode = cfg.VISUALIZE.MODE
-        self.model = model
-        self.data_loader = data_loader
+        self.mode = cfg.VISUALIZE.MODEL
+        self.model = EmgNet(cfg)
+        self.model.load_from_checkpoint(cfg.SOLVER.PRETRAINED_PATH, map_location=torch.device('cpu'))
 
     def update(self, keypoints: Any):
         print(len(keypoints[0]), len(keypoints[1]))
@@ -249,6 +250,9 @@ class Hands:
                     return
                 time.sleep(sleep_time)
 
+    def run_from_pretrained(self, cfg, sleep_time=1):
+        #  forward pass on pretrained model
+        pass
     #  TODO: implement this  
     def run_online(self, cfg, model, model_path, sleep_time=1):
         model.load_pretrained(model_path)
