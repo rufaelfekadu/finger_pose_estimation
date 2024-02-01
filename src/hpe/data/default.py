@@ -74,7 +74,7 @@ def get_dirs_for_exp(cfg):
 
 def make_exp_dataset(cfg,):
 
-    if not cfg.DATA.EXP_SETUP or cfg.DATA.EXP_SETUP == 'exp0':
+    if not cfg.DATA.EXP_SETUP or cfg.DATA.EXP_SETUP in ['exp0', 'exp1', 'exp_all']:
         #  do default train val test split
         dataset = make_dataset(cfg)
         print(f'Running experiment setup {cfg.DATA.EXP_SETUP}')
