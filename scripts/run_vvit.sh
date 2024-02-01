@@ -15,7 +15,6 @@ python main.py --config $config \
     DATA.PATH $data_path \
     DATA.EXP_SETUP $exp_setup \
     MODEL.NAME $model \
-    SOLVER.LR 0.00001 \
     SOLVER.BATCH_SIZE 32 \
     SOLVER.NUM_EPOCHS 300 \
     SOLVER.LOG_DIR $log_dir \

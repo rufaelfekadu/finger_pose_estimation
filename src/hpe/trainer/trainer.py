@@ -39,7 +39,7 @@ class EmgNet(pl.LightningModule):
 
         self.backbone = build_backbone(cfg).to(self.device)
         self.loss_fn = make_loss(cfg)
-        self.criterion = torch.nn.MSELoss()
+        self.criterion = torch.nn.L1Loss()
 
         self.plot_output = 10
         self.train_step_output = []
@@ -90,7 +90,11 @@ class EmgNet(pl.LightningModule):
         labels = labels.to(self.device)
 
         outputs, losses = self.forward(inputs, labels)
-        # loss = self.criterion(outputs, labels[:,-1,:])
+        # compute the 90% percentile of the loss
+        loss = self.criterion(outputs, labels[:,-1,:])
+        
+
+
         loss_dict = {i: v for i, v in zip(self.cfg.DATA.LABEL_COLUMNS,losses[0])}
         self.test_step_output.append(losses[0].detach().cpu())
         self.log_dict({'test_loss': losses[1], **loss_dict})
