@@ -1,14 +1,14 @@
 #!/bin/bash
 
 # Define variables
-exp_setup="exp0"
+exp_setup=$1
 data_path="./dataset/emgleap/003/S1/P3"
 model="transformer"
 stage="train"
 config="config.yaml"
 log_dir='outputs/transformer'
 
-
+echo "Running $model $exp_setup"
 python main.py --config $config \
     --opts \
     STAGE $stage \

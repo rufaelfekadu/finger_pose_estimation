@@ -11,7 +11,7 @@ do
   then
     # execute the script
     chmod +x "$script"
-    echo "Executing $script"
-    "$script"
+    echo "Executing $script $1"
+    "$script" $1
   fi
 done

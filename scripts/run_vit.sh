@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define variables
-exp_setup="exp0"
+exp_setup=$1
 data_path="./dataset/emgleap/003/S1/P3"
 model="vit"
 stage="train"
