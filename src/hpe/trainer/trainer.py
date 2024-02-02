@@ -32,7 +32,7 @@ class EmgNet(pl.LightningModule):
         super().__init__()
         
         self.cfg = cfg
-        dataloaders = build_dataloader(cfg)
+        dataloaders = build_dataloader(cfg, shuffle=True, visualize=False)
         self.train_loader = dataloaders['train']
         self.val_loader = dataloaders['val']
         self.test_loader = dataloaders['test']
