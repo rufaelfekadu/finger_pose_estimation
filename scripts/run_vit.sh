@@ -14,7 +14,7 @@ python main.py --config $config \
     STAGE $stage \
     DATA.EXP_SETUP $exp_setup \
     MODEL.NAME $model \
-    SOLVER.LR 0.00001 \
+    SOLVER.LR 0.001 \
     SOLVER.BATCH_SIZE 32 \
     SOLVER.NUM_EPOCHS 500 \
     SOLVER.LOG_DIR $log_dir \

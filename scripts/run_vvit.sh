@@ -16,4 +16,5 @@ python main.py --config $config \
     MODEL.NAME $model \
     SOLVER.BATCH_SIZE 32 \
     SOLVER.NUM_EPOCHS 500 \
+    SOLVER.LR 0.001 \
     SOLVER.LOG_DIR $log_dir \
