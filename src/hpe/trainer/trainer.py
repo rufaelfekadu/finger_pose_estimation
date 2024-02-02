@@ -49,7 +49,6 @@ class EmgNet(pl.LightningModule):
 
         self.save_hyperparameters()
 
-
     def forward(self, x, target=None):
         x = self.backbone(x)
         if target is not None:
@@ -97,6 +96,12 @@ class EmgNet(pl.LightningModule):
         self.test_step_output.append(losses[0].detach().cpu())
         self.log_dict({'test_loss': losses[1], **loss_dict})
         return losses[1]
+    
+    def on_train_epoch_end(self) -> None:
+        #  plot the graph of the model
+        if(self.current_epoch==1):
+            sampleImg=torch.rand(1,self.cfg.DATA.SEGMENT_LENGTH,16, device=self.device)
+            self.logger.experiment.add_graph(self.backbone,sampleImg)
     
     def on_test_end(self) -> None:
         #  plot the scalar values of the logger as bar chart

@@ -202,7 +202,7 @@ class EMGLeap(BaseDataset):
             event.set()
         else:
             event.wait()
-            
+
         #  drop null enries
         # merged_df.dropna(inplace=True)
 
@@ -280,7 +280,7 @@ if __name__ == '__main__':
 
     kwargs = {
         'data_path': './dataset/emgleap/003/S1',
-        'seq_len': 150,
+        'seq_len': 200,
         'num_channels': 16,
         # filter info
         'filter_data': True,
@@ -289,13 +289,14 @@ if __name__ == '__main__':
         'Q': 30,
         'low_freq': 20,
         'high_freq': 55,
-        'stride': 10,
+        'stride': 4,
         'data_source': 'emg',
         'ica': False,
-        'transform': None,
+        'transform': train_transform,
         'target_transform': None,
         'visualize': False
     }
 
     dataset = EMGLeap(kwargs=kwargs)
+    dataset.save_dataset('./dataset/emgleap/003/S1/dataset_segment_200_stride_4.pth')
     print(dataset.data.shape)
