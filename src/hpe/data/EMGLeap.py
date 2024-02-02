@@ -7,7 +7,7 @@ from sklearn.decomposition import FastICA
 from sklearn.preprocessing import LabelEncoder
 import numpy as np
 import matplotlib.pyplot as plt
-from threading import Thread, Lock
+from threading import Thread, Lock, Event
 import json
 from torchvision import transforms
 
@@ -58,11 +58,12 @@ class EMGLeap(BaseDataset):
         self.label_encoder = LabelEncoder()
         self.label_encoder_class = LabelEncoder()
         lock = Lock()
+        event = Event()
         #  read the data
         self.data, self.label, self.gestures, self.gesture_label = [], [], [], []
         for i in range(len(edf_files)):
             print(f'Reading data from {edf_files[i]} and {csv_files[i]}')
-            thread = Thread(target=self.prepare_data, args=(edf_files[i], csv_files[i], results, i, lock))
+            thread = Thread(target=self.prepare_data, args=(edf_files[i], csv_files[i], results, i, lock, event))
             threads[i] = thread
 
         for i in range(len(edf_files)):
@@ -179,7 +180,7 @@ class EMGLeap(BaseDataset):
         # Concatenate the strided arrays into a single array and return it
         return np.concatenate(strided_arrays, axis=0)
     
-    def prepare_data(self, data_path, label_path, results={}, index=0, lock=None):
+    def prepare_data(self, data_path, label_path, results={}, index=0, lock=None, event=None):
 
         data =  DATA_SOURCES['emg'](data_path)
         label = DATA_SOURCES['leap'](label_path, rotations=True, positions=False, visualisation=self.visualize)
@@ -188,19 +189,20 @@ class EMGLeap(BaseDataset):
 
         # label encoder for gesture
         
-        lock.acquire()
-        try:
-            if index == 0:
-                self.label_encoder.fit(merged_df['gesture'].unique())
-                self.label_encoder_class.fit(merged_df['gesture_class'].unique())
-                self.gesture_names_mapping = {i: gesture for i, gesture in enumerate(self.label_encoder.classes_)}
-                self.gesture_names_mapping_class = {i: gesture for i, gesture in enumerate(self.label_encoder_class.classes_)}
-            else:
-                # wait for the first thread to finish
-                pass
-        finally:
-            lock.release()
-
+        if index == 0:
+            lock.acquire()
+            try:
+                    self.label_encoder.fit(merged_df['gesture'].unique())
+                    self.label_encoder_class.fit(merged_df['gesture_class'].unique())
+                    self.gesture_names_mapping = {i: gesture for i, gesture in enumerate(self.label_encoder.classes_)}
+                    self.gesture_names_mapping_class = {i: gesture for i, gesture in enumerate(self.label_encoder_class.classes_)}
+                
+            finally:
+                lock.release()
+            event.set()
+        else:
+            event.wait()
+            
         #  drop null enries
         # merged_df.dropna(inplace=True)
 
