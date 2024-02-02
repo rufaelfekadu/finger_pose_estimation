@@ -28,9 +28,10 @@ class PlotSample(callbacks.Callback):
 
 class EmgNet(pl.LightningModule):
 
-    def __init__(self, cfg, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__()
-        
+        #  get cfg from kwargs
+        cfg = kwargs['cfg']
         self.cfg = cfg
         dataloaders = build_dataloader(cfg, shuffle=True, visualize=False)
         self.train_loader = dataloaders['train']
@@ -119,6 +120,9 @@ class EmgNet(pl.LightningModule):
 
         self.logger.experiment.add_figure('final results', fig, self.current_epoch)
 
+        #  save the model
+        
+
 
     def on_validation_epoch_end(self) -> None:
         # plot a sample output
@@ -191,7 +195,7 @@ class EmgNet(pl.LightningModule):
                 'frequency': 1
             }
         }
-    
+
     def train_dataloader(self):
         return self.train_loader
 

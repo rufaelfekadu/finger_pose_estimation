@@ -169,6 +169,9 @@ class HandLeap(HandBase):
             print(merged.iloc[i]['gesture'])
             self.update(angles, self.unity_comms)
             time.sleep(sleep_time)
+        
+    
+    
 class HandEMG(HandBase):
     def __init__(self):
         pass
@@ -184,20 +187,23 @@ class Hands:
         
         self.unity_comms = UnityComms(cfg.VISUALIZE.PORT)
 
-        self.handPrediction = HandLeap(hand_name="Prediction")
-        self.handLabel = HandLeap(hand_name="Label")
-        self.mode = cfg.VISUALIZE.MODEL
-        self.model = EmgNet(cfg)
-        self.model.load_from_checkpoint(cfg.SOLVER.PRETRAINED_PATH, map_location=torch.device('cpu'))
+        self.handPrediction = HandLeap(cfg, hand_name="Prediction")
+        self.handLabel = HandLeap(cfg, hand_name="Label")
+
+        self.fingers = ["Thumb", "Index", "Middle", "Ring", "Pinky"]
+
+        self.model = EmgNet.load_from_checkpoint(cfg.SOLVER.PRETRAINED_PATH, map_location=torch.device('cpu'))
+        self.model.eval()
 
     def update(self, keypoints: Any):
         print(len(keypoints[0]), len(keypoints[1]))
+
+        self.handLabel.params.jointNames = self.joint_columns
+        self.handPrediction.params.jointNames = self.joint_columns
+
         self.handPrediction.update(keypoints[0], self.unity_comms)
         self.handLabel.update(keypoints[1], self.unity_comms)
         
-    def reset(self):
-        self.handPrediction.__init__()
-        self.handLabel.__init__()
 
     def run_from_csv(self, cfg, sleep_time=1):
         label_path = cfg.VISUALIZE.LABEL_PATH
@@ -244,7 +250,7 @@ class Hands:
             output = self.model(data.unsqueeze(0))
             for j in range(0, len(label)):
                 print(gesture[j])
-                self.update((output.tolist()[0], label[j].tolist()))
+                self.update((label[j].tolist(), output.tolist()[0]))
                 #  exit when enter is pressed
                 if input() == "q":
                     return
@@ -252,7 +258,63 @@ class Hands:
 
     def run_from_pretrained(self, cfg, sleep_time=1):
         #  forward pass on pretrained model
-        pass
+
+        # forward pass on pretrained model
+        self.joint_columns = self.model.train_dataloader().dataset.dataset.label_columns
+        mapping = self.model.train_dataloader().dataset.dataset.gesture_names_mapping_class
+        data_iter = iter(self.model.train_dataloader())
+        with torch.no_grad():
+            for i in range(0, len(self.model.train_dataloader())):
+                data, label, gesture = next(data_iter)
+                output, loss = self.model(data)
+                for j in range(0, len(label)):
+                    print(mapping[gesture[0][j].item()])
+                    
+                    name_xt, pred_xt = self.get_full_hand(output.tolist()[j],self.joint_columns)
+                    _, label_xt = self.get_full_hand(label[j,-1, :].tolist(), self.joint_columns)
+
+                    # concatinate the  lists
+                    angles = (output.tolist()[0]+pred_xt, label[j,-1, :].tolist()+label_xt)
+                    self.joint_columns= self.joint_columns+name_xt
+
+                    self.update(angles)
+                    #  exit when enter is pressed
+                    if input() == "q":
+                        return
+                    time.sleep(sleep_time)
+    @staticmethod           
+    def get_full_hand(data, cols):
+        names_to_append = []
+        values_to_append = []
+
+        #  append dip joints 
+        for i, v in zip(data, cols):
+            if "_PIP_Flex" in v:
+                if 'Thumb' in v:
+                    names_to_append.append(v.replace("_PIP_Flex", "_DIP_Flex"))
+                    values_to_append.append(i*(0.5))
+                else:
+                    names_to_append.append(v.replace("_PIP_Flex", "_DIP_Flex"))
+                    values_to_append.append(i*(2/3))
+
+        start_pos = {
+            "Thumb": -40,
+            "Index": -10,
+            "Middle": 0,
+            "Ring": 10,
+            "Pinky": 20
+        }
+        
+        #  append tmc joints
+        for i in ['Thumb', 'Index', 'Middle', 'Ring', 'Pinky']:
+            names_to_append.append(f"{i}_TMC_Flex")
+            values_to_append.append(0)
+            names_to_append.append(f"{i}_TMC_Adb")
+            values_to_append.append(start_pos[i])
+        
+        #  concatinate and return data and columns
+        return names_to_append, values_to_append
+    
     #  TODO: implement this  
     def run_online(self, cfg, model, model_path, sleep_time=1):
         model.load_pretrained(model_path)
@@ -268,22 +330,23 @@ def make_hands(mode):
     return HAND_MODES[mode]()
 
 def main(cfg):
-    hands = HandLeap(cfg)
-    hands.reset()
-    hands.run_from_loader(cfg, sleep_time=0.01)
+    hands = Hands(cfg)
+    # hands.run_from_loader(cfg, sleep_time=0.01)
+    hands.run_from_pretrained(cfg, sleep_time=0.01)
     # hands.run_from_df(cfg, sleep_time=0.01)
     # hands.run_from_csv(cfg) 
     # hands.read_csv(cfg, sleep_time=0.01, data_loader=data_loader)
 
 if __name__ == "__main__":
 
-    cfg.SOLVER.LOG_DIR = os.path.join(cfg.SOLVER.LOG_DIR, cfg.MODEL.NAME)
-    cfg.DATA.EXP_SETUP = 'exp0'
-    cfg.DATA.PATH = './dataset/emgleap/003/S1'
-    cfg.DATA.SEGMENT_LENGTH = 100
-    cfg.DATA.STRIDE = 10
-    cfg.DEBUG = False
-    cfg.VISUALIZE.LABEL_PATH = './dataset/emgleap/003/S1/P1/'
+    # cfg.SOLVER.LOG_DIR = os.path.join(cfg.SOLVER.LOG_DIR, cfg.MODEL.NAME)
+    # cfg.DATA.EXP_SETUP = 'exp0'
+    # cfg.DATA.PATH = './dataset/emgleap/003/S1'
+    # cfg.DATA.SEGMENT_LENGTH = 100
+    # cfg.DATA.STRIDE = 10
+    # cfg.DEBUG = False
+    # cfg.VISUALIZE.LABEL_PATH = './dataset/emgleap/003/S1/P1/'
+    cfg.merge_from_file("config.yaml")
     # dataloaders = build_dataloader(cfg, save=False)
 
     main(cfg)

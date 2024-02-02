@@ -35,6 +35,7 @@ def main(cfg):
         model = EmgNetClassifier(cfg=cfg)
     else:
         # Build trainer
+        
         model = EmgNet(cfg=cfg)
     
 

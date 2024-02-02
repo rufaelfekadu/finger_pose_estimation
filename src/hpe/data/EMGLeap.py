@@ -147,6 +147,7 @@ class EMGLeap(BaseDataset):
         print("-----------------Dataset specs-----------------")
         print(f"Number of examples: {self.data.shape[0]}")
         print(f"Sequence length: {self.seq_len}")
+        print(f"Stride: {self.stride}")
         print(f"Number of channels: {self.data.shape[2]}")
         print(f"Number of gestures: {self.gestures.max().item()+1}")
         print(f"Number of classes: {len(self.label_columns)}")
