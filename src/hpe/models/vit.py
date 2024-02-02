@@ -173,8 +173,8 @@ def make_vit(cfg):
         depth = 4,
         heads = 4,
         mlp_dim = 2048,
-        dropout = 0.5,
-        emb_dropout = 0.,
+        dropout = 0.25,
+        emb_dropout = 0.5,
         channels=1,
         pool='mean'
     )
