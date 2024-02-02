@@ -29,7 +29,7 @@ class BaseDataset(Dataset):
         self.high_freq = kwargs['high_freq']
         self.ica = kwargs['ica']
         
-        self.transform = kwargs['transform'] and  not kwargs['visualize']
+        self.transform = kwargs['transform'] 
         self.target_transform = kwargs['target_transform']
         self.visualize = kwargs['visualize']
 
