@@ -135,8 +135,6 @@ class EMGLeap(BaseDataset):
         # data['time_diff'] = (data.index - data['time_leap']).dt.total_seconds()
         # data.drop(columns=['timestamp', 'frame_id', 'time_leap'], inplace=True)
 
-        #  drop null enries
-        data.dropna(inplace=True)
 
         #  reorder columns to have gesture at the end
         if 'gesture' in data.columns:
@@ -146,17 +144,17 @@ class EMGLeap(BaseDataset):
 
     def print_dataset_specs(self):
         print("-----------------Dataset specs-----------------")
-        # print(f"Number of examples: {self.data.shape[0]}")
-        # print(f"Sequence length: {self.seq_len}")
-        # print(f"Number of channels: {self.data.shape[2]}")
-        # print(f"Number of gestures: {self.gestures.max().item()+1}")
-        # print(f"Number of classes: {len(self.label_columns)}")
-        # print(f"Label columns: {self.label_columns}")
+        print(f"Number of examples: {self.data.shape[0]}")
+        print(f"Sequence length: {self.seq_len}")
+        print(f"Number of channels: {self.data.shape[2]}")
+        print(f"Number of gestures: {self.gestures.max().item()+1}")
+        print(f"Number of classes: {len(self.label_columns)}")
+        print(f"Label columns: {self.label_columns}")
 
     @staticmethod
-    def interpolate_missing_values(data):
+    def interpolate_missing_values(self, data):
         #  drop group if count of nulls > 30%
-        return data.groupby('gesture').filter(lambda x: x.isnull().sum()['Middle_MCP_Flex'] < 300).apply(lambda x: x.fillna(x.mean()))
+        return data.groupby('gesture').filter(lambda x: x.isnull().sum()[self.label_columns[0]] < 300 ).apply(lambda x: x.fillna(x.mean()))
 
     @staticmethod
     def discritise_data(data, seq_len=150, stride=5):
@@ -184,11 +182,12 @@ class EMGLeap(BaseDataset):
     def prepare_data(self, data_path, label_path, results={}, index=0, lock=None):
 
         data =  DATA_SOURCES['emg'](data_path)
-        label = DATA_SOURCES['leap'](label_path, rotations=True, positions=False)
+        label = DATA_SOURCES['leap'](label_path, rotations=True, positions=False, visualisation=self.visualize)
 
         merged_df = self.merge_data(data, label)
 
         # label encoder for gesture
+        
         lock.acquire()
         try:
             if index == 0:
@@ -196,18 +195,28 @@ class EMGLeap(BaseDataset):
                 self.label_encoder_class.fit(merged_df['gesture_class'].unique())
                 self.gesture_names_mapping = {i: gesture for i, gesture in enumerate(self.label_encoder.classes_)}
                 self.gesture_names_mapping_class = {i: gesture for i, gesture in enumerate(self.label_encoder_class.classes_)}
+            else:
+                # wait for the first thread to finish
+                pass
         finally:
             lock.release()
+
+        #  drop null enries
+        # merged_df.dropna(inplace=True)
+
         merged_df['gesture'] = self.label_encoder.transform(merged_df['gesture'])
         merged_df['gesture_class'] = self.label_encoder_class.transform(merged_df['gesture_class'])
 
         #  interpolate missing values
-        # merged_df = self.interpolate_missing_values(merged_df)
+        merged_df = self.interpolate_missing_values(self,merged_df)
 
         # apply transform to emg data
         if self.transform:
-            merged_df[self.data_columns] = self.transform(merged_df[self.data_columns].values)
-
+            lock.acquire()
+            try:
+                merged_df[self.data_columns] = self.transform(merged_df[self.data_columns].values)
+            finally:
+                lock.release()
         merged_df = merged_df[self.columns]
 
         #  discritise data
@@ -268,7 +277,7 @@ if __name__ == '__main__':
     ])
 
     kwargs = {
-        'data_path': './dataset/emgleap/003/S1/P1',
+        'data_path': './dataset/emgleap/003/S1',
         'seq_len': 150,
         'num_channels': 16,
         # filter info
@@ -278,11 +287,12 @@ if __name__ == '__main__':
         'Q': 30,
         'low_freq': 20,
         'high_freq': 55,
-        'stride': 50,
+        'stride': 10,
         'data_source': 'emg',
         'ica': False,
         'transform': None,
         'target_transform': None,
+        'visualize': False
     }
 
     dataset = EMGLeap(kwargs=kwargs)

@@ -34,7 +34,7 @@ exp_setups = {
     },
 }
 
-def make_args(cfg):
+def make_args(cfg, visualize=False):
     data_args = {
                 'data_path': cfg.DATA.PATH,
                 'seq_len':cfg.DATA.SEGMENT_LENGTH,
@@ -49,7 +49,7 @@ def make_args(cfg):
                 'ica': cfg.DATA.ICA,
                 'transform': make_transform(cfg),
                 'target_transform': None,
-                'visualize': False,
+                'visualize': visualize,
             }
     return data_args
 
@@ -72,11 +72,11 @@ def get_dirs_for_exp(cfg):
     return train_dirs, test_dirs
 
 
-def make_exp_dataset(cfg,):
+def make_exp_dataset(cfg,visualize=False):
 
     if not cfg.DATA.EXP_SETUP or cfg.DATA.EXP_SETUP in ['exp0', 'exp1', 'exp_all']:
         #  do default train val test split
-        dataset = make_dataset(cfg)
+        dataset = make_dataset(cfg, visualize=visualize)
         print(f'Running experiment setup {cfg.DATA.EXP_SETUP}')
     else:
 
@@ -140,7 +140,7 @@ def train_val_test(dataset, val_split=0.3, test_split=None):
     return datasets
 
 
-def make_dataset(cfg):
+def make_dataset(cfg, visualize=False):
 
     save_path = os.path.join(cfg.DATA.PATH, f'dataset_segment_{cfg.DATA.SEGMENT_LENGTH}_stride_{cfg.DATA.STRIDE}.pth')
     if os.path.isfile(save_path):
@@ -152,7 +152,7 @@ def make_dataset(cfg):
         if cfg.DEBUG:
             dataset = None
         else:
-            args = make_args(cfg)
+            args = make_args(cfg, visualize=visualize)
             dataset = EMGLeap(kwargs=args)
             dataset.save_dataset(save_path=save_path)
             cfg.DATA.LABEL_COLUMNS = dataset.label_columns
@@ -174,9 +174,9 @@ def make_dataset(cfg):
     print(f"shape of label : {dataset['train'].dataset.label.shape}")
     return dataset
 
-def build_dataloader(cfg, save=False, shuffle=True):
+def build_dataloader(cfg, save=False, shuffle=True, visualize=False):
 
-    dataset = make_exp_dataset(cfg)
+    dataset = make_exp_dataset(cfg, visualize=visualize)
 
     #save train and val datasets
     if save:

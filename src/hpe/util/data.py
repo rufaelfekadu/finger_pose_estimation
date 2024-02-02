@@ -332,9 +332,10 @@ def read_leap(path, fs=250, positions=False, rotations=True, visualisation=False
 
     leap_df = pd.read_csv(path, index_col=False)
     if visualisation:
+        pass
         # drop null and duplicates
-        leap_df.dropna(inplace=True)
-        leap_df.drop_duplicates(inplace=True, subset=['time'])
+        # leap_df.dropna(inplace=True)
+        # leap_df.drop_duplicates(inplace=True, subset=['time'])
 
     leap_df['time'] = pd.to_datetime(leap_df['time'])
     leap_df['time'] = leap_df['time'].dt.tz_localize(None)

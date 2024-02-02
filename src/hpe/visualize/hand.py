@@ -121,7 +121,7 @@ class HandLeap(HandBase):
 
     def run_from_loader(self, cfg, sleep_time=0.001, dataloader=None):
         if dataloader is None:
-            dataloader = build_dataloader(cfg, save=False, shuffle=True)
+            dataloader = build_dataloader(cfg, save=False, shuffle=False, visualize=True)
             dataloader = dataloader['train']
             dc = dataloader.dataset.dataset
         print("started visualisation with {} data points".format(len(dataloader)))
@@ -279,9 +279,9 @@ if __name__ == "__main__":
 
     cfg.SOLVER.LOG_DIR = os.path.join(cfg.SOLVER.LOG_DIR, cfg.MODEL.NAME)
     cfg.DATA.EXP_SETUP = 'exp0'
-    cfg.DATA.PATH = './dataset/emgleap/003/S1/P1'
+    cfg.DATA.PATH = './dataset/emgleap/003/S1'
     cfg.DATA.SEGMENT_LENGTH = 100
-    cfg.DATA.STRIDE = 20
+    cfg.DATA.STRIDE = 10
     cfg.DEBUG = False
     cfg.VISUALIZE.LABEL_PATH = './dataset/emgleap/003/S1/P1/'
     # dataloaders = build_dataloader(cfg, save=False)
