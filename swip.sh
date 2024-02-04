@@ -12,7 +12,7 @@ do
     do
       # execute the script
       echo "Executing $model $subject $pose"
-      "train.sh" $subject $pose $model
+      bash "train.sh" $subject $pose $model
     done
   done
 done 
