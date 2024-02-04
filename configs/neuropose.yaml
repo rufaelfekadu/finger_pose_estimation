@@ -3,7 +3,7 @@
 STAGE: 'train'
 DATA:
   PATH: ./dataset/emgleap/003/S1
-  SEGMENT_LENGTH: 200
+  SEGMENT_LENGTH: 1000
   STRIDE: 4
   FILTER: True
   EXP_SETUP: 'exp0'
@@ -15,7 +15,7 @@ MODEL:
 SOLVER:
     BATCH_SIZE: 32
     NUM_EPOCHS: 500
-    LR: 0.001
+    LR: 0.0001
     WEIGHT_DECAY: 0.0001
     OPTIMIZER: 'adam'
     METRIC: 'MAE'
