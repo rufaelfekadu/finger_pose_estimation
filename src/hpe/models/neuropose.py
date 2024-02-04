@@ -10,6 +10,7 @@ class ResidualBlock(nn.Module):
             nn.Conv2d(in_channels, out_channels, kernel_size=(3,3), stride=(1,1), padding=(1,1)),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(),
+            nn.Dropout(0.2),
         )
     def forward(self, x):
         return x + self.block(x)
@@ -22,6 +23,7 @@ class EncoderLayer(nn.Module):
             nn.Conv2d(in_channels, out_channels, kernel_size=(3,2), stride=(1,1), padding=(2,1)),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(),
+            nn.Dropout(0.2),
             nn.MaxPool2d(kernel_size=(3,3), stride=scale_factor),
         )
     def forward(self, x):
@@ -46,6 +48,7 @@ class DecoderLayer(nn.Module):
             nn.ConvTranspose2d(in_channels, out_channels, kernel_size=(3,2), stride=(1,1)),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(),
+            nn.Dropout(0.2),
         )
         if last:
             self.decoder.append(nn.Upsample(size=output_shape, mode='bilinear', align_corners=False))
