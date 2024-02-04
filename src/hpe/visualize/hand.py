@@ -258,13 +258,20 @@ class Hands:
 
     def run_from_pretrained(self, cfg, sleep_time=1):
         #  forward pass on pretrained model
+        dataloader = self.model.test_dataloader()
+        # Assuming 'dataloader' is your existing DataLoader
+        dataset = dataloader.dataset
+        batch_size = dataloader.batch_size
+        num_workers = dataloader.num_workers
+        # Create a new DataLoader with shuffle set to False
+        dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
 
         # forward pass on pretrained model
-        self.joint_columns = self.model.train_dataloader().dataset.dataset.label_columns
-        mapping = self.model.train_dataloader().dataset.dataset.gesture_names_mapping_class
-        data_iter = iter(self.model.train_dataloader())
+        self.joint_columns = dataloader.dataset.dataset.label_columns
+        mapping = dataloader.dataset.dataset.gesture_names_mapping_class
+        data_iter = iter(dataloader)
         with torch.no_grad():
-            for i in range(0, len(self.model.train_dataloader())):
+            for i in range(0, len(dataloader)):
                 data, label, gesture = next(data_iter)
                 output, loss = self.model(data)
                 for j in range(0, len(label)):
@@ -274,13 +281,13 @@ class Hands:
                     _, label_xt = self.get_full_hand(label[j,-1, :].tolist(), self.joint_columns)
 
                     # concatinate the  lists
-                    angles = (output.tolist()[0]+pred_xt, label[j,-1, :].tolist()+label_xt)
-                    self.joint_columns= self.joint_columns+name_xt
+                    angles = (pred_xt, label_xt)
+                    self.joint_columns= name_xt
 
                     self.update(angles)
                     #  exit when enter is pressed
-                    if input() == "q":
-                        return
+                    # if input() == "q":
+                    #     return
                     time.sleep(sleep_time)
     @staticmethod           
     def get_full_hand(data, cols):
@@ -291,11 +298,18 @@ class Hands:
         for i, v in zip(data, cols):
             if "_PIP_Flex" in v:
                 if 'Thumb' in v:
-                    names_to_append.append(v.replace("_PIP_Flex", "_DIP_Flex"))
-                    values_to_append.append(i*(0.5))
+                    continue
                 else:
                     names_to_append.append(v.replace("_PIP_Flex", "_DIP_Flex"))
                     values_to_append.append(i*(2/3))
+            if "Thumb_MCP_Flex" in v:
+                names_to_append.append("Thumb_DIP_Flex")
+                values_to_append.append(i*(0.5))
+            # update to accomodate the initial value
+                
+            if "Thumb_TMC_Adb" in v:
+                idx = data.index(i)
+                data[idx] = data[idx] - 40
 
         start_pos = {
             "Thumb": -40,
@@ -306,14 +320,14 @@ class Hands:
         }
         
         #  append tmc joints
-        for i in ['Thumb', 'Index', 'Middle', 'Ring', 'Pinky']:
+        for i in ['Index', 'Middle', 'Ring', 'Pinky']:
             names_to_append.append(f"{i}_TMC_Flex")
             values_to_append.append(0)
             names_to_append.append(f"{i}_TMC_Adb")
             values_to_append.append(start_pos[i])
         
         #  concatinate and return data and columns
-        return names_to_append, values_to_append
+        return cols+names_to_append, data+values_to_append
     
     #  TODO: implement this  
     def run_online(self, cfg, model, model_path, sleep_time=1):
@@ -332,7 +346,7 @@ def make_hands(mode):
 def main(cfg):
     hands = Hands(cfg)
     # hands.run_from_loader(cfg, sleep_time=0.01)
-    hands.run_from_pretrained(cfg, sleep_time=0.01)
+    hands.run_from_pretrained(cfg, sleep_time=1.5)
     # hands.run_from_df(cfg, sleep_time=0.01)
     # hands.run_from_csv(cfg) 
     # hands.read_csv(cfg, sleep_time=0.01, data_loader=data_loader)
