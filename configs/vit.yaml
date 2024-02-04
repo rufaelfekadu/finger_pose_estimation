@@ -2,7 +2,7 @@
 STAGE: 'train'
 DATA:
   PATH: ./dataset/emgleap/003/S1
-  SEGMENT_LENGTH: 200
+  SEGMENT_LENGTH: 20
   STRIDE: 4
   FILTER: True
   EXP_SETUP: 'exp0'
