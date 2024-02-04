@@ -12,7 +12,7 @@ do
     do
       # execute the script
       echo "Executing $model $subject $pose"
-      "$dir/train.sh" $subject $pose $model
+      "train.sh" $subject $pose $model
     done
   done
 done 
