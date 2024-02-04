@@ -181,9 +181,9 @@ class EmgNet(pl.LightningModule):
     def configure_optimizers(self):
         opt = self.cfg.SOLVER.OPTIMIZER.lower()
         if opt == 'adam':
-            optimizer = optim.Adam(self.backbone.parameters(), lr=self.cfg.SOLVER.LR)
+            optimizer = optim.Adam(self.backbone.parameters(), lr=self.cfg.SOLVER.LR, weight_decay=self.cfg.SOLVER.WEIGHT_DECAY)
         elif opt == 'sgd':
-            optimizer = optim.SGD(self.backbone.parameters(), lr=self.cfg.SOLVER.LR, momentum=0.9)
+            optimizer = optim.SGD(self.backbone.parameters(), lr=self.cfg.SOLVER.LR, momentum=0.9, weight_decay=self.cfg.SOLVER.WEIGHT_DECAY)
         else:
             raise NotImplementedError(f'Optimizer {opt} not implemented')
         return {
