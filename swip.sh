@@ -2,7 +2,7 @@
 
 # specify the directory containing the scripts
 dir="./scripts"
-data_dir="./dataset/emgleap"
+data_dir="./dataset/ds"
 
 for subject in "003" "004" "005"
 do

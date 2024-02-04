@@ -91,7 +91,7 @@ class EmgNet(pl.LightningModule):
 
         outputs, losses = self.forward(inputs, labels)
         # compute the 90% percentile of the loss
-        loss = self.criterion(outputs, labels[:,-1,:])
+        # loss = self.criterion(outputs, labels[:,-1,:])
 
         loss_dict = {i: v for i, v in zip(self.cfg.DATA.LABEL_COLUMNS,losses[0])}
         self.test_step_output.append(losses[0].detach().cpu())
