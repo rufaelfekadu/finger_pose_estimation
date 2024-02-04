@@ -4,7 +4,7 @@
 dir="./scripts"
 data_dir="./dataset/emgleap"
 
-for subject in "001" "002" "003"
+for subject in "003" "004" "005"
 do
   for pose in "P1" "P2" "P3"
   do

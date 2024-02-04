@@ -8,7 +8,7 @@ exp_setup="exp0"
 data_path="./dataset/emgleap/"$subject"/S1/"$pose
 stage="train"
 config="configs/"$model".yaml"
-log_dir='outputs/'$model'/'$exp_setup'/'$subject'/'$pose
+log_dir='outputs/'$exp_setup'/'$model'/'$subject'/'$pose
 
 
 python main.py --config $config \
