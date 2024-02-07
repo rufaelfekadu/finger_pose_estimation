@@ -29,7 +29,7 @@ class MLP(nn.Module):
         self.relu = nn.ReLU()
     
     def forward(self, x):
-        x = x.flatten(start_dim=1)
+        # x = x.flatten(start_dim=1)
         x = self.relu(self.fc1(x))
         x = self.relu(self.fc2(x))
         return self.fc3(x)
@@ -61,8 +61,10 @@ class TransformerModel(nn.Module):
             nn.TransformerEncoderLayer(self.d_model, self.nhead, self.d_model, self.dropout, batch_first=True),
             num_layers=self.num_layers,
         )
+
+        self.decoder = nn.Linear(self.d_model*seq_length, self.d_model*4)
         
-        self.decoder = MLP(self.d_model * seq_length, output_size)
+        self.mlp_head = MLP(self.d_model*4, output_size)
         a = [0, -15, 0, -15, 0, -15, 0, 0, -15, 0, 0, -15, 0, 0, -15, 0]
         b = [90, 15 , 90, 15, 90, 15, 110, 90, 15, 110, 90, 15, 110, 90, 15, 110]
         # self.bact = BoundedActivation(a_values=a, b_values=b, label_dim=output_size)
@@ -73,7 +75,8 @@ class TransformerModel(nn.Module):
         x = (x + self.pos_encoder(x))
         x = self.transformer_encoder(x)
         # x = x.permute(1, 0, 2)
-        x = self.decoder(x)
+        x = self.decoder(x.flatten(start_dim=1))
+        x = self.mlp_head(x)
         x.unsqueeze(1)
         # x = self.bact(x)
         return x

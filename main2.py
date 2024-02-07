@@ -3,9 +3,9 @@ import torch
 from pytorch_lightning import loggers as pl_loggers
 import pytorch_lightning as pl
 from hpe.trainer import EmgNet, EmgNetClassifier, EmgNetPretrain
-from hpe.data import build_dataloader
-from hpe.models import build_model
-from hpe.config import cfg, to_dict
+
+from hpe.config import cfg
+from hpe.util import prepare_data
 import argparse
 import os
 
@@ -24,43 +24,53 @@ def setup_seed(seed):
 
 def main(cfg):
 
+
+    # prepare data
+    print('Preparing data')
+    prepare_data(cfg)
+
     # Build logger
     csv_logger = pl_loggers.CSVLogger(cfg.SOLVER.LOG_DIR, name='csv_logs')
     tb_logger = pl_loggers.TensorBoardLogger(cfg.SOLVER.LOG_DIR, name='tb_logs')
     early_stop_callback = pl.callbacks.EarlyStopping(monitor='val_loss', patience=cfg.SOLVER.PATIENCE)
     checkpoint_callback = pl.callbacks.ModelCheckpoint(dirpath=os.path.join(cfg.SOLVER.LOG_DIR, 'checkpoints'), monitor='val_loss', save_top_k=1, mode='min')
-    
-    if cfg.STAGE == 'pretrain':
-        # Build model
-        model = EmgNetPretrain(cfg=cfg)
-    elif cfg.STAGE == 'classifier':
-        model = EmgNetClassifier(cfg=cfg)
-    else:
-        # Build trainer
-        model = EmgNet(cfg=cfg)
-        #  load backbone from emgpretrain
-        
-    
 
-    trainer = pl.Trainer(
+    # setup model
+    cfg.STAGE = 'pretrain'
+    model = EmgNetPretrain(cfg=cfg)
 
-        max_epochs=cfg.SOLVER.NUM_EPOCHS,
-        check_val_every_n_epoch=1,
-        callbacks=[early_stop_callback, checkpoint_callback],
+    trainer_pretrain = pl.Trainer(
+        default_root_dir=os.path.join(cfg.SOLVER.LOG_DIR, 'checkpoints_pretrain'),
+        max_epochs=2,
         logger=tb_logger,
         log_every_n_steps=len(model.train_loader),
-        # resume_from_checkpoint=cfg.SOLVER.PRETRAINED_PATH,
-        # limit_train_batches=0.1,
-        # limit_val_batches=0.1,
-        # limit_test_batches=0.1,
-        # fast_dev_run=True,
+        limit_val_batches=0,
+        limit_test_batches=0,
+        limit_train_batches=0.005,
     )
 
-    # Train
-    trainer.fit(model)
+    print('Pretraining model')
+    # pretrain model
+    trainer_pretrain.fit(model)
+    trainer_pretrain.save_checkpoint(os.path.join(cfg.SOLVER.LOG_DIR, 'pretrained.ckpt'))
 
-    # test
-    trainer.test()
+    print('Finetuning model')
+    model.stage = 'finetune'
+    trainer_finetune = pl.Trainer(
+        max_epochs=cfg.SOLVER.NUM_EPOCHS,
+        logger=tb_logger,
+        check_val_every_n_epoch=1,
+        log_every_n_steps=len(model.train_loader),
+        # limit_val_batches=1,
+        # limit_test_batches=1,
+        callbacks=[early_stop_callback, checkpoint_callback]
+    )
+    # finetune model
+    trainer_finetune.fit(model)
+
+    print('Testing model')
+    # test model
+    trainer_finetune.test(model)
 
     
 

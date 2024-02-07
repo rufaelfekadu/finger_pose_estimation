@@ -21,7 +21,7 @@ class NeuroLoss(_Loss):
         if len(input.shape) == 2:
             B, C = input.shape
             target = target[:,-1,:] # only take the last time step
-            target = target.view(B,C)
+            target = target.view(B,-1)
         
         assert input.shape == target.shape, "Input and target must have the same shape"
 

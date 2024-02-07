@@ -1,6 +1,7 @@
 # Description: utility functions for finger pose estimation
 import os
 import numpy as np
+import glob
 import pandas as pd
 import mne
 from scipy import signal
@@ -11,6 +12,9 @@ from concurrent.futures import ThreadPoolExecutor
 import time
 from memory_profiler import profile
 from sklearn.preprocessing import LabelEncoder
+from sklearn.model_selection import train_test_split
+from torch.utils.data import Subset
+
 
 class ExpTimes:
     refernce_time = datetime.strptime('2023-10-02 14:59:55.627000', '%Y-%m-%d %H:%M:%S.%f')
@@ -25,6 +29,51 @@ def strided_array(arr, window_size, stride):
     shape = ((N - window_size)//stride + 1, window_size, C)
     strides = (stride*arr.strides[0], arr.strides[0], arr.strides[1])
     return np.lib.stride_tricks.as_strided(arr, shape=shape, strides=strides)
+
+
+def read_dirs(data_path):
+
+    if isinstance(data_path, str):
+        data_path = [data_path]
+    all_files = []
+    for path in data_path:
+        if not os.path.isdir(path):
+            raise ValueError(f'{path} is not a directory')
+        else:
+            print(f'Reading data from {path}')
+            all_files += [f for f in glob.glob(os.path.join(path, '**/*'), recursive=True) if os.path.splitext(f)[1] in ['.edf', '.csv']]
+    
+    edf_files = sorted([file for file in all_files if file.endswith('.edf')])
+    csv_files = sorted([file for file in all_files if file.endswith('.csv')])
+
+    return edf_files, csv_files
+
+def train_test_gesture_split(dataset, test_gestures):
+
+    train_idx = []
+    test_idx = []
+    val_idx = []
+    if len(dataset.gestures.shape) == 2:
+        g = dataset.gestures[:,-1]
+    else:
+        g = dataset.gestures
+    for idx, gesture in enumerate(g):
+
+        if 'rest' in dataset.gesture_mapping[gesture.item()]:
+            continue
+
+        elif dataset.gesture_mapping[gesture.item()] in test_gestures:
+            test_idx.append(idx)
+        
+        else:
+            train_idx.append(idx)
+            
+    val_idx, test_idx = train_test_split(test_idx, test_size=0.5, shuffle=True)
+    train_set = Subset(dataset, train_idx)
+    val_set = Subset(dataset, val_idx)
+    test_set = Subset(dataset, test_idx)
+
+    return train_set, val_set, test_set
 
 def build_manus_columns():
     fingers = ['Thumb', 'Index', 'Middle', 'Ring', 'Pinky']

@@ -1,8 +1,10 @@
 from sklearn.decomposition import FastICA
 from sklearn.preprocessing import StandardScaler
 from scipy.signal import butter, filtfilt, iirnotch, sosfiltfilt
+
 import numpy as np
 from torchvision import transforms
+import torch
 
 
 class FastICATransform:
@@ -25,6 +27,19 @@ class FastICATransform:
             self.mixing_matrix = self.fast_ica.mixing_
             return np.stack([X, X_ICA], axis=0)
 
+class JitterTransform:
+    def __init__(self, scale=1.1):
+        self.scale = scale
+    def __call__(self, X):
+        return X + X * np.random.normal(loc=0., scale=self.scale, size=X.shape)
+
+class ScalingTransform:
+    def __init__(self, scale=1.1):
+        self.scale = scale
+
+    def __call__(self, X):
+        return X + np.random.normal(loc=0., scale=self.scale, size=X.shape)
+    
 class SlidingWindowTransform:
     def __init__(self, window_size, stride):
         self.window_size = window_size
@@ -97,6 +112,37 @@ class FilterTransform:
         X = filtfilt(b_notch, a_notch, X)
 
         return X
+    
+class FrequencyTranform:
+    def __init__(self, fs, pertub_ratio=0.1):
+        self.fs = fs
+        self.pertub_ratio = pertub_ratio
+    
+    def __call__(self, X):
+        aug_1 = self.remove_frequency(X)
+        aug_2 = self.add_frequency(X)
+
+        return aug_1 + aug_2
+    
+    def remove_frequency(self, X):
+        mask = torch.FloatTensor(X.shape).uniform_() > self.pertub_ratio
+        mask = mask.to(X.device)
+        return X*mask
+    
+    def add_frequency(self, X):
+        mask = torch.FloatTensor(X.shape).uniform_() > self.pertub_ratio
+        mask = mask.to(X.device)
+        max_amplitude = torch.max(torch.abs(X))
+
+        random_am = torch.rand(mask.shape)*(max_amplitude*0.1)
+        petrub_matrix = mask*random_am
+        return X + petrub_matrix
+
+    
+def make_transform_pretrain(cfg):
+    transform_t = JitterTransform(scale=cfg.DATA.JITTER_SCALE)
+    transform_f = FrequencyTranform(fs=cfg.DATA.EMG.SAMPLING_RATE, pertub_ratio=cfg.DATA.FREQ_PERTUB_RATIO)
+    return transform_t, transform_f
 
 def make_transform(cfg):
     transform = []

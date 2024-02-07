@@ -13,9 +13,23 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from hpe.models import build_model, build_backbone
-from hpe.data import build_dataloader
-from hpe.loss import make_loss  
+# from hpe.data import build_dataloader
+from hpe.data.EmgDataset import build_dataloaders
+from hpe.loss import make_loss, NTXentLoss_poly  
 
+
+class MLP(nn.Module):
+    def __init__(self, infeatures=128, outfeatures=16):
+        super().__init__()
+        self.mlp_head = nn.Sequential(
+            nn.Linear(infeatures, 128),
+            nn.ReLU(),
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Linear(64, outfeatures))
+    def forward(self, x):
+        return self.mlp_head(x)
+        
 
 class PlotSample(callbacks.Callback):
     def __init__(self, cfg, dataloaders, device):
@@ -45,7 +59,7 @@ class EmgNet(pl.LightningModule):
         self.plot_output = 10
         self.train_step_output = []
         self.validation_step_output = []
-        self.validation_step_taregt = []
+        self.validation_step_target = []
         self.test_step_output = []
 
         self.save_hyperparameters()
@@ -78,7 +92,7 @@ class EmgNet(pl.LightningModule):
         outputs, losses = self.forward(inputs, labels)
         if self.current_epoch % self.plot_output == 0:
             self.validation_step_output.append(outputs.detach().cpu())
-            self.validation_step_taregt.append(labels.detach().cpu())
+            self.validation_step_target.append(labels.detach().cpu())
         # loss = self.criterion(outputs, labels[:,-1,:])
         loss_dict = {i: v for i, v in zip(self.loss_fn.keypoints, losses[0])}
         self.log_dict({'val_loss': losses[1], **loss_dict})
@@ -113,16 +127,12 @@ class EmgNet(pl.LightningModule):
         ax.set_xticklabels(self.cfg.DATA.LABEL_COLUMNS, rotation=45)
         ax.legend()
         #  bar plot the values
-        ax.bar(range(len(out)), out)
+        # ax.bar(range(len(out)), out)
         #  set xticks to be the cfg.label_columns
-        ax.set_xticks(range(len(out)))
-        ax.set_xticklabels(self.cfg.DATA.LABEL_COLUMNS, rotation=45)
+        # ax.set_xticks(range(len(out)))
+        # ax.set_xticklabels(self.cfg.DATA.LABEL_COLUMNS, rotation=45)
 
         self.logger.experiment.add_figure('final results', fig, self.current_epoch)
-
-        #  save the model
-        
-
 
     def on_validation_epoch_end(self) -> None:
         # plot a sample output
@@ -130,7 +140,7 @@ class EmgNet(pl.LightningModule):
         
         if len(self.validation_step_output)!=0 and len(self.validation_step_output[0].shape) < 3 and self.current_epoch % self.plot_output == 0:
             pred = torch.concatenate(self.validation_step_output, dim=0).view(-1, self.validation_step_output[0].shape[-1])
-            target = torch.concatenate(self.validation_step_taregt, dim=0)[:,0,:].view(-1, self.validation_step_taregt[0].shape[-1])
+            target = torch.concatenate(self.validation_step_target, dim=0)[:,0,:].view(-1, self.validation_step_target[0].shape[-1])
             fingers = ['thumb', 'index', 'middle', 'ring', 'pinky']
 
             fig, ax = plt.subplots(fingers.__len__(), 1, figsize=(20,10))
@@ -149,7 +159,7 @@ class EmgNet(pl.LightningModule):
                     ax[i].legend(['pred', 'target'])
             self.logger.experiment.add_figure('validation sample', fig, self.current_epoch)
 
-        self.validation_step_taregt = []
+        self.validation_step_target = []
         self.validation_step_output = []
         
     def makegrid(output,numrows):
@@ -171,13 +181,6 @@ class EmgNet(pl.LightningModule):
             i+=1
         return c
     
-    
-    # def on_train_epoch_end(self) -> None:
-    #     if(self.current_epoch==1):
-    #         sampleImg=torch.rand(1,self.cfg.DATA.SEGMENT_LENGTH,16, device=self.device)
-    #         self.logger.experiment.add_graph(self.backbone,sampleImg)
-    #     return super().on_train_epoch_end()
-
     def configure_optimizers(self):
         opt = self.cfg.SOLVER.OPTIMIZER.lower()
         if opt == 'adam':
@@ -210,7 +213,7 @@ class EmgNetClassifier(EmgNet):
         super().__init__(cfg)
         
         self.cfg = cfg
-        dataloaders = build_dataloader(cfg)
+        dataloaders = build_dataloaders(cfg)
         cfg.DATA.LABEL_COLUMNS = list(dataloaders['train'].dataset.dataset.gesture_names_mapping_class.values())
         
         self.train_loader = dataloaders['train']
@@ -272,74 +275,209 @@ class EmgNetClassifier(EmgNet):
     
 class EmgNetPretrain(pl.LightningModule):
 
-    def __init__(self, cfg, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__()
         
+        cfg = kwargs['cfg']
         self.cfg = cfg
-        cfg.DATA.ICA = True
 
-        dataloaders = build_dataloader(cfg)
+        #  setup dataloaders
+        self.stage = cfg.STAGE
+        dataloaders = build_dataloaders(cfg)
+        self.pretrain_loader = dataloaders['pretrain']
         self.train_loader = dataloaders['train']
         self.val_loader = dataloaders['val']
         self.test_loader = dataloaders['test']
+        self.test_2_loader = dataloaders['test_2']
 
-        self.backbone = build_backbone(cfg)
-        in_features = self.backbone.decoder[0].in_features
-        self.projection_head = nn.Sequential(
-            nn.Linear(in_features, 256),
+        #  setup model
+        self.backbone_t = build_backbone(cfg)
+        self.backbone_f = build_backbone(cfg)
+        infeat_t =  (self.backbone_f.d_model * 4)
+        infeat_f = (self.backbone_t.d_model * 4)
+        self.mlp = MLP(infeatures=infeat_t+infeat_f, outfeatures=len(self.cfg.DATA.LABEL_COLUMNS))
+
+        self.backbone_f.mlp_head = nn.Identity()
+        self.backbone_t.mlp_head = nn.Identity()
+            
+
+        self.projector_t = nn.Sequential(
+            nn.Linear(infeat_t, 256),
             nn.ReLU(),
             nn.Linear(256, 128)
         )
-        self.loss = make_loss(cfg)
+        self.projector_f = nn.Sequential(
+            nn.Linear(infeat_f, 256),
+            nn.ReLU(),
+            nn.Linear(256, 128)
+        )
 
-        self.optimizer = torch.optim.Adam(self.backbone.parameters(), lr=cfg.SOLVER.LR)
-        self.optimizer.add_param_group({'params': self.projection_head.parameters()})
+        # setup loss
+        self.loss = NTXentLoss_poly(batch_size=cfg.SOLVER.BATCH_SIZE, temperature=cfg.SOLVER.TEMPERATURE, device=self.device, use_cosine_similarity=True)
+        self.loss_fn = make_loss(cfg)
 
-    def forward(self, x, target=None):
-        x = self.backbone(x)
-        if target is not None:
-            loss = self.loss(x, target)
-            return x, loss
-        return x, None
+        self.plot_output = 10
+        self.validation_step_output = []
+        self.validation_step_target = []
 
-    def training_step(self, batch, batch_idx):
+        self.save_hyperparameters()
 
-        inputs, labels, gestures = batch
-        inputs = inputs.to(self.device)
-        labels = labels.to(self.device)
+    def forward(self, x_t, x_f):
 
-        inputs_x, inputs_ica = inputs
+        x = self.backbone_t(x_t)
+        h_t = x.view(x.size(0), -1)
 
-        _, loss = self.forward(inputs, labels)
-        # loss = self.criterion(outputs, labels)
+        z_t = self.projector_t(h_t)
 
-        self.log_dict({'train_loss': loss[1]})
+        f = self.backbone_f(x_f)
+        h_f = f.view(f.size(0), -1)
+
+        z_f = self.projector_f(h_f)
+        
+        return h_t, z_t, h_f, z_f
+    
+    def pretrain_step(self, batch, batch_idx):
+
+        data, aug1, data_f, aug1_f, _ = batch
+        data = data.to(self.device)
+        aug1 = aug1.to(self.device)
+        data_f = data_f.to(self.device)
+        aug1_f = aug1_f.to(self.device)
+
+        h_t, z_t, h_f, z_f = self.forward(data, data_f)
+        h_t_aug, z_t_aug, h_f_aug, z_f_aug = self.forward(aug1, aug1_f)
+
+        l_t = self.loss(h_t, h_f_aug)
+        l_f = self.loss(h_f, h_t_aug)
+        l_TF = self.loss(z_t, z_f)
+
+        l_1, l_2, l_3 = self.loss(z_t, z_f_aug), self.loss(z_t_aug, z_f), self.loss(z_t_aug, z_f_aug)
+
+        loss_c = (1 + l_TF - l_1) + (1 + l_TF - l_2) + (1 + l_TF - l_3)
+
+        lam = 0.2
+        loss = lam*(l_t + l_f) + l_TF
+
+        self.log_dict({'pretrain_loss': loss, 'pretrain_loss_t': l_t, 'pretrain_loss_f': l_f, 'pretrain_loss_TF': l_TF, 'pretrain_loss_c': loss_c} )
+        return loss
+    
+    def finetune_step(self, batch, batch_idx, stage='train'):
+        data, data_f, label, _ = batch
+        data = data.to(self.device)
+
+        t = self.backbone_t(data)
+        h_t = t.view(t.size(0), -1)
+        f = self.backbone_f(data_f)
+        h_f = f.view(f.size(0), -1)
+
+        # concatinate the features
+        h = torch.cat((h_t, h_f), dim=1)
+        pred = self.mlp(h)
+        loss = self.loss_fn(pred, label)
+
+        if self.current_epoch % self.plot_output == 0 and stage == 'val':
+            self.validation_step_output.append(pred.detach().cpu())
+            self.validation_step_target.append(label.detach().cpu())
+
+        loss_dict = {i: v for i, v in zip(self.loss_fn.keypoints, loss[0])}
+        if stage == 'val':
+            self.log_dict({f'{stage}_loss': loss[1], **loss_dict})
+        else:
+            self.log(f'{stage}_loss', loss[1])
         return loss[1]
 
-    def validation_step(self, batch, batch_idx):
-        inputs, labels, gestures = batch
-        inputs = inputs.to(self.device)
-        labels = labels.to(self.device)
-
-        outputs, losses = self.forward(inputs, labels)
-        # loss = self.criterion(outputs, labels[:,-1,:])
-        loss_dict = {i: v for i, v in zip(self.cfg.DATA.LABEL_COLUMNS,losses[0])}
-        self.log_dict({'loss': losses[1], **loss_dict}, prefix='val')
-        return losses[1]
     
-    def test_step(self, batch, batch_idx):
-        inputs, labels, gestures = batch
-        inputs = inputs.to(self.device)
-        labels = labels.to(self.device)
+    def training_step(self, batch, batch_idx):
+        if self.stage == 'pretrain':
+            return self.pretrain_step(batch, batch_idx)
+        
+        else:
+            return self.finetune_step(batch, batch_idx, stage='train')
 
-        outputs, losses = self.forward(inputs, labels)
-        # loss = self.criterion(outputs, labels[:,-1,:])
-        loss_dict = {i: v for i, v in zip(self.cfg.DATA.LABEL_COLUMNS,losses[0])}
-        self.log_dict({'loss': losses[1], **loss_dict}, prefix='test')
-        return losses[1]
+    def validation_step(self, batch, batch_idx):
+        if self.stage == 'pretrain':
+            # skip validation
+            return
+        else:
+            return self.finetune_step(batch, batch_idx, stage='val')
+    
+    def test_step(self, batch, batch_idx, dataloader_idx):
+        if self.stage == 'pretrain':
+            # skip test
+            return
+        else:
+            return self.finetune_step(batch, batch_idx, stage=f'test_{dataloader_idx}')
+    
+    def on_validation_epoch_end(self) -> None:
+        # plot a sample output
+        from matplotlib import pyplot as plt 
+        
+        if len(self.validation_step_output)!=0 and len(self.validation_step_output[0].shape) < 3 and self.current_epoch % self.plot_output == 0:
+            pred = torch.concatenate(self.validation_step_output, dim=0).view(-1, self.validation_step_output[0].shape[-1])
+            target = torch.concatenate(self.validation_step_target, dim=0)[:,0,:].view(-1, self.validation_step_target[0].shape[-1])
+            fingers = ['thumb', 'index', 'middle', 'ring', 'pinky']
 
+            fig, ax = plt.subplots(fingers.__len__(), 1, figsize=(20,10))
+            #  sample 200 non repeting values randomly or use all
+            t = min(100, pred.shape[0])
+            idx_x = torch.randperm(pred.shape[0])[:t]
+            #  compute average for each finger
+            for i, c in enumerate(fingers):
+                idx = [j for j in range(len(self.loss_fn.keypoints)) if c in self.loss_fn.keypoints[j].lower()]
+                ax[i].plot(pred[idx_x,:][:,idx].mean(dim=1))
+                ax[i].plot(target[idx_x,:][:,idx].mean(dim=1))
+                ax[i].set_title(c)
+                #  show legend only for the first plot
+                if i == 0:
+                    ax[i].legend(['pred', 'target'])
+            self.logger.experiment.add_figure('validation sample', fig, self.current_epoch)
+
+        self.validation_step_target = []
+        self.validation_step_output = []
+    
     def configure_optimizers(self):
-        return self.optimizer
+        if self.stage== 'pretrain':
+            optimizer = torch.optim.Adam(self.backbone_t.parameters(), lr=self.cfg.SOLVER.LR)
+            optimizer.add_param_group({'params': self.projector_t.parameters()})
+            optimizer.add_param_group({'params': self.backbone_f.parameters()})
+            optimizer.add_param_group({'params': self.projector_f.parameters()})
+            return {
+                'optimizer': optimizer,
+                'lr_scheduler': {
+                    'scheduler': optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=self.cfg.SOLVER.PATIENCE),
+                    'monitor': 'pretrain_loss',
+                    'interval': 'epoch',
+                    'frequency': 1
+                }
+            }
+        else:
+            optimizer = torch.optim.Adam(self.backbone_t.parameters(), lr=self.cfg.SOLVER.LR)
+            optimizer.add_param_group({'params': self.mlp.parameters()})
+            optimizer.add_param_group({'params': self.backbone_f.parameters()})
+            return {
+                'optimizer': optimizer,
+                'lr_scheduler': {
+                    'scheduler': optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=self.cfg.SOLVER.PATIENCE),
+                    'monitor': 'val_loss',
+                    'interval': 'epoch',
+                    'frequency': 1
+                }
+            }
+
 
     def train_dataloader(self):
+        if self.stage == 'pretrain':
+            return self.pretrain_loader
         return self.train_loader
+    
+    def val_dataloader(self):
+        return self.val_loader
+    
+    def test_dataloader(self):
+        test_loader_1 = self.test_loader
+        test_loader_2 = self.test_2_loader
+
+        return {
+            'test_1': test_loader_1,
+            'test_2': test_loader_2
+        }

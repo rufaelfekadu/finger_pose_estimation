@@ -299,5 +299,4 @@ if __name__ == '__main__':
     }
 
     dataset = EMGLeap(kwargs=kwargs)
-    dataset.save_dataset('./dataset/emgleap/003/S1/dataset_segment_200_stride_4.pth')
     print(dataset.data.shape)

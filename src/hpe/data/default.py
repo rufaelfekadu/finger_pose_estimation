@@ -19,8 +19,9 @@ exp_setups = {
     'exp0': None,
 
     'pretrain':{
-        'train': ['S1/p1', 'S1/p2', 'S1/p3'],
-        'test': ['S1/p3']
+        'pretrain': ['003'],
+        'train': ['004/S1/P1', '004/S1/P2', '000/S1/P3'],
+        'test': ['004/S1/P4']
     },
 
     'exp1': {
@@ -60,8 +61,12 @@ def get_dirs_for_exp(cfg):
     if cfg.DATA.EXP_SETUP not in exp_setups.keys():
         raise ValueError(f'Invalid experiment setup {cfg.DATA.EXP_SETUP}')
     
+    pretrain_dirs = []
     train_dirs = []
     test_dirs = []
+
+    for dir in exp_setups[cfg.DATA.EXP_SETUP]['pretrain']:
+        pretrain_dirs.append(os.path.join(data_path, dir))
 
     for dir in exp_setups[cfg.DATA.EXP_SETUP]['train']:
         train_dirs.append(os.path.join(data_path, dir))
@@ -69,7 +74,7 @@ def get_dirs_for_exp(cfg):
     for dir in exp_setups[cfg.DATA.EXP_SETUP]['test']:
         test_dirs.append(os.path.join(data_path, dir))
 
-    return train_dirs, test_dirs
+    return pretrain_dirs, train_dirs, test_dirs
 
 
 def make_exp_dataset(cfg,visualize=False):
@@ -80,7 +85,7 @@ def make_exp_dataset(cfg,visualize=False):
         print(f'Running experiment setup {cfg.DATA.EXP_SETUP}')
     else:
 
-        train_dirs, test_dirs = get_dirs_for_exp(cfg)
+        pretrain_dirs, train_dirs, test_dirs = get_dirs_for_exp(cfg)
         args = make_args(cfg)
 
         args['data_path'] = train_dirs
