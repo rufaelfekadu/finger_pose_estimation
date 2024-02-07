@@ -313,6 +313,7 @@ class EmgNetPretrain(pl.LightningModule):
         ).to(self.device)
 
         # setup loss
+        breakpoint()
         self.loss = NTXentLoss_poly(batch_size=cfg.SOLVER.BATCH_SIZE, temperature=cfg.SOLVER.TEMPERATURE, device=self.device, use_cosine_similarity=True)
         self.loss_fn = make_loss(cfg)
 
