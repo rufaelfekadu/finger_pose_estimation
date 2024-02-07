@@ -313,7 +313,6 @@ class EmgNetPretrain(pl.LightningModule):
         ).to(self.device)
 
         # setup loss
-        breakpoint()
         self.loss_fn = make_loss(cfg)
 
         self.plot_output = 10

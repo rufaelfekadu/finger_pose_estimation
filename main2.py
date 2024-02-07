@@ -41,7 +41,7 @@ def main(cfg):
 
     trainer_pretrain = pl.Trainer(
         default_root_dir=os.path.join(cfg.SOLVER.LOG_DIR, 'checkpoints_pretrain'),
-        max_epochs=2,
+        max_epochs=300,
         logger=tb_logger,
         log_every_n_steps=len(model.train_loader),
         limit_val_batches=0,
