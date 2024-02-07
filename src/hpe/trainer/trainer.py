@@ -364,6 +364,8 @@ class EmgNetPretrain(pl.LightningModule):
     def finetune_step(self, batch, batch_idx, stage='train'):
         data, data_f, label, _ = batch
         data = data.to(self.device)
+        data_f = data_f.to(self.device)
+        label = label.to(self.device)
 
         t = self.backbone_t(data)
         h_t = t.view(t.size(0), -1)
