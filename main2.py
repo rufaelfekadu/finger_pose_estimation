@@ -46,7 +46,7 @@ def main(cfg):
         log_every_n_steps=len(model.train_loader),
         limit_val_batches=0,
         limit_test_batches=0,
-        limit_train_batches=0.005,
+        # limit_train_batches=0.005,
     )
 
     print('Pretraining model')
