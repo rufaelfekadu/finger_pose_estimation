@@ -21,7 +21,7 @@ class EmgDataset(Dataset):
         self.training_mode = training_mode
 
         for edf_file, _ in tqdm(zip(*read_dirs(cfg.DATA.PATH))):
-            file_name = "_segment_{}_stride_{}.npz".format(self.seq_len, self.stride)
+            file_name = ".npz"
             np_file = os.path.splitext(edf_file)[0] + file_name
             if os.path.isfile(np_file):
                 # load dataset
