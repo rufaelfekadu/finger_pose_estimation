@@ -346,7 +346,7 @@ class EmgNetPretrain(pl.LightningModule):
 
         h_t, z_t, h_f, z_f = self.forward(data, data_f)
         h_t_aug, z_t_aug, h_f_aug, z_f_aug = self.forward(aug1, aug1_f)
-        
+        breakpoint()
         l_t = self.loss(h_t, h_f_aug)
         l_f = self.loss(h_f, h_t_aug)
         l_TF = self.loss(z_t, z_f)
