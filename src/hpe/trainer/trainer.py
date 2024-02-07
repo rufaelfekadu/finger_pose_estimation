@@ -477,10 +477,4 @@ class EmgNetPretrain(pl.LightningModule):
         return self.val_loader
     
     def test_dataloader(self):
-        test_loader_1 = self.test_loader
-        test_loader_2 = self.test_2_loader
-
-        return {
-            'test_1': test_loader_1,
-            'test_2': test_loader_2
-        }
+        return [self.test_loader, self.test_2_loader]
