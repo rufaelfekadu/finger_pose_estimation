@@ -136,7 +136,7 @@ def prepare_data(cfg):
     stride = cfg.DATA.STRIDE
 
     for edf_file, csv_file in tqdm(zip(*read_dirs(cfg.DATA.PATH))):
-        file_name = "_segment_{}_stride_{}.npz".format(seq_len, stride)
+        file_name = ".npz"
         np_file = os.path.splitext(edf_file)[0] + file_name
         if os.path.isfile(np_file):
             print(f'{np_file} already exists')
