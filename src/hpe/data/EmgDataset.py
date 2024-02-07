@@ -148,7 +148,7 @@ def build_dataloaders(cfg):
     cfg.DATA.PATH = test_dirs
     test_set_2 = EmgDataset(cfg, training_mode='hpe')
 
-    dataloaders['pretrain'] = torch.utils.data.DataLoader(pretrain_set, batch_size=cfg.SOLVER.BATCH_SIZE, shuffle=True)
+    dataloaders['pretrain'] = torch.utils.data.DataLoader(pretrain_set, batch_size=cfg.SOLVER.BATCH_SIZE, shuffle=True, drop_last=True)
     dataloaders['train'] = torch.utils.data.DataLoader(train_set, batch_size=cfg.SOLVER.BATCH_SIZE, shuffle=True)
     dataloaders['val'] = torch.utils.data.DataLoader(val_set, batch_size=cfg.SOLVER.BATCH_SIZE, shuffle=False)
     dataloaders['test'] = torch.utils.data.DataLoader(test_set, batch_size=cfg.SOLVER.BATCH_SIZE, shuffle=False)
