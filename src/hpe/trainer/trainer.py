@@ -291,11 +291,11 @@ class EmgNetPretrain(pl.LightningModule):
         self.test_2_loader = dataloaders['test_2']
 
         #  setup model
-        self.backbone_t = build_backbone(cfg)
-        self.backbone_f = build_backbone(cfg)
+        self.backbone_t = build_backbone(cfg).to(self.device)
+        self.backbone_f = build_backbone(cfg).to(self.device)
         infeat_t =  (self.backbone_f.d_model * 4)
         infeat_f = (self.backbone_t.d_model * 4)
-        self.mlp = MLP(infeatures=infeat_t+infeat_f, outfeatures=len(self.cfg.DATA.LABEL_COLUMNS))
+        self.mlp = MLP(infeatures=infeat_t+infeat_f, outfeatures=len(self.cfg.DATA.LABEL_COLUMNS)).to(self.device)
 
         self.backbone_f.mlp_head = nn.Identity()
         self.backbone_t.mlp_head = nn.Identity()
@@ -305,12 +305,12 @@ class EmgNetPretrain(pl.LightningModule):
             nn.Linear(infeat_t, 256),
             nn.ReLU(),
             nn.Linear(256, 128)
-        )
+        ).to(self.device)
         self.projector_f = nn.Sequential(
             nn.Linear(infeat_f, 256),
             nn.ReLU(),
             nn.Linear(256, 128)
-        )
+        ).to(self.device)
 
         # setup loss
         self.loss = NTXentLoss_poly(batch_size=cfg.SOLVER.BATCH_SIZE, temperature=cfg.SOLVER.TEMPERATURE, device=self.device, use_cosine_similarity=True)
