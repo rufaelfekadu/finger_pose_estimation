@@ -314,7 +314,6 @@ class EmgNetPretrain(pl.LightningModule):
 
         # setup loss
         breakpoint()
-        self.loss = NTXentLoss_poly(batch_size=cfg.SOLVER.BATCH_SIZE, temperature=cfg.SOLVER.TEMPERATURE, device=self.device, use_cosine_similarity=True)
         self.loss_fn = make_loss(cfg)
 
         self.plot_output = 10
@@ -347,12 +346,14 @@ class EmgNetPretrain(pl.LightningModule):
 
         h_t, z_t, h_f, z_f = self.forward(data, data_f)
         h_t_aug, z_t_aug, h_f_aug, z_f_aug = self.forward(aug1, aug1_f)
-        breakpoint()
-        l_t = self.loss(h_t, h_f_aug)
-        l_f = self.loss(h_f, h_t_aug)
-        l_TF = self.loss(z_t, z_f)
 
-        l_1, l_2, l_3 = self.loss(z_t, z_f_aug), self.loss(z_t_aug, z_f), self.loss(z_t_aug, z_f_aug)
+        nt_xent_criterion = NTXentLoss_poly(batch_size=self.cfg.SOLVER.BATCH_SIZE, temperature=self.cfg.SOLVER.TEMPERATURE, device=self.device, use_cosine_similarity=True)
+        
+        l_t = nt_xent_criterion(h_t, h_f_aug)
+        l_f = nt_xent_criterion(h_f, h_t_aug)
+        l_TF = nt_xent_criterion(z_t, z_f)
+
+        l_1, l_2, l_3 = nt_xent_criterion(z_t, z_f_aug), nt_xent_criterion(z_t_aug, z_f), nt_xent_criterion(z_t_aug, z_f_aug)
 
         loss_c = (1 + l_TF - l_1) + (1 + l_TF - l_2) + (1 + l_TF - l_3)
 
