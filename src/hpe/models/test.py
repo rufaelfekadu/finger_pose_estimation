@@ -98,7 +98,7 @@ class VViT(nn.Module):
         super().__init__()
         image_height, image_width = pair(image_size)
         patch_height, patch_width = pair(image_patch_size)
-
+        self.d_model = dim
         assert image_height % patch_height == 0 and image_width % patch_width == 0, 'Image dimensions must be divisible by the patch size.'
         assert frames % frame_patch_size == 0, 'Frames must be divisible by frame patch size'
 
@@ -147,7 +147,7 @@ class VViT(nn.Module):
         x = x.mean(dim = 1) if self.pool == 'mean' else x[:, 0]
 
         x = self.to_latent(x)
-        return self.decoder(x)
+        return x, self.decoder(x)
     
     def load_pretrained(self, path):
 
@@ -162,7 +162,7 @@ class VViT(nn.Module):
         print('Pretrained model loaded')
 
 
-def make_vvit(cfg):
+def make_test(cfg):
     return VViT(
         image_size = 4,
         image_patch_size = 2,
@@ -187,14 +187,27 @@ def vis_atten(module, input, output):
 
 if __name__ == "__main__":
     from hpe.config import cfg
-    model = make_vvit(cfg)
+    model = VViT(
+        image_size = 4,
+        image_patch_size = 2,
+        frames = 60,
+        frame_patch_size = 4,
+        num_classes = 16,
+        dim = 128,
+        depth = 4,
+        heads = 4,
+        mlp_dim = 2048,
+        dropout = 0.25,
+        emb_dropout = 0.5,
+        channels=1,
+    )
     # register hook on attention module
-    model.transformer.layers[-1][0].attend.register_forward_hook(vis_atten)
+    # model.transformer.layers[-1][0].attend.register_forward_hook(vis_atten)
     print(model)
     # Generate random input data
 
     N = 2  # Number of training examples
-    S = 150   # Sequence length
+    S = 60   # Sequence length
     C = 16   # Number of channels
     input_data = torch.randn(N, S, C)
     model.eval()
@@ -202,44 +215,4 @@ if __name__ == "__main__":
     
     print(out.shape)
 
-    #  plot attention
-    import matplotlib.pyplot as plt
-    import seaborn as sns
-    import numpy as np
-    sns.set()
-    attn_before_softmax = attn_before_softmax[0].squeeze(0)[0,:,0,1:].mean(axis=0)
-    attn_after_softmax = attn_after_softmax[0].squeeze(0)[0,:,0,1:].mean(axis=0)
 
-    # reshape to 4, 125
-    attn_before_softmax = attn_before_softmax.reshape(-1, 75)
-    # attn_after_softmax = attn_after_softmax.reshape(4, 125)
-
-    plt.figure(figsize=(10, 5))
-    # plt.grid(False)
-
-    plt.subplot(1, 2, 1)
-    plt.imshow(attn_before_softmax, aspect='auto', cmap='inferno')
-    plt.title('Attention before softmax')
-
-    # interpolate to shape 16,250 with nearest interpolation
-    # attn_before_softmax = np.repeat(attn_before_softmax, 2, axis=0)
-    # attn_before_softmax = np.repeat(attn_before_softmax, 2, axis=1)
-    # attn_before_softmax = np.repeat(attn_before_softmax, 2, axis=2)
-
-    #  interpolate using torch
-    attn_before_softmax_inter = F.interpolate(attn_before_softmax.unsqueeze(0).unsqueeze(0), scale_factor=(4, 2), mode='nearest').numpy()
-
-    plt.subplot(1, 2, 2)
-    plt.imshow(attn_before_softmax_inter.reshape(-1,150), aspect='auto', cmap='inferno')
-    plt.title('Attention before softmax')
-
-    # # plot input data
-    # plt.subplot(1, 2, 2)
-    # plt.imshow(input_data[0,:,:].reshape(16,150), aspect='auto', cmap='hot')
-    #  remove grid
-    # fig, axs = plt.subplots(1, attn_before_softmax.shape[0], figsize=(10, 10))
-    # for i in range(attn_before_softmax.shape[0]):
-    #     axs[i].imshow(attn_before_softmax[i,:].reshape(4, 125), aspect='auto')
-    #     axs[i].set_title(f'Attention before softmax for head {i}')
-    
-    plt.show()

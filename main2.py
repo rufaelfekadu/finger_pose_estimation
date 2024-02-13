@@ -55,8 +55,10 @@ def main(cfg):
     trainer_pretrain.save_checkpoint(os.path.join(cfg.SOLVER.LOG_DIR, 'pretrained.ckpt'))
 
     print('Finetuning model')
+    model = EmgNetPretrain.load_from_checkpoint(os.path.join(cfg.SOLVER.LOG_DIR, 'pretrained.ckpt'))
     model.stage = 'finetune'
     trainer_finetune = pl.Trainer(
+        
         max_epochs=cfg.SOLVER.NUM_EPOCHS,
         logger=tb_logger,
         check_val_every_n_epoch=1,

@@ -12,8 +12,8 @@ from torch.optim.optimizer import Optimizer
 import matplotlib.pyplot as plt
 import numpy as np
 
-from hpe.models import build_model, build_backbone
-# from hpe.data import build_dataloader
+from hpe.models import build_model, build_backbone, make_test
+from hpe.data import build_dataloader
 from hpe.data.EmgDataset import build_dataloaders
 from hpe.loss import make_loss, NTXentLoss_poly  
 
@@ -291,14 +291,16 @@ class EmgNetPretrain(pl.LightningModule):
         self.test_2_loader = dataloaders['test_2']
 
         #  setup model
-        self.backbone_t = build_backbone(cfg).to(self.device)
-        self.backbone_f = build_backbone(cfg).to(self.device)
-        infeat_t =  (self.backbone_f.d_model * 4)
-        infeat_f = (self.backbone_t.d_model * 4)
+        # self.backbone_t = build_backbone(cfg).to(self.device)
+        # self.backbone_f = build_backbone(cfg).to(self.device)
+        self.backbone_t = make_test(cfg).to(self.device)
+        self.backbone_f = make_test(cfg).to(self.device)
+        infeat_t =  (self.backbone_f.d_model)
+        infeat_f = (self.backbone_t.d_model)
         self.mlp = MLP(infeatures=infeat_t+infeat_f, outfeatures=len(self.cfg.DATA.LABEL_COLUMNS)).to(self.device)
 
-        self.backbone_f.mlp_head = nn.Identity()
-        self.backbone_t.mlp_head = nn.Identity()
+        # self.backbone_f.mlp_head = nn.Identity()
+        # self.backbone_t.mlp_head = nn.Identity()
             
 
         self.projector_t = nn.Sequential(
@@ -306,10 +308,12 @@ class EmgNetPretrain(pl.LightningModule):
             nn.ReLU(),
             nn.Linear(256, 128)
         ).to(self.device)
+
         self.projector_f = nn.Sequential(
             nn.Linear(infeat_f, 256),
             nn.ReLU(),
             nn.Linear(256, 128)
+
         ).to(self.device)
 
         # setup loss
@@ -323,17 +327,17 @@ class EmgNetPretrain(pl.LightningModule):
 
     def forward(self, x_t, x_f):
 
-        x = self.backbone_t(x_t)
+        x, o_t = self.backbone_t(x_t)
         h_t = x.view(x.size(0), -1)
 
         z_t = self.projector_t(h_t)
 
-        f = self.backbone_f(x_f)
+        f, o_f = self.backbone_f(x_f)
         h_f = f.view(f.size(0), -1)
 
         z_f = self.projector_f(h_f)
         
-        return h_t, z_t, h_f, z_f
+        return h_t, o_t, z_t, h_f, o_f, z_f
     
     def pretrain_step(self, batch, batch_idx):
 
@@ -343,8 +347,8 @@ class EmgNetPretrain(pl.LightningModule):
         data_f = data_f.to(self.device)
         aug1_f = aug1_f.to(self.device)
 
-        h_t, z_t, h_f, z_f = self.forward(data, data_f)
-        h_t_aug, z_t_aug, h_f_aug, z_f_aug = self.forward(aug1, aug1_f)
+        h_t, o_t, z_t, h_f, o_f, z_f = self.forward(data, data_f)
+        h_t_aug, _ , z_t_aug, h_f_aug, _, z_f_aug = self.forward(aug1, aug1_f)
 
         nt_xent_criterion = NTXentLoss_poly(batch_size=self.cfg.SOLVER.BATCH_SIZE, temperature=self.cfg.SOLVER.TEMPERATURE, device=self.device, use_cosine_similarity=True)
         
@@ -357,7 +361,7 @@ class EmgNetPretrain(pl.LightningModule):
         loss_c = (1 + l_TF - l_1) + (1 + l_TF - l_2) + (1 + l_TF - l_3)
 
         lam = 0.2
-        loss = lam*(l_t + l_f) + l_TF
+        loss = lam*(l_t + l_f) + loss_c
 
         self.log_dict({'pretrain_loss': loss, 'pretrain_loss_t': l_t, 'pretrain_loss_f': l_f, 'pretrain_loss_TF': l_TF, 'pretrain_loss_c': loss_c} )
         return loss
@@ -368,26 +372,37 @@ class EmgNetPretrain(pl.LightningModule):
         data_f = data_f.to(self.device)
         label = label.to(self.device)
 
-        t = self.backbone_t(data)
+        t, o_t = self.backbone_t(data)
         h_t = t.view(t.size(0), -1)
-        f = self.backbone_f(data_f)
+        f, o_f = self.backbone_f(data_f)
         h_f = f.view(f.size(0), -1)
+
+        #  compute the simCLR loss
+        nt_xent_criterion = NTXentLoss_poly(batch_size=self.cfg.SOLVER.BATCH_SIZE, temperature=self.cfg.SOLVER.TEMPERATURE, device=self.device, use_cosine_similarity=True)
+        l_TF = nt_xent_criterion(h_t, h_f)
+
+        #compute the time and freq loss
+        l_t = self.loss_fn(o_t, label)
+        l_f = self.loss_fn(o_f, label)
 
         # concatinate the features
         h = torch.cat((h_t, h_f), dim=1)
         pred = self.mlp(h)
-        loss = self.loss_fn(pred, label)
+        loss_c = self.loss_fn(pred, label)
+
+        #  total loss
+        l_T = l_TF[1]  + loss_c[1]
 
         if self.current_epoch % self.plot_output == 0 and stage == 'val':
             self.validation_step_output.append(pred.detach().cpu())
             self.validation_step_target.append(label.detach().cpu())
 
-        loss_dict = {i: v for i, v in zip(self.loss_fn.keypoints, loss[0])}
+        loss_dict = {i: v for i, v in zip(self.loss_fn.keypoints, loss_c[0])}
         if stage == 'val':
-            self.log_dict({f'{stage}_loss': loss[1], **loss_dict})
+            self.log_dict({f'{stage}_loss_c': loss_c[1], f'{stage}_loss_t':l_t[1], f'{stage}_loss_f':l_f[1], f'{stage}_loss_TF':l_TF, **loss_dict})
         else:
-            self.log(f'{stage}_loss', loss[1])
-        return loss[1]
+            self.log_dict({f'{stage}_loss_c': loss_c[1], f'{stage}_loss_t':l_t[1], f'{stage}_loss_f':l_f[1], f'{stage}_loss_TF':l_TF})
+        return l_T[1]
 
     
     def training_step(self, batch, batch_idx):

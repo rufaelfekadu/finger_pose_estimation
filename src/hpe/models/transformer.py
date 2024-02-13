@@ -51,8 +51,8 @@ class TransformerModel(nn.Module):
         super(TransformerModel, self).__init__()
 
         self.d_model = 128
-        self.nhead = 2
-        self.num_layers = 2
+        self.nhead = 4
+        self.num_layers = 4
         self.dropout = 0.1
 
         self.embedding = nn.Linear(input_size, self.d_model, bias=False)
@@ -62,9 +62,9 @@ class TransformerModel(nn.Module):
             num_layers=self.num_layers,
         )
 
-        self.decoder = nn.Linear(self.d_model*seq_length, self.d_model*4)
+        self.decoder = nn.Linear(self.d_model*seq_length, self.d_model)
         
-        self.mlp_head = MLP(self.d_model*4, output_size)
+        self.mlp_head = MLP(self.d_model, output_size)
         a = [0, -15, 0, -15, 0, -15, 0, 0, -15, 0, 0, -15, 0, 0, -15, 0]
         b = [90, 15 , 90, 15, 90, 15, 110, 90, 15, 110, 90, 15, 110, 90, 15, 110]
         # self.bact = BoundedActivation(a_values=a, b_values=b, label_dim=output_size)

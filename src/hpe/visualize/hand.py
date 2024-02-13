@@ -258,7 +258,7 @@ class Hands:
 
     def run_from_pretrained(self, cfg, sleep_time=1):
         #  forward pass on pretrained model
-        dataloader = self.model.test_dataloader()
+        dataloader = self.model.train_dataloader()
         # Assuming 'dataloader' is your existing DataLoader
         dataset = dataloader.dataset
         batch_size = dataloader.batch_size
