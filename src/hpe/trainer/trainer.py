@@ -382,8 +382,8 @@ class EmgNetPretrain(pl.LightningModule):
         l_TF = nt_xent_criterion(h_t, h_f)
 
         #compute the time and freq loss
-        l_t = self.loss_fn(o_t, label)
-        l_f = self.loss_fn(o_f, label)
+        # l_t = self.loss_fn(o_t, label)
+        # l_f = self.loss_fn(o_f, label)
 
         # concatinate the features
         h = torch.cat((h_t, h_f), dim=1)
@@ -399,10 +399,10 @@ class EmgNetPretrain(pl.LightningModule):
 
         loss_dict = {i: v for i, v in zip(self.loss_fn.keypoints, loss_c[0])}
         if stage == 'val':
-            self.log_dict({f'{stage}_loss_c': loss_c[1], f'{stage}_loss_t':l_t[1], f'{stage}_loss_f':l_f[1], f'{stage}_loss_TF':l_TF, **loss_dict})
+            self.log_dict({f'{stage}_loss_c': loss_c[1], f'{stage}_loss_TF':l_TF, **loss_dict})
         else:
-            self.log_dict({f'{stage}_loss_c': loss_c[1], f'{stage}_loss_t':l_t[1], f'{stage}_loss_f':l_f[1], f'{stage}_loss_TF':l_TF})
-        return l_T[1]
+            self.log_dict({f'{stage}_loss_c': loss_c[1], f'{stage}_loss_TF':l_TF})
+        return l_T
 
     
     def training_step(self, batch, batch_idx):
