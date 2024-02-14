@@ -476,7 +476,7 @@ class EmgNetPretrain(pl.LightningModule):
                 'optimizer': optimizer,
                 'lr_scheduler': {
                     'scheduler': optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=self.cfg.SOLVER.PATIENCE),
-                    'monitor': 'val_loss',
+                    'monitor': 'val_loss_c',
                     'interval': 'epoch',
                     'frequency': 1
                 }
