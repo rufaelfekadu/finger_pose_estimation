@@ -89,9 +89,10 @@ class EmgDataset(Dataset):
     def __getitem__(self, idx):
         if self.training_mode == 'pretrain':
             return self.data[idx], self.aug1_t[idx], self.data_f[idx], \
-                self.aug1_f[idx], self.gesture_class[idx]
+                self.aug1_f[idx], self.label[idx], self.gesture_class[idx], 
         else:
-            return self.data[idx], self.data_f[idx], self.label[idx], self.gesture_class[idx] 
+            return self.data[idx], self.data[idx], self.data_f[idx], \
+                self.data_f[idx], self.label[idx], self.gesture_class[idx] 
 
 
 exp_setups = {

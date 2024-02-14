@@ -298,7 +298,7 @@ class EmgNetPretrain(pl.LightningModule):
         infeat_t =  (self.backbone_f.d_model)
         infeat_f = (self.backbone_t.d_model)
         self.mlp = MLP(infeatures=infeat_t+infeat_f, outfeatures=len(self.cfg.DATA.LABEL_COLUMNS)).to(self.device)
-
+        
         # self.backbone_f.mlp_head = nn.Identity()
         # self.backbone_t.mlp_head = nn.Identity()
             
@@ -391,7 +391,7 @@ class EmgNetPretrain(pl.LightningModule):
         loss_c = self.loss_fn(pred, label)
 
         #  total loss
-        l_T = l_TF[1]  + loss_c[1]
+        l_T = l_TF  + loss_c[1]
 
         if self.current_epoch % self.plot_output == 0 and stage == 'val':
             self.validation_step_output.append(pred.detach().cpu())

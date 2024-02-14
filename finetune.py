@@ -34,27 +34,12 @@ def main(cfg):
     early_stop_callback = pl.callbacks.EarlyStopping(monitor='val_loss', patience=cfg.SOLVER.PATIENCE)
     checkpoint_callback = pl.callbacks.ModelCheckpoint(dirpath=os.path.join(cfg.SOLVER.LOG_DIR, 'checkpoints'), monitor='val_loss', save_top_k=1, mode='min')
 
-    # setup model
-    cfg.STAGE = 'pretrain'
-    model = EmgNetPretrain(cfg=cfg)
-
-    trainer_pretrain = pl.Trainer(
-        default_root_dir=os.path.join(cfg.SOLVER.LOG_DIR, 'checkpoints_pretrain'),
-        max_epochs=300,
-        logger=tb_logger,
-        log_every_n_steps=len(model.train_loader),
-        limit_val_batches=0,
-        limit_test_batches=0,
-        # limit_train_batches=0.005,
-    )
-
-    print('Pretraining model')
-    # pretrain model
-    trainer_pretrain.fit(model)
-    trainer_pretrain.save_checkpoint(os.path.join(cfg.SOLVER.LOG_DIR, 'pretrained.ckpt'))
 
     print('Finetuning model')
-    model = EmgNetPretrain.load_from_checkpoint(os.path.join(cfg.SOLVER.LOG_DIR, 'pretrained.ckpt'))
+    if os.path.isfile(os.path.join(cfg.SOLVER.LOG_DIR, 'pretrained.ckpt')):
+        model = EmgNetPretrain.load_from_checkpoint(os.path.join(cfg.SOLVER.LOG_DIR, 'pretrained.ckpt'))
+    else:
+        model = EmgNetPretrain(cfg=cfg)
     model.stage = 'finetune'
     trainer_finetune = pl.Trainer(
         
