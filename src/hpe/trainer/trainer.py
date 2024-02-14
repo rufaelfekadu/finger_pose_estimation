@@ -438,18 +438,21 @@ class EmgNetPretrain(pl.LightningModule):
             fig, ax = plt.subplots(fingers.__len__(), 1, figsize=(20,10))
             #  sample 200 non repeting values randomly or use all
             t = min(100, pred.shape[0])
-            idx_x = torch.randperm(pred.shape[0])[:t]
+            #  smaple chunk of the data with label
+
+            # idx_x = torch.randperm(pred.shape[0])[:t]
             #  compute average for each finger
             for i, c in enumerate(fingers):
                 idx = [j for j in range(len(self.loss_fn.keypoints)) if c in self.loss_fn.keypoints[j].lower()]
-                ax[i].plot(pred[idx_x,:][:,idx].mean(dim=1))
-                ax[i].plot(target[idx_x,:][:,idx].mean(dim=1))
+                ax[i].plot(pred[:t,:][:,idx].mean(dim=1))
+                ax[i].plot(target[:t,:][:,idx].mean(dim=1))
                 ax[i].set_title(c)
                 #  show legend only for the first plot
                 if i == 0:
                     ax[i].legend(['pred', 'target'])
             self.logger.experiment.add_figure('validation sample', fig, self.current_epoch)
-
+            del pred, target
+            
         self.validation_step_target = []
         self.validation_step_output = []
     
