@@ -298,7 +298,7 @@ class EmgNetPretrain(pl.LightningModule):
         infeat_t =  (self.backbone_f.d_model)
         infeat_f = (self.backbone_t.d_model)
         self.mlp = MLP(infeatures=infeat_t+infeat_f, outfeatures=len(self.cfg.DATA.LABEL_COLUMNS)).to(self.device)
-        
+
         # self.backbone_f.mlp_head = nn.Identity()
         # self.backbone_t.mlp_head = nn.Identity()
             
@@ -341,7 +341,7 @@ class EmgNetPretrain(pl.LightningModule):
     
     def pretrain_step(self, batch, batch_idx):
 
-        data, aug1, data_f, aug1_f, _ = batch
+        data, aug1, data_f, aug1_f, _, _ = batch
         data = data.to(self.device)
         aug1 = aug1.to(self.device)
         data_f = data_f.to(self.device)
@@ -367,7 +367,7 @@ class EmgNetPretrain(pl.LightningModule):
         return loss
     
     def finetune_step(self, batch, batch_idx, stage='train'):
-        data, data_f, label, _ = batch
+        data, _, data_f, _, label, _ = batch
         data = data.to(self.device)
         data_f = data_f.to(self.device)
         label = label.to(self.device)
