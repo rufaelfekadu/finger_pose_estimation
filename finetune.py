@@ -32,7 +32,7 @@ def main(cfg):
     csv_logger = pl_loggers.CSVLogger(cfg.SOLVER.LOG_DIR, name='csv_logs')
     tb_logger = pl_loggers.TensorBoardLogger(cfg.SOLVER.LOG_DIR, name='tb_logs')
     early_stop_callback = pl.callbacks.EarlyStopping(monitor='val_loss_c', patience=cfg.SOLVER.PATIENCE)
-    checkpoint_callback = pl.callbacks.ModelCheckpoint(dirpath=os.path.join(cfg.SOLVER.LOG_DIR, 'checkpoints'), monitor='val_loss', save_top_k=1, mode='min')
+    checkpoint_callback = pl.callbacks.ModelCheckpoint(dirpath=os.path.join(cfg.SOLVER.LOG_DIR, 'checkpoints'), monitor='val_loss_c', save_top_k=1, mode='min')
 
 
     print('Finetuning model')
