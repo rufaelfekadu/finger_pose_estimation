@@ -97,9 +97,9 @@ class EmgDataset(Dataset):
 
 exp_setups = {
     'pretrain':{
-        'pretrain': ['003'],
-        'train': ['004/S1/P2', '004/S1/P3'],
-        'test': ['004/S1/P4']
+        'pretrain': ['003', '004'],
+        'train': ['005/S1/P1', '005/S1/P2', '005/S1/P3'],
+        'test': ['005/S1/P4']
     },
 }
 def get_dirs_for_exp(cfg):

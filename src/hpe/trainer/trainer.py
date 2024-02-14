@@ -402,7 +402,7 @@ class EmgNetPretrain(pl.LightningModule):
             self.log_dict({f'{stage}_loss_c': loss_c[1], f'{stage}_loss_TF':l_TF, **loss_dict})
         else:
             self.log_dict({f'{stage}_loss_c': loss_c[1], f'{stage}_loss_TF':l_TF})
-        return l_T
+        return loss_c[1]
 
     
     def training_step(self, batch, batch_idx):
