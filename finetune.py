@@ -36,7 +36,6 @@ def main(cfg):
 
 
     print('Finetuning model')
-    breakpoint()
     if os.path.isfile(os.path.join(cfg.SOLVER.LOG_DIR, 'pretrained.ckpt')):
         print('Loading pretrained model')
         model = EmgNetPretrain.load_from_checkpoint(checkpoint_path=os.path.join(cfg.SOLVER.LOG_DIR, 'pretrained.ckpt'))
