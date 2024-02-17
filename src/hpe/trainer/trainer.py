@@ -57,7 +57,7 @@ class EmgNet(pl.LightningModule):
         self.val_loader = dataloaders['val']
         self.test_loader = dataloaders['test']
         self.gestures = list(dataloaders['train'].dataset.dataset.gesture_names_mapping_class.values())
-        self.gestures.remove('rest')
+        # self.gestures.remove('rest')
 
         self.backbone = build_backbone(cfg).to(self.device)
         self.loss_fn = make_loss(cfg)
