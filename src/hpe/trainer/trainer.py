@@ -126,7 +126,7 @@ class EmgNet(pl.LightningModule):
 
             feat, _ = self.forward(data_t)
             features.append(feat.detach().cpu())
-            labels.append(label[:,0])
+            labels.append(label[0])
 
         return torch.cat(features, dim=0), torch.cat(labels, dim=0)
     
