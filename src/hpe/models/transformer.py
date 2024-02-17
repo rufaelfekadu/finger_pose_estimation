@@ -62,9 +62,10 @@ class TransformerModel(nn.Module):
             num_layers=self.num_layers,
         )
 
-        self.decoder = nn.Linear(self.d_model*seq_length, self.d_model)
+        # self.decoder = nn.Linear(self.d_model*seq_length, self.d_model)
+        self.decoder = MLP(self.d_model*seq_length, output_size)
         
-        self.mlp_head = MLP(self.d_model, output_size)
+        # self.mlp_head = MLP(self.d_model, output_size)
         a = [0, -15, 0, -15, 0, -15, 0, 0, -15, 0, 0, -15, 0, 0, -15, 0]
         b = [90, 15 , 90, 15, 90, 15, 110, 90, 15, 110, 90, 15, 110, 90, 15, 110]
         # self.bact = BoundedActivation(a_values=a, b_values=b, label_dim=output_size)
@@ -76,9 +77,10 @@ class TransformerModel(nn.Module):
         x = self.transformer_encoder(x)
         # x = x.permute(1, 0, 2)
         x = self.decoder(x.flatten(start_dim=1))
-        x = self.mlp_head(x)
-        x.unsqueeze(1)
+        # x = self.mlp_head(x)
+        # x.unsqueeze(1)
         # x = self.bact(x)
+        # return x, self.mlp_head(x)
         return x
     
     def load_pretrained(self, path):

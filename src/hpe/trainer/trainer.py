@@ -9,6 +9,11 @@ import torch.optim as optim
 from lightning.pytorch import callbacks
 from torch.optim.optimizer import Optimizer
 
+from sklearn.svm import SVC
+from sklearn.metrics import ConfusionMatrixDisplay
+from sklearn.metrics import confusion_matrix
+from tqdm import tqdm
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -55,6 +60,7 @@ class EmgNet(pl.LightningModule):
         self.backbone = build_backbone(cfg).to(self.device)
         self.loss_fn = make_loss(cfg)
         self.criterion = torch.nn.L1Loss()
+        self.svc_model = SVC(kernel='linear', C=1, class_weight='balanced')
 
         self.plot_output = 10
         self.train_step_output = []
@@ -112,6 +118,41 @@ class EmgNet(pl.LightningModule):
         self.log_dict({'test_loss': losses[1], **loss_dict})
         return losses[1]
     
+    def get_features(self, loader):
+        features, labels = [], []
+        for batch in tqdm(loader):
+            data_t, data_f, label = batch
+            data_t = data_t.to(self.device)
+
+            feat, _ = self.forward(data_t)
+            features.append(feat.detach().cpu())
+            labels.append(label[:,0])
+
+        return torch.cat(features, dim=0), torch.cat(labels, dim=0)
+    
+    def score_svm(self, test_features, test_labels, idx=0):
+
+        acc = self.svc_model.score(test_features, test_labels)
+        # plot confussion matrix
+        y_pred = self.svc_model.predict(test_features)
+        disp = ConfusionMatrixDisplay.from_predictions(test_labels, y_pred, labels=np.unique(test_labels), display_labels=self.gestures)
+        disp.plot(xticks_rotation="vertical")
+        self.logger.experiment.add_figure(f'confusion matrix after hpe on {idx}', plt.gcf(), self.current_epoch)
+        return acc
+    
+    def linear_evaluation(self, train_loader, test_loader):
+
+        print('Evaluating the model using SVM')
+        #  get features
+        train_features, train_labels = self.get_features(train_loader)
+        self.svc_model.fit(train_features, train_labels)
+
+        test_features, test_labels = self.get_features(test_loader)
+        acc = self.score_svm(test_features, test_labels)
+        print(f'Accuracy on test_: {acc}')
+        self.logger.experiment.add_scalar(f'classification_test_acc', acc, self.current_epoch)
+
+
     
     def on_test_end(self) -> None:
         #  plot the scalar values of the logger as bar chart
@@ -133,6 +174,7 @@ class EmgNet(pl.LightningModule):
         # ax.set_xticklabels(self.cfg.DATA.LABEL_COLUMNS, rotation=45)
 
         self.logger.experiment.add_figure('final results', fig, self.current_epoch)
+        self.linear_evaluation(self.train_loader, self.test_loader)
 
     def on_validation_epoch_end(self) -> None:
         # plot a sample output
@@ -291,10 +333,10 @@ class EmgNetPretrain(pl.LightningModule):
         self.test_2_loader = dataloaders['test_2']
 
         #  setup model
-        # self.backbone_t = build_backbone(cfg).to(self.device)
-        # self.backbone_f = build_backbone(cfg).to(self.device)
-        self.backbone_t = make_test(cfg).to(self.device)
-        self.backbone_f = make_test(cfg).to(self.device)
+        self.backbone_t = build_backbone(cfg).to(self.device)
+        self.backbone_f = build_backbone(cfg).to(self.device)
+        # self.backbone_t = make_test(cfg).to(self.device)
+        # self.backbone_f = make_test(cfg).to(self.device)
         infeat_t =  (self.backbone_f.d_model)
         infeat_f = (self.backbone_t.d_model)
         self.mlp = MLP(infeatures=infeat_t+infeat_f, outfeatures=len(self.cfg.DATA.LABEL_COLUMNS)).to(self.device)
